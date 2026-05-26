@@ -2,7 +2,7 @@
 
 VoxType 是一个早期开源项目，目标是探索本地优先、隐私友好的语音输入法体验。
 
-当前仓库还处在 harness 初始化和产品发现阶段。产品代码尚未创建；`docs/plans/原始需求.md` 是原始需求草稿，不代表最终技术方案。
+当前仓库已完成 harness 初始化、产品发现和第一轮开源调研。产品代码尚未创建；`docs/plans/原始需求.md` 是原始需求草稿，不代表最终技术方案。
 
 ## 目标方向
 
@@ -17,8 +17,8 @@ VoxType 计划优先验证这些能力：
 
 1. 项目 harness 配置。
 2. 语音输入法需求分析和边界澄清。
-3. GitHub 开源项目调研。
-4. 技术方案 brainstorm。
+3. GitHub 开源项目调研。已完成第一轮，见 `docs/research/open-source-landscape.md`。
+4. 技术方案 brainstorm。下一步。
 5. OpenSpec 记录架构决策。
 6. Scaffold 产品代码并建立测试基线。
 
@@ -38,6 +38,10 @@ bash init.sh
 - `docs/harness/feature_list.json`：当前任务和功能状态。
 - `docs/harness/progress.md`：已验证状态和会话日志。
 - `docs/harness/research-log.md`：课程学习和后续调研记录。
+- `docs/research/requirements-brief.md`：整理后的需求 brief。
+- `docs/research/open-source-landscape.md`：相关开源项目调研。
+- `docs/research/technical-options.md`：MVP 技术选项建议。
+- `TMP/research/`：调研中间材料；其中 `repos/` 是本地第三方克隆，不提交。
 - `docs/plans/原始需求.md`：原始需求草稿。
 
 ## 开发状态

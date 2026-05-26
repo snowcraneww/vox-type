@@ -4,10 +4,10 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 
 ## 当前状态
 
-- 阶段：项目 harness 初始化与产品发现。
+- 阶段：项目 harness 初始化、产品发现和开源调研已完成；下一步是 MVP 技术方案 brainstorm / OpenSpec。
 - 产品代码尚未 scaffold。
 - 原始 AI 生成需求草稿在 `docs/plans/原始需求.md`，只能作为背景材料，不是已批准架构。
-- Rust / Tauri / Whisper.cpp 是候选方向，需经过调研、spec 和验证后再定稿。
+- Rust / Tauri / Whisper.cpp 是原始草稿候选方向。当前调研建议见 `docs/research/technical-options.md`，仍需经过维护者批准和 OpenSpec 记录后再定稿。
 
 ## 开工流程
 
@@ -61,6 +61,8 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 - `docs/harness/session-handoff.md`：长会话交接模板。
 - `docs/harness/clean-state-checklist.md`：收尾检查。
 - `docs/harness/research-log.md`：外部调研记录。
+- `docs/research/`：长期需求、开源生态和技术选项研究。
+- `TMP/research/*.md`：本轮调研中间材料，可提交；`TMP/research/repos/` 是第三方仓库克隆，必须保持忽略。
 
 ## 完成定义
 

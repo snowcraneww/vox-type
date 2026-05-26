@@ -3,12 +3,12 @@
 ## 当前已验证状态
 
 - 仓库根目录：`C:/grace_repos/open-source/vox-type`
-- 当前阶段：harness 初始化完成，下一步是产品发现。
+- 当前阶段：harness 初始化、产品发现和开源方案调研完成，下一步是方案 brainstorm / OpenSpec。
 - 产品 scaffold：未开始。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`discovery-001`
+- 当前最高优先级未完成项：`spec-001`
 - 当前 blocker：无。
 
 ## 课程学习状态
@@ -38,6 +38,16 @@
 - `python -m json.tool docs/harness/feature_list.json`：exit 0。
 - UTF-8 内容断言：exit 0；确认 `feature_list.json`、`quality.md`、`evaluator-rubric.md`、`README.md`、`AGENTS.md` 中文内容可读。
 - 文本扫描：旧的 MIT 候选信息只保留在 `docs/plans/原始需求.md` 原始草稿中；项目事实已在 README、LICENSE 和 harness 中改为 Apache-2.0。
+
+### 2026-05-26 Product Discovery And Open Source Research
+
+- 阅读 `docs/plans/原始需求.md`，整理出 VoxType 的目标、MVP 行为、非目标、风险和待确认问题。
+- 使用 Tavily 和 GitHub API 搜索本地语音输入、Whisper、Windows 热键和文本上屏相关项目。
+- 深读本地克隆：Handy、OpenLess、OpenWhispr、VoiceFlow、whisper-writer、tambourine-voice、faster-whisper-dictation。
+- 验证生态参考：whisper.cpp、sherpa-onnx、local-whisper、FluidAudio、FluidVoice。
+- 产出中间文档：`TMP/research/requirements-brief.md`、`TMP/research/repo-candidates.md`、`TMP/research/solution-analysis.md`。
+- 产出正式文档：`docs/research/requirements-brief.md`、`docs/research/open-source-landscape.md`、`docs/research/technical-options.md`。
+- 许可证判断：MIT/Apache-2.0 项目可作为更直接参考；GPL/AGPL 项目仅做概念参考，避免污染 Apache-2.0 项目。
 
 ## 会话记录
 
@@ -74,3 +84,14 @@
   - 原始需求文件仍是草稿，包含旧的 MIT 候选信息；项目事实以 Apache-2.0 为准。
   - 产品技术栈尚未决策。
 - 下一步最佳动作：执行 `discovery-001`，把 `docs/plans/原始需求.md` 整理成正式需求 brief。
+
+### Session 002 - 2026-05-26
+
+- 本轮目标：学习原始需求，调研相关开源项目，并形成 VoxType 技术方向建议。
+- 已完成：
+  - 将第三方调研仓库集中在 `TMP/research/repos/`，并通过 `.gitignore` 排除。
+  - 写入 `TMP/research/` 中间调研文档。
+  - 写入 `docs/research/` 长期调研文档。
+  - 将 `discovery-001` 和 `research-001` 标记为 passing。
+- 初步建议：Rust + Tauri 2 + React/TS，Windows first，本地优先；MVP 先做 clipboard paste + restore，上屏可靠性第二阶段做 `SendInput(KEYEVENTF_UNICODE)`，TSF IME 后置。
+- 下一步最佳动作：执行 `spec-001`，用 superpowers:brainstorming 和 OpenSpec 把 MVP 方案正式收敛并等待维护者批准。

@@ -37,10 +37,31 @@
 - Datadog: https://www.datadoghq.com/blog/ai/harness-first-agents
 - 交叉结论：有效 harness 需要上下文管理、工具执行、沙箱/权限、验证反馈、可观测性和恢复路径。
 
-## VoxType 后续调研待办
+## VoxType 产品与开源项目调研
 
-- Windows 语音输入/文本注入相关开源项目。
-- Whisper.cpp、faster-whisper、ONNX Runtime、Vosk 等本地 ASR 方案。
-- Tauri、native Rust、Electron、.NET/WPF 等桌面壳方案。
-- Windows SendInput、UI Automation、IME TSF 相关实现和限制。
-- 开源语音输入法的许可证和可借鉴边界。
+### Session 002 - 2026-05-26
+
+- 原始需求来源：`docs/plans/原始需求.md`。
+- 中间调研资料：`TMP/research/requirements-brief.md`、`TMP/research/repo-candidates.md`、`TMP/research/solution-analysis.md`。
+- 正式调研资料：`docs/research/requirements-brief.md`、`docs/research/open-source-landscape.md`、`docs/research/technical-options.md`。
+- 本地深读仓库目录：`TMP/research/repos/`，该目录被 Git 忽略，只作为本机分析资料。
+
+深读项目：
+
+- Handy: https://github.com/cjpais/Handy
+- OpenLess: https://github.com/Open-Less/openless
+- OpenWhispr: https://github.com/OpenWhispr/openwhispr
+- VoiceFlow: https://github.com/infiniV/VoiceFlow
+- whisper-writer: https://github.com/savbell/whisper-writer
+- tambourine-voice: https://github.com/kstonekuan/tambourine-voice
+- faster-whisper-dictation: https://github.com/bhargavchippada/faster-whisper-dictation
+
+生态参考：
+
+- whisper.cpp: https://github.com/ggml-org/whisper.cpp
+- sherpa-onnx: https://github.com/k2-fsa/sherpa-onnx
+- local-whisper: https://github.com/t2o2/local-whisper
+- FluidAudio: https://github.com/FluidInference/FluidAudio
+- FluidVoice: https://github.com/altic-dev/FluidVoice
+
+当前结论：Rust + Tauri 2 + React/TS 是推荐主线；MVP 优先验证按住说话、松开本地转写、上屏到当前光标。完整 TSF IME、会议转写和 AI agent 工作流后置。

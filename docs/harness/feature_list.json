@@ -33,7 +33,7 @@
         "2026-05-26: python -m json.tool docs/harness/feature_list.json exited 0.",
         "2026-05-26: required harness files, LICENSE, .gitignore, .editorconfig, .gitattributes, docs/research/README.md, and openspec/README.md are present."
       ],
-      "notes": "Harness baseline is verified. Next highest-priority task is discovery-001."
+      "notes": "Harness baseline is verified. Discovery and research are now complete; next highest-priority task is spec-001."
     },
     {
       "id": "discovery-001",
@@ -41,14 +41,18 @@
       "area": "discovery",
       "title": "整理原始需求并澄清产品边界",
       "user_visible_behavior": "维护者可以看到 VoxType 的目标用户、核心场景、非目标、MVP 边界和待决问题。",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "阅读 docs/plans/原始需求.md。",
         "产出 docs/research/requirements-brief.md。",
         "明确列出已知事实、假设、风险和需要维护者确认的问题。"
       ],
-      "evidence": [],
-      "notes": "开始产品 brainstorm 前先做。"
+      "evidence": [
+        "2026-05-26: Read docs/plans/原始需求.md with UTF-8 output and extracted product intent, MVP behavior, non-goals, assumptions, risks, and maintainer decisions.",
+        "2026-05-26: Wrote TMP/research/requirements-brief.md as detailed intermediate notes.",
+        "2026-05-26: Wrote docs/research/requirements-brief.md as durable project research."
+      ],
+      "notes": "Original draft remains input only. Apache-2.0 in repository files is the license fact source."
     },
     {
       "id": "research-001",
@@ -56,14 +60,20 @@
       "area": "research",
       "title": "调研语音输入法和本地转写开源项目",
       "user_visible_behavior": "维护者可以比较相关开源项目的技术路线、许可证、活跃度、可借鉴点和风险。",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "使用 web search 和 GitHub API 搜索相关项目。",
         "记录至少 8 个相关项目或库。",
         "产出 docs/research/open-source-landscape.md，包含来源 URL、结论和不确定性。"
       ],
-      "evidence": [],
-      "notes": "不要复制受版权保护的代码；只做事实调研和架构启发。"
+      "evidence": [
+        "2026-05-26: Used Tavily and GitHub API search for local dictation, Windows hotkey, Whisper, and ASR projects.",
+        "2026-05-26: Deep-read local clones under TMP/research/repos/: Handy, openless, openwhispr, VoiceFlow, whisper-writer, tambourine-voice, and faster-whisper-dictation.",
+        "2026-05-26: Verified additional ecosystem references via GitHub metadata: whisper.cpp, sherpa-onnx, local-whisper, FluidAudio, and FluidVoice.",
+        "2026-05-26: Wrote TMP/research/repo-candidates.md and TMP/research/solution-analysis.md as intermediate research notes.",
+        "2026-05-26: Wrote docs/research/open-source-landscape.md and docs/research/technical-options.md."
+      ],
+      "notes": "Research covers more than 8 related projects/libraries. GPL/AGPL projects are concept-only references for this Apache-2.0 project."
     },
     {
       "id": "spec-001",
