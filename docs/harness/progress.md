@@ -81,6 +81,7 @@
 - `npm run build`：通过。
 - `cargo check --manifest-path src-tauri/Cargo.toml`：通过。
 - 当前未完成：真实麦克风录音、真实 whisper.cpp 推理、真实剪贴板上屏、托盘入口、Windows 手动 E2E。
+- CMake：已通过 `winget install --id Kitware.CMake -e --accept-package-agreements --accept-source-agreements` 安装到 `C:/Program Files/CMake/bin/cmake.exe`；当前 shell 的 PATH 尚未刷新，后续可直接调用完整路径或临时追加 PATH。
 
 ## 会话记录
 

@@ -35,6 +35,7 @@
 - 真实剪贴板上屏尚未接入。
 - 托盘入口尚未接入。
 - Windows 手动 E2E 尚未执行。
+- CMake 已安装在 `C:/Program Files/CMake/bin/cmake.exe`，但当前 shell 的 PATH 尚未刷新。
 
 ## 下一步最佳动作
 
