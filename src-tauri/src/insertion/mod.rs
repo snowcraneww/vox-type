@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn mock_insertion_rejects_empty_text() {
-        let error = MockInsertion::default().insert_text(" ").unwrap_err();
+        let error = MockInsertion.insert_text(" ").unwrap_err();
         assert!(error.to_string().contains("不能上屏空文本"));
     }
 }

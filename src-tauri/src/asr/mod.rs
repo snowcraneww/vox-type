@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn mock_engine_returns_chinese_transcript() {
-        let transcript = MockAsrEngine::default().transcribe(&[]).unwrap();
+        let transcript = MockAsrEngine.transcribe(&[]).unwrap();
         assert_eq!(transcript.text, "这是 VoxType 的模拟转写结果。");
     }
 }

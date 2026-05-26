@@ -24,8 +24,8 @@ fn get_status() -> AppStatus {
 
 #[tauri::command]
 fn simulate_dictation() -> Result<AppStatus, error::VoxError> {
-    let engine = MockAsrEngine::default();
-    let insertion = MockInsertion::default();
+    let engine = MockAsrEngine;
+    let insertion = MockInsertion;
     let transcript = engine.transcribe(&[])?;
     insertion.insert_text(&transcript.text)?;
     Ok(AppStatus::succeeded(transcript.text))
