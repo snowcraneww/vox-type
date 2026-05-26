@@ -1,0 +1,56 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.idea/
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+cookies/
+logs/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+.pnpm-store/
+
+# Rust / Tauri
+/target/
+src-tauri/target/
+src-tauri/gen/schemas/
+Cargo.lock
+
+# Large local speech assets
+models/
+*.gguf
+*.bin
+*.onnx
+*.wav
+*.mp3
+*.flac
+*.m4a
+
+# Packaged app artifacts
+*.msi
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm

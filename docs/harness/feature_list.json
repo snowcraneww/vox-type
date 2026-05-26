@@ -1,0 +1,99 @@
+{
+  "project": "VoxType",
+  "last_updated": "2026-05-26",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true,
+    "repository_is_system_of_record": true,
+    "open_source_safe_by_default": true
+  },
+  "status_legend": {
+    "not_started": "任务尚未开始。",
+    "in_progress": "当前唯一正在推进的任务。",
+    "blocked": "阻塞原因已记录，当前无法继续推进。",
+    "passing": "要求的验证已经通过，并且证据已经记录。"
+  },
+  "features": [
+    {
+      "id": "harness-001",
+      "priority": 1,
+      "area": "harness",
+      "title": "建立开源项目 harness 基线",
+      "user_visible_behavior": "新会话可以只阅读仓库文件，理解项目状态、工作规则、下一步任务和验证入口。",
+      "status": "passing",
+      "verification": [
+        "运行 bash init.sh。",
+        "确认 feature_list.json 是有效 JSON。",
+        "确认 AGENTS.md、README.md、CONTRIBUTING.md 和 docs/harness/* 文件存在。",
+        "确认 progress.md 记录本次配置证据。"
+      ],
+      "evidence": [
+        "2026-05-26: bash init.sh exited 0 and printed VoxType harness baseline OK, License: Apache-2.0, Product scaffold: not started.",
+        "2026-05-26: python -m json.tool docs/harness/feature_list.json exited 0.",
+        "2026-05-26: required harness files, LICENSE, .gitignore, .editorconfig, .gitattributes, docs/research/README.md, and openspec/README.md are present."
+      ],
+      "notes": "Harness baseline is verified. Next highest-priority task is discovery-001."
+    },
+    {
+      "id": "discovery-001",
+      "priority": 2,
+      "area": "discovery",
+      "title": "整理原始需求并澄清产品边界",
+      "user_visible_behavior": "维护者可以看到 VoxType 的目标用户、核心场景、非目标、MVP 边界和待决问题。",
+      "status": "not_started",
+      "verification": [
+        "阅读 docs/plans/原始需求.md。",
+        "产出 docs/research/requirements-brief.md。",
+        "明确列出已知事实、假设、风险和需要维护者确认的问题。"
+      ],
+      "evidence": [],
+      "notes": "开始产品 brainstorm 前先做。"
+    },
+    {
+      "id": "research-001",
+      "priority": 3,
+      "area": "research",
+      "title": "调研语音输入法和本地转写开源项目",
+      "user_visible_behavior": "维护者可以比较相关开源项目的技术路线、许可证、活跃度、可借鉴点和风险。",
+      "status": "not_started",
+      "verification": [
+        "使用 web search 和 GitHub API 搜索相关项目。",
+        "记录至少 8 个相关项目或库。",
+        "产出 docs/research/open-source-landscape.md，包含来源 URL、结论和不确定性。"
+      ],
+      "evidence": [],
+      "notes": "不要复制受版权保护的代码；只做事实调研和架构启发。"
+    },
+    {
+      "id": "spec-001",
+      "priority": 4,
+      "area": "spec",
+      "title": "形成 VoxType MVP 技术方案",
+      "user_visible_behavior": "维护者可以在 2-3 个方案中选择 MVP 路线，并看到权衡、风险和验证策略。",
+      "status": "not_started",
+      "verification": [
+        "使用 superpowers:brainstorming 产出设计。",
+        "维护者批准设计。",
+        "在 openspec/changes/ 下记录 proposal.md 和 tasks.md。"
+      ],
+      "evidence": [],
+      "notes": "必须在 discovery-001 和 research-001 之后。"
+    },
+    {
+      "id": "scaffold-001",
+      "priority": 5,
+      "area": "implementation",
+      "title": "创建最小可运行项目骨架",
+      "user_visible_behavior": "贡献者可以按 README 的命令启动最小应用，并运行基础测试。",
+      "status": "not_started",
+      "verification": [
+        "运行项目初始化命令。",
+        "运行格式化、lint/typecheck 和测试基线。",
+        "更新 README 的真实启动与验证命令。"
+      ],
+      "evidence": [],
+      "notes": "需要先确认技术栈。可能需要 npm/cargo 网络授权。"
+    }
+  ]
+}
