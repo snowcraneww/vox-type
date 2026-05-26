@@ -1,0 +1,66 @@
+:root {
+  color: #172026;
+  background: #f6f7f8;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+  line-height: 1.5;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+
+button {
+  border: 1px solid #1f6feb;
+  border-radius: 6px;
+  background: #1f6feb;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  padding: 8px 12px;
+}
+
+.app-shell {
+  display: grid;
+  gap: 16px;
+  margin: 0 auto;
+  max-width: 920px;
+  padding: 24px;
+}
+
+.hero {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow { color: #5b6871; font-size: 13px; margin: 0 0 4px; }
+h1 { font-size: 28px; line-height: 1.2; margin: 0; }
+h2 { font-size: 17px; margin: 0 0 12px; }
+
+.panel {
+  background: white;
+  border: 1px solid #dde3ea;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.status-pill {
+  border: 1px solid #b8c7d8;
+  border-radius: 999px;
+  min-width: 80px;
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 0;
+}
+
+.settings-grid div { border-left: 3px solid #d7dee8; padding-left: 10px; }
+dt { color: #5b6871; font-size: 13px; }
+dd { margin: 2px 0 0; }
+blockquote { border-left: 3px solid #1f6feb; margin: 12px 0; padding-left: 12px; }

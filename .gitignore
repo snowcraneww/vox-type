@@ -39,6 +39,7 @@ coverage/
 src-tauri/target/
 src-tauri/gen/schemas/
 Cargo.lock
+!src-tauri/Cargo.lock
 
 # Large local speech assets
 models/

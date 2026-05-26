@@ -101,14 +101,20 @@
       "area": "implementation",
       "title": "创建最小可运行项目骨架",
       "user_visible_behavior": "贡献者可以按 README 的命令启动最小应用，并运行基础测试。",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "运行项目初始化命令。",
         "运行格式化、lint/typecheck 和测试基线。",
         "更新 README 的真实启动与验证命令。"
       ],
-      "evidence": [],
-      "notes": "技术方向已确认。开始前需要详细 implementation plan；可能需要 npm/cargo 网络授权。"
+      "evidence": [
+        "2026-05-26: 写入 docs/superpowers/plans/2026-05-26-scaffold-voxtype-mvp.md。",
+        "2026-05-26: 创建 package.json、Vite/React/TypeScript 配置、src/ 前端骨架、src-tauri/ Rust/Tauri 骨架。",
+        "2026-05-26: npm install 成功，0 vulnerabilities。",
+        "2026-05-26: cargo fetch --manifest-path src-tauri/Cargo.toml 成功。",
+        "2026-05-26: npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、npm run build、cargo check --manifest-path src-tauri/Cargo.toml 通过。"
+      ],
+      "notes": "最小 mock 闭环骨架已建立；真实麦克风录音、真实 whisper.cpp 推理、剪贴板上屏和托盘仍未完成，因此不能标为 passing。"
     }
   ]
 }

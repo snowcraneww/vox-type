@@ -9,7 +9,8 @@
 - `discovery-001` 已标记为 `passing`。
 - `research-001` 已标记为 `passing`。
 - `spec-001` 已标记为 `passing`。
-- 产品代码尚未 scaffold。
+- `scaffold-001` 已开始，状态 `in_progress`。
+- 产品代码已有最小 Tauri/React/Rust mock 骨架。
 
 ## 本轮改动
 
@@ -22,20 +23,25 @@
 - 完成技术选项建议，见 `docs/research/technical-options.md`。
 - 完成详细 MVP 技术方案草案，见 `docs/research/mvp-technical-proposal.md`。
 - 已确认 MVP 技术方向，并写入 `openspec/changes/voxtype-mvp-technical-direction/`。
+- 已创建实现计划：`docs/superpowers/plans/2026-05-26-scaffold-voxtype-mvp.md`。
+- 已创建最小产品骨架：`src/`、`src-tauri/`、`package.json`。
 - 中间调研资料保存在 `TMP/research/`；第三方克隆在 `TMP/research/repos/` 且被 Git 忽略。
 - 维护者文档语言规则：默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 
 ## 仍损坏或未验证
 
-- 产品代码尚未 scaffold。
-- 尚未为 scaffold 写详细 implementation plan。
+- 真实麦克风录音尚未接入。
+- 真实 whisper.cpp 推理尚未接入。
+- 真实剪贴板上屏尚未接入。
+- 托盘入口尚未接入。
+- Windows 手动 E2E 尚未执行。
 
 ## 下一步最佳动作
 
 - 当前下一任务：`scaffold-001`。
-- 为什么它是下一步：MVP 技术方向已经确认并写入 OpenSpec，需要先写详细 implementation plan，再 scaffold 产品代码。
+- 为什么它是下一步：mock 骨架已完成，需要继续接入真实系统能力并验证 Windows 闭环。
 - passing 标准：创建最小可运行项目骨架，运行格式化、lint/typecheck 和测试基线，并更新 README 的真实启动与验证命令。
-- 不要动：不要 scaffold 产品代码，不要引入 npm/cargo 依赖，不要把 TSF 当作 MVP 默认路线。
+- 不要动：不要把 TSF 当作 MVP 默认路线；不要提交模型文件、音频文件或密钥。
 
 ## 命令
 

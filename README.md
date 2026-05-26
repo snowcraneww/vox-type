@@ -2,7 +2,7 @@
 
 VoxType 是一个早期开源项目，目标是探索本地优先、隐私友好的语音输入法体验。
 
-当前仓库已完成 harness 初始化、产品发现和第一轮开源调研。产品代码尚未创建；`docs/plans/原始需求.md` 是原始需求草稿，不代表最终技术方案。
+当前仓库已完成 harness 初始化、产品发现、第一轮开源调研和 MVP 技术方向确认。产品代码已有最小 Tauri 2 + React/TypeScript + Rust 骨架；`docs/plans/原始需求.md` 是原始需求草稿，不代表最终技术方案。
 
 ## 目标方向
 
@@ -20,7 +20,7 @@ VoxType 计划优先验证这些能力：
 3. GitHub 开源项目调研。已完成第一轮，见 `docs/research/open-source-landscape.md`。
 4. 技术方案 brainstorm。下一步。
 5. OpenSpec 记录架构决策。已创建 `openspec/changes/voxtype-mvp-technical-direction/`。
-6. Scaffold 产品代码并建立测试基线。下一步。
+6. Scaffold 产品代码并建立测试基线。已开始，当前是 mock 闭环骨架。
 
 ## 快速开始
 
@@ -28,7 +28,18 @@ VoxType 计划优先验证这些能力：
 bash init.sh
 ```
 
-当前 `init.sh` 只检查仓库文档和 harness 基线，因为产品代码尚未 scaffold。
+安装依赖后可运行：
+
+```bash
+npm install
+npm run typecheck
+npm test -- --run
+npm run build
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml
+```
+
+当前产品骨架提供设置页和模拟语音输入闭环，尚未接入真实麦克风、真实 whisper.cpp 推理和真实 Windows 上屏。
 
 ## 重要文档
 
@@ -47,7 +58,7 @@ bash init.sh
 
 ## 开发状态
 
-还没有可运行应用。请不要运行 `npm run tauri dev`、`cargo test` 或类似命令作为本项目的标准验证，直到 scaffold 完成并写入文档。
+已有最小可运行前端和 Tauri/Rust 骨架。当前标准验证命令见“快速开始”。真实语音输入 MVP 尚未完成。
 
 ## 许可证
 
