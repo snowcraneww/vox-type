@@ -6,7 +6,8 @@
     "passing_requires_evidence": true,
     "do_not_skip_verification": true,
     "repository_is_system_of_record": true,
-    "open_source_safe_by_default": true
+    "open_source_safe_by_default": true,
+    "maintainer_docs_language": "默认使用 zh-CN；代码、命令、API、仓库名和引用的错误消息保持原文。"
   },
   "status_legend": {
     "not_started": "任务尚未开始。",
@@ -29,11 +30,11 @@
         "确认 progress.md 记录本次配置证据。"
       ],
       "evidence": [
-        "2026-05-26: bash init.sh exited 0 and printed VoxType harness baseline OK, License: Apache-2.0, Product scaffold: not started.",
-        "2026-05-26: python -m json.tool docs/harness/feature_list.json exited 0.",
-        "2026-05-26: required harness files, LICENSE, .gitignore, .editorconfig, .gitattributes, docs/research/README.md, and openspec/README.md are present."
+        "2026-05-26: bash init.sh exit 0，输出包含 VoxType harness baseline OK、License: Apache-2.0、Product scaffold: not started。",
+        "2026-05-26: python -m json.tool docs/harness/feature_list.json exit 0。",
+        "2026-05-26: 必需的 harness 文件、LICENSE、.gitignore、.editorconfig、.gitattributes、docs/research/README.md 和 openspec/README.md 均存在。"
       ],
-      "notes": "Harness baseline is verified. Discovery and research are now complete; next highest-priority task is spec-001."
+      "notes": "Harness 基线已验证。产品发现和调研已完成；下一项最高优先级任务是 spec-001。"
     },
     {
       "id": "discovery-001",
@@ -48,11 +49,11 @@
         "明确列出已知事实、假设、风险和需要维护者确认的问题。"
       ],
       "evidence": [
-        "2026-05-26: Read docs/plans/原始需求.md with UTF-8 output and extracted product intent, MVP behavior, non-goals, assumptions, risks, and maintainer decisions.",
-        "2026-05-26: Wrote TMP/research/requirements-brief.md as detailed intermediate notes.",
-        "2026-05-26: Wrote docs/research/requirements-brief.md as durable project research."
+        "2026-05-26: 使用 UTF-8 输出阅读 docs/plans/原始需求.md，并整理产品意图、MVP 行为、非目标、假设、风险和维护者待决问题。",
+        "2026-05-26: 写入 TMP/research/requirements-brief.md 作为详细中间记录。",
+        "2026-05-26: 写入 docs/research/requirements-brief.md 作为长期调研文档。"
       ],
-      "notes": "Original draft remains input only. Apache-2.0 in repository files is the license fact source."
+      "notes": "原始草稿只作为输入材料。许可证事实以仓库内 Apache-2.0 文件为准。"
     },
     {
       "id": "research-001",
@@ -67,13 +68,13 @@
         "产出 docs/research/open-source-landscape.md，包含来源 URL、结论和不确定性。"
       ],
       "evidence": [
-        "2026-05-26: Used Tavily and GitHub API search for local dictation, Windows hotkey, Whisper, and ASR projects.",
-        "2026-05-26: Deep-read local clones under TMP/research/repos/: Handy, openless, openwhispr, VoiceFlow, whisper-writer, tambourine-voice, and faster-whisper-dictation.",
-        "2026-05-26: Verified additional ecosystem references via GitHub metadata: whisper.cpp, sherpa-onnx, local-whisper, FluidAudio, and FluidVoice.",
-        "2026-05-26: Wrote TMP/research/repo-candidates.md and TMP/research/solution-analysis.md as intermediate research notes.",
-        "2026-05-26: Wrote docs/research/open-source-landscape.md and docs/research/technical-options.md."
+        "2026-05-26: 使用 Tavily 和 GitHub API 搜索本地听写、Windows 快捷键、Whisper 和 ASR 相关项目。",
+        "2026-05-26: 深读 TMP/research/repos/ 下的本地克隆：Handy、openless、openwhispr、VoiceFlow、whisper-writer、tambourine-voice、faster-whisper-dictation。",
+        "2026-05-26: 通过 GitHub 元数据验证额外生态参考：whisper.cpp、sherpa-onnx、local-whisper、FluidAudio、FluidVoice。",
+        "2026-05-26: 写入 TMP/research/repo-candidates.md 和 TMP/research/solution-analysis.md 作为中间调研记录。",
+        "2026-05-26: 写入 docs/research/open-source-landscape.md 和 docs/research/technical-options.md。"
       ],
-      "notes": "Research covers more than 8 related projects/libraries. GPL/AGPL projects are concept-only references for this Apache-2.0 project."
+      "notes": "调研覆盖超过 8 个相关项目或库。对 Apache-2.0 项目而言，GPL/AGPL 项目只能做概念参考。"
     },
     {
       "id": "spec-001",
@@ -88,7 +89,7 @@
         "在 openspec/changes/ 下记录 proposal.md 和 tasks.md。"
       ],
       "evidence": [],
-      "notes": "必须在 discovery-001 和 research-001 之后。"
+      "notes": "必须在 discovery-001 和 research-001 之后。当前已有 docs/research/mvp-technical-proposal.md 草案，等待维护者确认后再进入 OpenSpec。"
     },
     {
       "id": "scaffold-001",

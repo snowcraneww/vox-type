@@ -1,108 +1,106 @@
-# VoxType Solution Analysis
+# VoxType 方案分析中间稿
 
-Last updated: 2026-05-26
+更新时间：2026-05-26
 
-## Option A: Rust + Tauri 2 + React/TS Native MVP
+## 方案 A：Rust + Tauri 2 + React/TS 原生 MVP
 
-Build the app as a small Tauri desktop utility. Rust owns hotkey state, microphone capture, ASR integration, insertion, config, and tray behavior. React owns settings and non-critical UI.
+用 Tauri 做轻量桌面壳。Rust 负责快捷键状态、麦克风录音、ASR 集成、文本上屏、配置和托盘；React 负责设置页和非关键 UI。
 
-Pros:
+优点：
 
-- Matches the original draft and the strongest comparable projects, especially Handy and OpenLess.
-- Good fit for Windows native APIs without adding a Python runtime.
-- Smaller distribution than Electron.
-- Keeps a path open to `cpal`, `SendInput`, TSF, ONNX Runtime, whisper.cpp, or sherpa-onnx.
-- Best long-term fit for an Apache-2.0 open source Windows utility.
+- 符合原始草稿，也符合 Handy 和 OpenLess 这两个强相关项目的方向。
+- 适合接 Windows native API，不需要打包 Python runtime。
+- 比 Electron 更轻。
+- 未来可以接 `cpal`、`SendInput`、TSF、ONNX Runtime、whisper.cpp 或 sherpa-onnx。
+- 最适合作为 Apache-2.0 的长期 Windows 开源工具。
 
-Cons:
+缺点：
 
-- More initial systems work than a Python prototype.
-- ASR binding choice needs careful evaluation.
-- Windows text insertion still requires native edge-case work.
+- 初期系统工程量比 Python 原型更高。
+- ASR binding 需要认真评估。
+- Windows 文本上屏仍然要处理很多 native 边界情况。
 
-Recommendation: Use this for the real project.
+结论：推荐作为主项目路线。
 
-## Option B: Python + faster-whisper Prototype
+## 方案 B：Python + faster-whisper 快速原型
 
-Implement a quick utility using Python audio, hotkey, faster-whisper, and clipboard insertion.
+用 Python 音频库、快捷键库、faster-whisper 和剪贴板上屏快速做出一个工具。
 
-Pros:
+优点：
 
-- Fastest path to prove dictation quality and UX.
-- Many reference implementations exist.
-- Easier to experiment with ASR models.
+- 最快验证 ASR 质量和用户体验。
+- 参考项目多。
+- 方便试模型。
 
-Cons:
+缺点：
 
-- Desktop packaging is heavier and more fragile.
-- Native Windows input and permissions become awkward.
-- Long-term maintenance is less aligned with a polished open source Windows app.
+- 桌面分发更重、更脆弱。
+- Windows native 输入和权限处理会变别扭。
+- 长期维护不如 Rust/Tauri 适合。
 
-Recommendation: Use only for throwaway experiments if needed, not as the main codebase.
+结论：可以作为一次性实验，不建议作为主代码库。
 
-## Option C: Electron/Node Desktop App
+## 方案 C：Electron/Node 桌面应用
 
-Use Electron for UI and native helpers for audio/hotkey/insertion.
+用 Electron 做 UI，再用 native helper 处理音频、快捷键和上屏。
 
-Pros:
+优点：
 
-- Large ecosystem and quick UI iteration.
-- OpenWhispr demonstrates a rich product can be built this way.
+- UI 生态成熟。
+- OpenWhispr 证明复杂语音产品可以这样做。
 
-Cons:
+缺点：
 
-- Runtime size and memory overhead conflict with a lightweight input utility.
-- Native helpers are still required for the hard parts.
-- The product can drift toward a large assistant instead of a focused input method.
+- 体积和内存占用偏大，不符合轻量输入工具定位。
+- 难点仍然要靠 native helper 解决。
+- 容易演变成大而全语音助手，而不是聚焦输入法。
 
-Recommendation: Do not use for VoxType MVP.
+结论：不建议用于 VoxType MVP。
 
-## Option D: Full Windows TSF IME First
+## 方案 D：第一版直接做完整 Windows TSF IME
 
-Build VoxType as a real Windows input method using TSF from the start.
+一开始就把 VoxType 做成真正的 Windows 输入法。
 
-Pros:
+优点：
 
-- Best theoretical text insertion fidelity.
-- More accurate positioning in IME-aware applications.
-- Strong foundation for a true input method identity.
+- 理论上文本上屏最可靠。
+- 更适合 IME-aware 应用。
+- 对“真正输入法”身份更完整。
 
-Cons:
+缺点：
 
-- High implementation complexity.
-- Slow first iteration.
-- Requires substantial Windows native testing and installer work.
+- 实现复杂度高。
+- 第一轮反馈会很慢。
+- 安装、测试、Windows native 边界都会变重。
 
-Recommendation: Keep as a later phase after the product proves the dictation loop.
+结论：后置。先证明产品闭环，再考虑 TSF。
 
-## Recommended MVP Architecture
+## 推荐 MVP 架构
 
 ```mermaid
 flowchart LR
-    Hotkey[Global hotkey] --> Recorder[Recorder: cpal]
+    Hotkey[全局快捷键] --> Recorder[录音模块: cpal]
     Recorder --> Audio[16 kHz mono PCM]
-    Audio --> Trim[Min duration + silence trim]
-    Trim --> ASR[Local ASR engine]
-    ASR --> Insert[Insertion strategy]
-    Insert --> Clipboard[Clipboard paste MVP]
-    Insert --> Unicode[Windows Unicode SendInput phase 2]
-    Insert --> TSF[TSF IME phase 3]
-    UI[Tauri settings + tray] --> Hotkey
+    Audio --> Trim[最小时长 + 静音裁剪]
+    Trim --> ASR[本地 ASR 引擎]
+    ASR --> Insert[上屏策略]
+    Insert --> Clipboard[第一阶段: 剪贴板粘贴]
+    Insert --> Unicode[第二阶段: Windows Unicode SendInput]
+    Insert --> TSF[第三阶段: TSF IME]
+    UI[Tauri 设置页 + 托盘] --> Hotkey
     UI --> ASR
 ```
 
-Recommended first build:
+建议第一版：
 
-- Shell: Tauri 2 + React/TypeScript.
-- Core: Rust modules for hotkey, recorder, ASR engine adapter, insertion, config, and status events.
-- Hotkey: use a proven global hotkey crate or Tauri plugin first; add Windows low-level hook only if needed.
-- Audio: `cpal`, normalized to 16 kHz mono PCM.
-- VAD: start with minimum duration and silence trimming; add Silero/ONNX VAD after the core loop works.
-- ASR: compare whisper.cpp/transcribe-rs versus sherpa-onnx before hard-locking. `whisper-cli` can be a proof-of-life path, but should not become the permanent boundary.
-- Insertion: clipboard paste plus restoration for MVP, then `SendInput(KEYEVENTF_UNICODE)`, then TSF only when needed.
-- UI: tray, settings page, small non-focus-stealing status indicator.
+- 桌面壳：Tauri 2 + React/TypeScript。
+- 核心：Rust 模块拆分为 hotkey、recorder、ASR engine adapter、insertion、config、status events。
+- 快捷键：先用成熟的 global hotkey crate 或 Tauri plugin，不够再补 Windows low-level hook。
+- 音频：`cpal`，统一到 16 kHz mono PCM。
+- VAD：先做最小时长和静音裁剪；第二阶段再加 Silero/ONNX VAD。
+- ASR：先比较 whisper.cpp/transcribe-rs 和 sherpa-onnx。`whisper-cli` 可以做 proof-of-life，但不建议成为长期核心边界。
+- 上屏：第一阶段剪贴板粘贴并恢复，第二阶段 `SendInput(KEYEVENTF_UNICODE)`，第三阶段 TSF。
+- UI：托盘、设置页、不抢焦点的小状态提示。
 
-## Final Recommendation
-
-Choose Option A. Build a narrow Windows-first Tauri/Rust MVP that proves one loop: hold, speak, release, local transcribe, insert. Borrow architecture lessons from Handy and OpenLess, pipeline details from faster-whisper-dictation, and avoid copying GPL/AGPL code. Delay TSF, meeting transcription, and AI formatting until the basic dictation loop is reliable.
+最终建议：选择方案 A。先做窄范围 Windows-first Tauri/Rust MVP，证明“按住、说话、松开、本地转写、上屏”的闭环。借鉴 Handy 和 OpenLess 的架构边界，借鉴 faster-whisper-dictation 的管线细节，不复制 GPL/AGPL 代码。TSF、会议转写、AI 格式化都后置。
 

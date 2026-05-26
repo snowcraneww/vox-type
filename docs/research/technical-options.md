@@ -1,45 +1,45 @@
-# Technical Options
+# 技术选项对比
 
-Last updated: 2026-05-26
+更新时间：2026-05-26
 
-## Recommended Direction
+## 推荐方向
 
-Use Rust + Tauri 2 + React/TypeScript for the main project. Keep Rust responsible for hotkeys, audio, ASR integration, text insertion, config, and process state. Use React for settings and status UI.
+主项目建议采用 Rust + Tauri 2 + React/TypeScript。Rust 负责快捷键、录音、ASR 集成、文本上屏、配置和状态机；React 负责设置页、状态展示和非关键 UI。
 
-This matches the original draft while incorporating lessons from Handy, OpenLess, and faster-whisper-dictation.
+这个方向和原始草稿一致，也和 Handy、OpenLess、faster-whisper-dictation 的调研结论相符。
 
-## MVP Pipeline
+## MVP 主流程
 
 ```mermaid
 flowchart LR
-    A[Hold global hotkey] --> B[Record microphone]
-    B --> C[Normalize audio]
-    C --> D[Local ASR]
-    D --> E[Post-process text lightly]
-    E --> F[Insert into active app]
-    F --> G[Show success or failure]
+    A[按住全局快捷键] --> B[录制麦克风]
+    B --> C[统一音频格式]
+    C --> D[本地 ASR]
+    D --> E[轻量文本后处理]
+    E --> F[输入到当前应用]
+    F --> G[显示成功或失败]
 ```
 
-## Component Choices
+## 组件选择
 
-| Component | MVP choice | Later option | Rationale |
+| 组件 | MVP 建议 | 后续升级 | 理由 |
 | --- | --- | --- | --- |
-| Desktop shell | Tauri 2 + React/TS | Same | Small app footprint with native Rust escape hatches. |
-| Audio capture | Rust `cpal` | Add device management and watchdog | Proven in comparable Rust/Tauri dictation apps. |
-| Audio format | 16 kHz mono PCM | Streaming chunks | Common ASR boundary and easy to test. |
-| VAD | Minimum duration + silence trim | Silero/ONNX VAD with pre-speech buffer | Avoid blocking the first loop on model complexity. |
-| ASR | Evaluate whisper.cpp/transcribe-rs and sherpa-onnx | Multiple engines through an adapter | Avoid locking into `whisper-cli` as a permanent boundary too early. |
-| Text insertion | Clipboard paste with restoration | Unicode `SendInput`, then TSF | Fastest MVP with an explicit reliability path. |
-| UI | Tray + settings + non-focus-stealing status | Onboarding and model manager | The first app should stay utility-focused. |
+| 桌面壳 | Tauri 2 + React/TS | 继续沿用 | 体积小，Rust 调 Windows native API 方便。 |
+| 音频采集 | Rust `cpal` | 增加设备管理和录音 watchdog | Rust/Tauri 同类项目已有实践。 |
+| 音频格式 | 16 kHz mono PCM | 支持流式 chunk | ASR 常用边界，便于测试。 |
+| VAD | 最小时长 + 静音裁剪 | Silero/ONNX VAD + 预录音缓冲 | 第一版先别被 VAD 模型复杂度卡住。 |
+| ASR | 评估 whisper.cpp/transcribe-rs 和 sherpa-onnx | 通过 engine adapter 支持多引擎 | 不要过早把 `whisper-cli` 子进程当成长期架构。 |
+| 文本上屏 | 剪贴板粘贴并恢复 | Unicode `SendInput`，再到 TSF | 先跑通 MVP，再逐步提高可靠性。 |
+| UI | 托盘 + 设置页 + 不抢焦点的状态提示 | onboarding、模型管理 | 第一版要保持工具属性，不做大而全产品。 |
 
-## Options Considered
+## 对比过的方案
 
-- Rust/Tauri native MVP: recommended.
-- Python/faster-whisper prototype: useful for throwaway ASR experiments, not the main app.
-- Electron app: good for broad UI products, too heavy for a lightweight input utility.
-- TSF IME first: technically attractive but too slow and risky for the first release.
+- Rust/Tauri 原生 MVP：推荐。长期维护、Windows native 能力、体积和开源协作都更合适。
+- Python/faster-whisper 原型：适合做一次性 ASR 质量实验，不建议做主应用。
+- Electron 应用：适合复杂桌面产品，但对轻量输入工具偏重，而且 native 难点仍然存在。
+- 一开始做完整 TSF IME：技术上有吸引力，但实现成本高、验证慢，不适合作为第一阶段。
 
-## Next Brainstorming Topic
+## 下一步需要讨论
 
-Before scaffolding product code, decide the first ASR engine experiment and the first insertion path. The most pragmatic default is clipboard paste for MVP insertion and a small engine adapter that can compare whisper.cpp-style and sherpa-onnx-style backends.
+在 scaffold 产品代码前，需要先确认两个关键决策：第一版 ASR 引擎实验选什么，第一版文本上屏是否接受剪贴板方案。当前最务实的默认值是：上屏先用剪贴板粘贴并恢复；ASR 用清晰的 engine adapter，把 whisper.cpp 风格和 sherpa-onnx 风格的后端都留出评估空间。
 

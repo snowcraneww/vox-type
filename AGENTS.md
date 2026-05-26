@@ -29,6 +29,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 - 不要为了宣称完成而降低验证标准。
 - 功能状态只有在验证已运行并记录证据后，才能标为 `passing`。
 - 不要重置、回滚或覆盖用户未要求处理的改动。
+- 面向维护者的研究、方案、进度和规则文档默认使用中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 
 ## 技能使用
 
@@ -62,6 +63,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 - `docs/harness/clean-state-checklist.md`：收尾检查。
 - `docs/harness/research-log.md`：外部调研记录。
 - `docs/research/`：长期需求、开源生态和技术选项研究。
+- `docs/research/mvp-technical-proposal.md`：Rust + Tauri 2 + React/TS MVP 技术方案草案，未获维护者确认前不要当作正式 spec。
 - `TMP/research/*.md`：本轮调研中间材料，可提交；`TMP/research/repos/` 是第三方仓库克隆，必须保持忽略。
 
 ## 完成定义

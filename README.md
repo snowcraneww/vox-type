@@ -41,6 +41,7 @@ bash init.sh
 - `docs/research/requirements-brief.md`：整理后的需求 brief。
 - `docs/research/open-source-landscape.md`：相关开源项目调研。
 - `docs/research/technical-options.md`：MVP 技术选项建议。
+- `docs/research/mvp-technical-proposal.md`：Rust + Tauri 2 + React/TS MVP 技术方案草案。
 - `TMP/research/`：调研中间材料；其中 `repos/` 是本地第三方克隆，不提交。
 - `docs/plans/原始需求.md`：原始需求草稿。
 

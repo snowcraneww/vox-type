@@ -1,70 +1,70 @@
-# VoxType Requirements Brief
+# VoxType 需求梳理中间稿
 
-Last updated: 2026-05-26
+更新时间：2026-05-26
 
-Source: `docs/plans/原始需求.md`
+来源：`docs/plans/原始需求.md`
 
-## Product Intent
+## 产品意图
 
-VoxType is intended to be an open source, privacy-friendly desktop voice input tool. The first target platform is Windows. The core user experience is push-to-talk dictation: hold a hotkey, speak, release the hotkey, transcribe locally, and insert the recognized text into the currently focused app.
+VoxType 计划成为一个开源、隐私友好、本地优先的桌面语音输入工具。第一目标平台是 Windows。核心体验是 push-to-talk dictation：按住快捷键，说话，松开快捷键，本地转写，并把文本输入到当前焦点应用。
 
-The original draft proposes Rust + Tauri + React + whisper.cpp. Treat that as a candidate direction, not a final architecture decision.
+原始草稿提出 Rust + Tauri + React + whisper.cpp。这里把它视为候选方向，而不是最终决策。
 
-## Known Facts
+## 已知事实
 
-- The project is open source.
-- The repository license is Apache-2.0, even though the original generated draft mentions MIT.
-- Windows is the first-class platform.
-- Offline/local-first speech recognition is a product principle, not just an implementation detail.
-- The MVP centers on short dictation into arbitrary applications, not meeting transcription or long-form editing.
-- The desired interaction is "press and hold to record, release to insert".
+- 项目是开源项目。
+- 仓库许可证是 Apache-2.0；原始草稿里的 MIT 已不再作为项目事实。
+- Windows 是第一优先级平台。
+- 离线和本地优先是产品原则，不只是技术实现细节。
+- MVP 聚焦短文本听写到任意应用，不聚焦会议转写或长文编辑器。
+- 目标交互是“按住说话，松开上屏”。
 
-## Primary User Scenario
+## 核心用户场景
 
-A user is writing in another application such as an editor, chat app, browser, or document tool. They press and hold a configured global hotkey, speak a short phrase or paragraph, release the key, and the recognized text appears at the current caret position without manually copying text from the VoxType UI.
+用户正在编辑器、聊天软件、浏览器、文档工具或其他应用里输入文字。用户按住一个全局快捷键，说一段短句或短段落，松开快捷键后，VoxType 在本地转写语音，并把结果输入到原来的光标位置。
 
-## MVP Behavior
+## MVP 行为
 
-- App runs in the tray or background after startup.
-- User can configure or at least learn the global push-to-talk hotkey.
-- Pressing the hotkey starts microphone recording.
-- Releasing the hotkey stops recording and starts transcription.
-- The app gives visible or audible state feedback for idle, recording, transcribing, success, and failure.
-- The app inserts text into the previously focused app.
-- Audio stays local by default.
-- The app fails transparently when microphone permission, model files, hotkey registration, or text insertion fail.
+- 应用启动后可以在托盘或后台运行。
+- 用户能知道或配置全局快捷键。
+- 按下快捷键开始录音。
+- 松开快捷键停止录音并开始转写。
+- 应用对 idle、recording、transcribing、success、failure 提供反馈。
+- 应用把文本插入之前聚焦的应用。
+- 默认情况下音频留在本机。
+- 麦克风权限、模型缺失、快捷键注册失败、上屏失败时，要给出可理解的错误。
 
-## Non-Goals For MVP
+## MVP 非目标
 
-- Full Windows TSF IME integration as the first implementation.
-- Cross-platform parity on day one.
-- Meeting recording, diarization, summaries, knowledge base, or agent workflows.
-- Cloud-only ASR.
-- Large plugin systems or account features.
-- Shipping copied code from researched repositories.
+- 第一版不做完整 Windows TSF IME。
+- 第一版不追求跨平台一致。
+- 第一版不做会议录音、说话人分离、摘要、知识库或 agent。
+- 第一版不做云端-only ASR。
+- 第一版不做大型插件系统或账号系统。
+- 不把调研项目源码复制进 VoxType。
 
-## Technical Assumptions To Validate
+## 需要验证的技术假设
 
-- Tauri 2 can provide a small enough desktop shell for settings, tray, and overlay.
-- Rust `cpal` can handle Windows microphone capture reliably enough for MVP.
-- A local ASR engine can produce acceptable Chinese and English dictation latency on common Windows hardware.
-- Clipboard paste is an acceptable first insertion path if it restores the original clipboard and has clear fallback behavior.
-- Windows `SendInput(KEYEVENTF_UNICODE)` can become a more reliable second-phase insertion path before full TSF work.
+- Tauri 2 足够支撑设置页、托盘和状态提示。
+- Rust `cpal` 能在 Windows 上稳定完成麦克风录音。
+- 本地 ASR 引擎能在常见 Windows 机器上提供可接受的中文/英文转写延迟。
+- 如果能恢复原剪贴板，剪贴板粘贴可以作为第一版上屏方案。
+- Windows `SendInput(KEYEVENTF_UNICODE)` 可以作为 TSF 前的第二阶段上屏方案。
 
-## Risks
+## 风险
 
-- Text insertion reliability varies by target application, privilege level, focus state, IME state, and clipboard behavior.
-- Local ASR model choice affects binary size, download UX, latency, accuracy, GPU/CPU support, and license obligations.
-- Overlay windows can steal focus and break insertion if implemented carelessly.
-- Global hotkeys can conflict with existing apps and need debounce handling.
-- Full TSF integration is complex and should not block the first learning loop.
-- GPL/AGPL projects can inform architecture but cannot be copied into an Apache-2.0 project without creating license conflicts.
+- 文本上屏可靠性受目标应用、权限、焦点、IME 和剪贴板状态影响。
+- ASR 模型选择会影响包体、下载体验、延迟、准确率和硬件支持。
+- 浮窗如果抢焦点，会导致粘贴到错误位置或失败。
+- 全局快捷键可能和其他软件冲突，需要防抖。
+- TSF 复杂度高，不应阻塞第一轮验证。
+- GPL/AGPL 参考项目不能直接进入 Apache-2.0 代码库。
 
-## Open Questions For Maintainer
+## 待确认问题
 
-- Should the first MVP be Chinese-first, English-first, or bilingual from the start?
-- Is offline-only mandatory, or can optional user-configured cloud ASR be a later feature?
-- Should the initial text insertion path prioritize reliability or avoiding clipboard use?
-- Is a tray-only utility acceptable for MVP, or does the first release need a full settings UI?
-- What hardware baseline should define acceptable latency?
+- MVP 是中文优先、英文优先，还是中英双语。
+- 是否必须完全离线，还是可以后续加入用户显式配置的云端 ASR。
+- 第一版上屏方式优先可靠性，还是优先不使用剪贴板。
+- 第一版是否接受托盘工具形态，还是必须有完整设置 UI。
+- 什么硬件配置算目标用户基线。
 

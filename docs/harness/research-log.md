@@ -39,7 +39,7 @@
 
 ## VoxType 产品与开源项目调研
 
-### Session 002 - 2026-05-26
+### 会话 002 - 2026-05-26
 
 - 原始需求来源：`docs/plans/原始需求.md`。
 - 中间调研资料：`TMP/research/requirements-brief.md`、`TMP/research/repo-candidates.md`、`TMP/research/solution-analysis.md`。

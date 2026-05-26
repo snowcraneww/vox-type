@@ -1,43 +1,44 @@
-# VoxType Requirements Brief
+# VoxType 需求梳理
 
-Last updated: 2026-05-26
+更新时间：2026-05-26
 
-This brief converts the original AI-generated draft in `docs/plans/原始需求.md` into project requirements. The draft is input, not authority. The repository license is Apache-2.0.
+本文把 `docs/plans/原始需求.md` 里的 AI 生成草稿整理成项目需求。原始草稿只是输入材料，不是最终架构决策。项目许可证以仓库根目录 `LICENSE` 为准：Apache-2.0。
 
-## Goal
+## 产品目标
 
-VoxType is an open source, Windows-first, local-first voice input tool. The first useful behavior is push-to-talk dictation into the current app: hold a global hotkey, speak, release, transcribe locally, and insert the text at the caret.
+VoxType 是一个开源、Windows 优先、本地优先的语音输入工具。第一阶段要验证的核心体验是：用户按住一个全局快捷键说话，松开后在本地完成语音识别，并把文字输入到当前光标所在的位置。
 
-## MVP Scope
+## MVP 范围
 
-- Background/tray desktop app.
-- Configurable or documented global push-to-talk hotkey.
-- Microphone recording while the hotkey is held.
-- Local speech-to-text after release.
-- Text insertion into the previously focused application.
-- Clear state feedback for idle, recording, transcribing, success, and failure.
-- Privacy-first defaults: no audio leaves the machine unless a later optional cloud provider is explicitly enabled.
+- 作为后台或托盘应用运行。
+- 提供可配置或至少明确可见的全局“按住说话”快捷键。
+- 按住快捷键时录制麦克风。
+- 松开快捷键后停止录音并触发本地语音识别。
+- 把识别结果输入到用户原本正在编辑的应用中。
+- 对空闲、录音中、识别中、成功、失败等状态给出明确反馈。
+- 默认不上传音频。后续如果支持云端识别，也必须由用户显式启用。
 
-## Deferred
+## 暂不做
 
-- Full TSF IME integration.
-- Meeting transcription, diarization, summaries, notes, and agents.
-- Cross-platform parity.
-- Cloud-first recognition.
-- Plugin systems or accounts.
+- 第一版不做完整 Windows TSF 输入法。
+- 第一版不做会议转写、说话人分离、摘要、笔记、知识库或 AI agent 工作流。
+- 第一版不追求 macOS/Linux 同步上线。
+- 不做云端优先的语音识别产品。
+- 不做插件市场、账号系统或复杂同步。
 
-## Main Risks
+## 主要风险
 
-- Text insertion reliability across Windows apps.
-- ASR latency, accuracy, model download size, and hardware support.
-- Hotkey conflicts and debounce behavior.
-- Overlay windows stealing focus.
-- License contamination from GPL/AGPL reference projects.
+- Windows 不同应用里的文本上屏可靠性差异很大，受焦点、权限、剪贴板、IME 状态影响。
+- 本地 ASR 的模型大小、准确率、延迟、CPU/GPU 支持会直接影响体验。
+- 全局快捷键容易和其他软件冲突，需要处理按键抖动和长按重复触发。
+- 状态浮窗如果抢焦点，会破坏“输入到当前光标”的核心体验。
+- GPL/AGPL 项目只能做概念参考，不能直接复制进 Apache-2.0 项目。
 
-## Maintainer Decisions Still Needed
+## 需要维护者确认的问题
 
-- Chinese-first, English-first, or bilingual MVP.
-- Offline-only versus optional cloud provider in later phases.
-- Acceptable first insertion method: clipboard paste or direct Unicode input.
-- Minimum hardware target and acceptable release-to-text latency.
+- MVP 是中文优先、英文优先，还是中英双语同时支持。
+- 是否坚持离线-only，还是允许后续加入用户自选的云端 ASR。
+- 第一版上屏方式是否接受“剪贴板粘贴并恢复剪贴板”。
+- 第一版是否只需要托盘和极简设置页，还是需要完整 onboarding。
+- 可接受的硬件基线和“松开按键到文字出现”的目标延迟是多少。
 
