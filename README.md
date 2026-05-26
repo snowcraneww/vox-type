@@ -19,8 +19,8 @@ VoxType 计划优先验证这些能力：
 2. 语音输入法需求分析和边界澄清。
 3. GitHub 开源项目调研。已完成第一轮，见 `docs/research/open-source-landscape.md`。
 4. 技术方案 brainstorm。下一步。
-5. OpenSpec 记录架构决策。
-6. Scaffold 产品代码并建立测试基线。
+5. OpenSpec 记录架构决策。已创建 `openspec/changes/voxtype-mvp-technical-direction/`。
+6. Scaffold 产品代码并建立测试基线。下一步。
 
 ## 快速开始
 

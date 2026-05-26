@@ -82,14 +82,18 @@
       "area": "spec",
       "title": "形成 VoxType MVP 技术方案",
       "user_visible_behavior": "维护者可以在 2-3 个方案中选择 MVP 路线，并看到权衡、风险和验证策略。",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "使用 superpowers:brainstorming 产出设计。",
         "维护者批准设计。",
         "在 openspec/changes/ 下记录 proposal.md 和 tasks.md。"
       ],
-      "evidence": [],
-      "notes": "必须在 discovery-001 和 research-001 之后。当前已有 docs/research/mvp-technical-proposal.md 草案，等待维护者确认后再进入 OpenSpec。"
+      "evidence": [
+        "2026-05-26: 维护者确认关键决策：中文优先兼容英文、第一版接受剪贴板上屏、ASR 优先 whisper.cpp 路线、UI 接受托盘 + 设置页 + 状态提示。",
+        "2026-05-26: 更新 docs/research/mvp-technical-proposal.md，将方案状态改为已确认，并补充剪贴板、SendInput 和 TSF 的解释。",
+        "2026-05-26: 创建 openspec/changes/voxtype-mvp-technical-direction/proposal.md 和 tasks.md。"
+      ],
+      "notes": "MVP 技术方向已确认并写入 OpenSpec。下一项最高优先级任务是 scaffold-001。"
     },
     {
       "id": "scaffold-001",
@@ -104,7 +108,7 @@
         "更新 README 的真实启动与验证命令。"
       ],
       "evidence": [],
-      "notes": "需要先确认技术栈。可能需要 npm/cargo 网络授权。"
+      "notes": "技术方向已确认。开始前需要详细 implementation plan；可能需要 npm/cargo 网络授权。"
     }
   ]
 }

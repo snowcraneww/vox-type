@@ -3,12 +3,12 @@
 ## 当前已验证状态
 
 - 仓库根目录：`C:/grace_repos/open-source/vox-type`
-- 当前阶段：harness 初始化、产品发现、开源方案调研和中文技术方案草案完成，下一步是维护者确认方案并进入 OpenSpec。
+- 当前阶段：harness 初始化、产品发现、开源方案调研和 MVP 技术方向确认完成，下一步是 scaffold 实现计划。
 - 产品 scaffold：未开始。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`spec-001`
+- 当前最高优先级未完成项：`scaffold-001`
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
@@ -56,6 +56,14 @@
 - 将 `TMP/research/README.md`、`TMP/research/requirements-brief.md`、`TMP/research/repo-candidates.md`、`TMP/research/solution-analysis.md` 改为中文中间文档。
 - 新增 `docs/research/mvp-technical-proposal.md`，详细说明 Rust + Tauri 2 + React/TS MVP 方案、模块边界、上屏策略、ASR adapter、测试策略和阶段路线。
 - 更新 `AGENTS.md` 和 `docs/research/README.md`，明确维护者文档默认中文。
+
+### 2026-05-26 MVP 技术方向确认
+
+- 维护者确认所有关键决策采用建议默认值：中文优先兼容英文、第一版接受剪贴板上屏、ASR 优先 whisper.cpp 路线、UI 接受“托盘 + 设置页 + 状态提示”。
+- 更新 `docs/research/mvp-technical-proposal.md`，把状态改为已确认，并补充“剪贴板 -> SendInput -> TSF”的上屏策略解释。
+- 创建 `openspec/changes/voxtype-mvp-technical-direction/proposal.md`。
+- 创建 `openspec/changes/voxtype-mvp-technical-direction/tasks.md`。
+- 将 `spec-001` 标记为 passing。
 
 ## 会话记录
 
@@ -112,3 +120,13 @@
   - 新增 `docs/research/mvp-technical-proposal.md`。
   - 在 `AGENTS.md`、`docs/research/README.md` 和 harness 中加入“维护者文档默认中文”的规则。
 - 下一步最佳动作：维护者审阅 `docs/research/mvp-technical-proposal.md`，确认或修改关键决策后进入 OpenSpec。
+
+### 会话 004 - 2026-05-26
+
+- 本轮目标：解释上屏策略分层和 TSF，并将维护者确认的 MVP 技术决策写入 OpenSpec。
+- 已完成：
+  - 解释并记录剪贴板、`SendInput(KEYEVENTF_UNICODE)`、TSF 的分阶段含义。
+  - 把 `docs/research/mvp-technical-proposal.md` 从草案更新为已确认方案说明。
+  - 新增 OpenSpec change：`openspec/changes/voxtype-mvp-technical-direction/`。
+  - 将 `spec-001` 标记为 passing。
+- 下一步最佳动作：为 `scaffold-001` 写详细 implementation plan，之后再开始 scaffold 产品代码。
