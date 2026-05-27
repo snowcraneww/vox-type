@@ -12,17 +12,20 @@ function payload(overrides: Partial<PushToTalkPayload>): PushToTalkPayload {
 }
 
 describe('DictationOverlay', () => {
-  it('renders a compact bottom overlay for active recording', () => {
+  it('renders only flowing ripple lines for active recording', () => {
     render(<DictationOverlay initialPayload={payload({ state: 'pressed', action: 'startRecording' })} />);
 
-    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在听' })).toBeInTheDocument();
-    expect(screen.getByText('松开 Ctrl+Alt+Space 自动转写并上屏')).toBeInTheDocument();
-    expect(document.querySelectorAll('.mini-wave-bar')).toHaveLength(18);
+    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在录音' })).toBeInTheDocument();
+    expect(screen.queryByText('正在听')).not.toBeInTheDocument();
+    expect(screen.queryByText('松开 Ctrl+Alt+Space 自动转写并上屏')).not.toBeInTheDocument();
+    expect(document.querySelectorAll('.ripple-line')).toHaveLength(4);
+    expect(document.querySelectorAll('.mini-wave-bar')).toHaveLength(0);
   });
 
   it('renders transcribing copy after release', () => {
     render(<DictationOverlay initialPayload={payload({ state: 'released', action: 'stopAndTranscribe' })} />);
 
     expect(screen.getByRole('status', { name: '桌面语音输入状态：正在识别' })).toBeInTheDocument();
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'transcribing');
   });
 });

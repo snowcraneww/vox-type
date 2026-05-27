@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VoxType</title>
+    <script>
+      if (new URLSearchParams(window.location.search).get('view') === 'overlay') {
+        document.documentElement.classList.add('overlay-document');
+      }
+    </script>
+    <style>
+      html.overlay-document,
+      html.overlay-document body,
+      html.overlay-document #root {
+        background: transparent !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

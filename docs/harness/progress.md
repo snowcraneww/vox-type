@@ -370,3 +370,12 @@
 - 浮窗视觉继续收敛：overlay 页面根节点透明化，去掉胶囊背后的黑色方框；窗口缩小到 `340 x 86`，胶囊、字体和阴影都缩小。
 - 同步 Rust overlay 定位常量为 `340 x 86`，新增 `overlay_size_matches_tauri_window_config` 回归测试，避免配置尺寸和定位尺寸再次脱节。
 - 验证：`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml` 通过，45 个 Rust 测试通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`npm run build` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`bash init.sh` 通过；`git diff --check` 通过；`npm run tauri -- build --debug` 第二次通过并生成 debug 包。第一次 debug build 失败是因为旧的 `vox-type.exe` 进程占用目标文件，关闭该项目进程后通过。
+
+### 2026-05-27 V2 浮窗波纹重做
+
+- 维护者反馈：底部浮窗仍像带文字的卡片，背后有白色框；期望只显示几条弯曲、流动、彩色的波纹线，不显示“正在听”等可见文字。
+- 调整 `DictationOverlay`：移除可见文字、说明文案、胶囊卡片和柱状频谱，只保留 `aria-label` 给辅助技术使用。
+- 重做浮窗视觉：使用透明 SVG 曲线光带，4 条曲线通过 `stroke-dashoffset`、位移、缩放和 SVG `animate attributeName="d"` 同时流动与变形，让曲率和边缘都动起来。
+- 消除白框：`index.html` 在 React 加载前就给 overlay 页面加透明背景样式，避免透明 Tauri 窗口首帧出现浏览器默认白底。
+- 窗口尺寸同步缩小到 `300 x 82`，Rust 定位常量和回归测试同步更新。
+- 验证：`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run build` 通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。

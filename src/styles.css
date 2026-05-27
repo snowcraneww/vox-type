@@ -750,140 +750,98 @@ h1 { font-size: 44px; }
   display: grid;
   height: 100vh;
   justify-items: center;
-  padding: 0 0 4px;
+  padding: 0 0 2px;
   pointer-events: none;
   width: 100vw;
 }
 
-.mini-dictation {
-  align-items: center;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0.10)),
-    rgba(10, 12, 18, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 999px;
-  box-shadow:
-    0 18px 46px rgba(0, 0, 0, 0.38),
-    0 0 28px rgba(90, 200, 250, 0.14),
-    inset 0 1px 0 rgba(255,255,255,0.36);
-  display: grid;
-  gap: 11px;
-  grid-template-columns: 122px minmax(0, 1fr);
-  min-height: 62px;
-  overflow: hidden;
-  padding: 10px 15px 10px 13px;
+.wave-ripple {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  height: 82px;
+  overflow: visible;
+  padding: 0;
   position: relative;
-  width: 318px;
+  width: 300px;
 }
 
-.mini-dictation::before {
-  animation: mini-aurora 4.2s ease-in-out infinite alternate;
-  background:
-    radial-gradient(circle at 18% 40%, rgba(90, 200, 250, 0.45), transparent 34%),
-    radial-gradient(circle at 58% 22%, rgba(255, 45, 146, 0.34), transparent 32%),
-    radial-gradient(circle at 88% 74%, rgba(255, 214, 10, 0.24), transparent 38%);
-  content: "";
-  inset: 0;
-  opacity: 0.86;
-  position: absolute;
-}
-
-.mini-dictation::after {
-  animation: mini-light-sweep 2.8s linear infinite;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.30), transparent);
-  content: "";
-  filter: blur(8px);
-  height: 100%;
-  left: -36%;
-  opacity: 0.42;
-  position: absolute;
-  top: 0;
-  transform: skewX(-18deg);
-  width: 36%;
-}
-
-.mini-wave {
-  align-items: center;
-  display: grid;
-  gap: 3px;
-  grid-template-columns: repeat(18, 1fr);
-  height: 40px;
-  position: relative;
-  z-index: 1;
-}
-
-.mini-wave-bar {
-  --bar-index: 0;
-  animation: mini-wave-idle 1.55s ease-in-out infinite;
-  animation-delay: calc(var(--bar-index) * -72ms);
-  background: linear-gradient(180deg, #ffffff, #5ac8fa 32%, #ff2d92 68%, #ffd60a);
-  border-radius: 999px;
-  box-shadow: 0 0 18px rgba(90, 200, 250, 0.30);
+.wave-ripple-svg {
   display: block;
-  height: 16px;
-  min-height: 8px;
-  opacity: 0.74;
+  height: 82px;
+  overflow: visible;
+  width: 300px;
+}
+
+.ripple-line {
+  animation: ripple-flow 2.4s ease-in-out infinite;
+  fill: none;
+  opacity: 0.72;
+  stroke: url(#voice-ripple-gradient);
+  stroke-dasharray: 58 42;
+  stroke-linecap: round;
+  stroke-width: 4.4;
+  transform-box: fill-box;
   transform-origin: center;
 }
 
-.mini-dictation[data-mode="recording"] .mini-wave-bar {
-  animation-name: mini-wave-recording;
-  animation-duration: 620ms;
-  opacity: 0.98;
+.ripple-line-a {
+  animation-duration: 1.45s;
+  stroke-width: 5.2;
 }
 
-.mini-dictation[data-mode="transcribing"] .mini-wave-bar {
-  animation-duration: 980ms;
-  filter: hue-rotate(32deg);
+.ripple-line-b {
+  animation-delay: -360ms;
+  animation-duration: 1.72s;
+  opacity: 0.62;
+  stroke-width: 3.8;
 }
 
-.mini-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-  position: relative;
-  z-index: 1;
+.ripple-line-c {
+  animation-delay: -620ms;
+  animation-duration: 2.05s;
+  opacity: 0.48;
+  stroke-width: 3.2;
 }
 
-.mini-copy strong {
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 760;
-  letter-spacing: 0;
+.ripple-line-d {
+  animation-delay: -920ms;
+  animation-duration: 1.62s;
+  opacity: 0.38;
+  stroke-width: 2.8;
 }
 
-.mini-copy span {
-  color: rgba(247, 248, 251, 0.74);
-  font-size: 11px;
-  font-weight: 650;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.wave-ripple[data-mode="idle"] .ripple-line {
+  animation-duration: 3.4s;
+  opacity: 0.34;
+  stroke-width: 2.8;
 }
 
-@keyframes mini-wave-idle {
-  0%, 100% { transform: scaleY(0.38); }
-  50% { transform: scaleY(0.76); }
+.wave-ripple[data-mode="recording"] .ripple-line {
+  animation-name: ripple-recording;
+  opacity: 0.9;
 }
 
-@keyframes mini-wave-recording {
-  0%, 100% { transform: scaleY(0.44); }
-  32% { transform: scaleY(2.08); }
-  66% { transform: scaleY(0.78); }
+.wave-ripple[data-mode="transcribing"] .ripple-line {
+  animation-duration: 1.05s;
+  opacity: 0.76;
+  stroke-dasharray: 28 18;
 }
 
-@keyframes mini-aurora {
-  from { filter: hue-rotate(0deg); transform: translate3d(-1%, 0, 0) scale(1); }
-  to { filter: hue-rotate(22deg); transform: translate3d(1%, -1%, 0) scale(1.05); }
+@keyframes ripple-flow {
+  0% { stroke-dashoffset: 0; transform: translate3d(-8px, 0, 0) scaleY(0.72); }
+  50% { transform: translate3d(5px, 0, 0) scaleY(1.14); }
+  100% { stroke-dashoffset: -100; transform: translate3d(12px, 0, 0) scaleY(0.72); }
 }
 
-@keyframes mini-light-sweep {
-  from { transform: translateX(0) skewX(-18deg); }
-  to { transform: translateX(420%) skewX(-18deg); }
+@keyframes ripple-recording {
+  0% { stroke-dashoffset: 0; transform: translate3d(-10px, 0, 0) scaleY(0.66); }
+  28% { transform: translate3d(-1px, -1px, 0) scaleY(1.38); }
+  58% { transform: translate3d(7px, 2px, 0) scaleY(0.92); }
+  100% { stroke-dashoffset: -118; transform: translate3d(14px, 0, 0) scaleY(0.70); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mini-dictation::before,
-  .mini-dictation::after,
-  .mini-wave-bar { animation: none; }
+  .ripple-line { animation: none; }
 }
