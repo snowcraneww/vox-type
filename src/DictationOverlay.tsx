@@ -81,8 +81,12 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <clipPath id="voice-capsule-clip">
+              <rect x="1" y="1" width="118" height="30" rx="15" />
+            </clipPath>
           </defs>
           <rect className="ripple-capsule" x="1" y="1" width="118" height="30" rx="15" />
+          <g className="overlay-contents" clipPath="url(#voice-capsule-clip)">
           <g className="soundwave-bars" filter="url(#voice-ripple-glow)">
             {Array.from({ length: 20 }, (_, index) => {
               const heights = [4, 7, 10, 5, 12, 8, 3, 11, 6, 13, 9, 4, 12, 7, 10, 5, 8, 11, 6, 3];
@@ -103,10 +107,17 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
             })}
           </g>
           {isTranscribing ? (
-            <g className="transcribing-dots" aria-hidden="true">
-              {[42, 49, 56, 63, 70, 77].map((cx, index) => <circle className={`transcribing-dot transcribing-dot-${index}`} cx={cx} cy="16" data-index={index} key={cx} r="2.25" style={{ '--dot-index': index } as React.CSSProperties} />)}
+            <g className="transcribing-dots" aria-hidden="true" filter="url(#voice-ripple-glow)">
+              {[42, 49, 56, 63, 70, 77].map((cx, index) => (
+                <circle className={`transcribing-dot transcribing-dot-${index}`} cx={cx} cy="16" data-index={index} key={cx} r="2.25">
+                  <animate attributeName="cy" begin={`${index * 0.09}s`} dur="0.9s" repeatCount="indefinite" values="19;12;17;19" />
+                  <animate attributeName="r" begin={`${index * 0.09}s`} dur="0.9s" repeatCount="indefinite" values="1.55;2.95;2.05;1.55" />
+                  <animate attributeName="opacity" begin={`${index * 0.09}s`} dur="0.9s" repeatCount="indefinite" values="0.28;1;0.55;0.28" />
+                </circle>
+              ))}
             </g>
           ) : null}
+          </g>
         </svg>
       </section>
     </main>

@@ -422,3 +422,10 @@
 - 6 个转写点改为独立颜色类：蓝、浅蓝、绿、黄、粉、紫，不再共用同一个渐变填充。
 - 转写点动效增强为上下跳动、缩放和透明度变化，错峰延迟更明显。
 - 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm run typecheck` 通过；`npm run build` 通过；`git diff --check` 通过。
+
+### 2026-05-27 V2 胶囊光效裁剪与 SVG 点动画
+
+- 维护者反馈：胶囊外侧仍像有白色光边；6 个点虽然彩色但动效仍不明显，像卡住。
+- 新增 SVG `clipPath`，把声波和转写点的 glow filter 裁剪在胶囊内部，避免光效溢出到胶囊外形成白边。
+- 转写点从 CSS transform 动画改为 SVG 原生 `animate`，直接改变 `cy`、`r`、`opacity`，上下弹跳和明暗变化更可靠。
+- 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm run typecheck` 通过；`npm run build` 通过；`git diff --check` 通过。
