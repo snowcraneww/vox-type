@@ -74,3 +74,4 @@
 3. 哪些验证跑过？
 4. 证据写在哪里？
 5. 下一轮不用聊天上下文能否继续？
+- Windows PowerShell 5.1 容易把 UTF-8 中文命令片段按本地代码页解释。涉及中文文件的查看、搜索、diff、局部替换和批量编辑时，默认使用 Git Bash 的 `bash -lc`、`rg`、`sed` 或脚本化 UTF-8 读写；不要在 PowerShell 命令里嵌入中文片段做替换。PowerShell 只用于 Windows 专用配置、系统 API、进程管理或必须使用 PowerShell cmdlet 的场景。

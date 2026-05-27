@@ -1,158 +1,168 @@
 {
-    "project":  "VoxType",
-    "last_updated":  "2026-05-27",
-    "rules":  {
-                  "single_active_feature":  true,
-                  "passing_requires_evidence":  true,
-                  "do_not_skip_verification":  true,
-                  "repository_is_system_of_record":  true,
-                  "open_source_safe_by_default":  true,
-                  "maintainer_docs_language":  "默认使用 zh-CN；代码、命令、API、仓库名和引用的错误消息保持原文。"
-              },
-    "status_legend":  {
-                          "not_started":  "任务尚未开始。",
-                          "in_progress":  "当前唯一正在推进的任务。",
-                          "blocked":  "阻塞原因已记录，当前无法继续推进。",
-                          "passing":  "要求的验证已经通过，并且证据已经记录。"
-                      },
-    "features":  [
-                     {
-                         "id":  "harness-001",
-                         "priority":  1,
-                         "area":  "harness",
-                         "title":  "建立开源项目 harness 基线",
-                         "user_visible_behavior":  "新会话可以只阅读仓库文件，理解项目状态、工作规则、下一步任务和验证入口。",
-                         "status":  "passing",
-                         "verification":  [
-                                              "运行 bash init.sh。",
-                                              "确认 feature_list.json 是有效 JSON。",
-                                              "确认 AGENTS.md、README.md、LICENSE 和 docs/harness/* 文件存在。",
-                                              "确认 progress.md 记录本次配置证据。"
-                                          ],
-                         "evidence":  [
-                                          "2026-05-26: bash init.sh exit 0，输出包含 VoxType harness baseline OK、License: Apache-2.0、Product scaffold: not started。",
-                                          "2026-05-26: python -m json.tool docs/harness/feature_list.json exit 0。",
-                                          "2026-05-26: 必需的 harness 文件、LICENSE、.gitignore、.editorconfig、.gitattributes、docs/research/README.md 和 openspec/README.md 均存在。"
-                                      ],
-                         "notes":  "Harness 基线已验证。产品发现和调研已完成；下一项最高优先级任务是 spec-001。"
-                     },
-                     {
-                         "id":  "discovery-001",
-                         "priority":  2,
-                         "area":  "discovery",
-                         "title":  "整理原始需求并澄清产品边界",
-                         "user_visible_behavior":  "维护者可以看到 VoxType 的目标用户、核心场景、非目标、MVP 边界和待决问题。",
-                         "status":  "passing",
-                         "verification":  [
-                                              "阅读 docs/plans/原始需求.md。",
-                                              "产出 docs/research/requirements-brief.md。",
-                                              "明确列出已知事实、假设、风险和需要维护者确认的问题。"
-                                          ],
-                         "evidence":  [
-                                          "2026-05-26: 使用 UTF-8 输出阅读 docs/plans/原始需求.md，并整理产品意图、MVP 行为、非目标、假设、风险和维护者待决问题。",
-                                          "2026-05-26: 写入 TMP/research/requirements-brief.md 作为详细中间记录。",
-                                          "2026-05-26: 写入 docs/research/requirements-brief.md 作为长期调研文档。"
-                                      ],
-                         "notes":  "原始草稿只作为输入材料。许可证事实以仓库内 Apache-2.0 文件为准。"
-                     },
-                     {
-                         "id":  "research-001",
-                         "priority":  3,
-                         "area":  "research",
-                         "title":  "调研语音输入法和本地转写开源项目",
-                         "user_visible_behavior":  "维护者可以比较相关开源项目的技术路线、许可证、活跃度、可借鉴点和风险。",
-                         "status":  "passing",
-                         "verification":  [
-                                              "使用 web search 和 GitHub API 搜索相关项目。",
-                                              "记录至少 8 个相关项目或库。",
-                                              "产出 docs/research/open-source-landscape.md，包含来源 URL、结论和不确定性。"
-                                          ],
-                         "evidence":  [
-                                          "2026-05-26: 使用 Tavily 和 GitHub API 搜索本地听写、Windows 快捷键、Whisper 和 ASR 相关项目。",
-                                          "2026-05-26: 深读 TMP/research/repos/ 下的本地克隆：Handy、openless、openwhispr、VoiceFlow、whisper-writer、tambourine-voice、faster-whisper-dictation。",
-                                          "2026-05-26: 通过 GitHub 元数据验证额外生态参考：whisper.cpp、sherpa-onnx、local-whisper、FluidAudio、FluidVoice。",
-                                          "2026-05-26: 写入 TMP/research/repo-candidates.md 和 TMP/research/solution-analysis.md 作为中间调研记录。",
-                                          "2026-05-26: 写入 docs/research/open-source-landscape.md 和 docs/research/technical-options.md。"
-                                      ],
-                         "notes":  "调研覆盖超过 8 个相关项目或库。对 Apache-2.0 项目而言，GPL/AGPL 项目只能做概念参考。"
-                     },
-                     {
-                         "id":  "spec-001",
-                         "priority":  4,
-                         "area":  "spec",
-                         "title":  "形成 VoxType MVP 技术方案",
-                         "user_visible_behavior":  "维护者可以在 2-3 个方案中选择 MVP 路线，并看到权衡、风险和验证策略。",
-                         "status":  "passing",
-                         "verification":  [
-                                              "使用 superpowers:brainstorming 产出设计。",
-                                              "维护者批准设计。",
-                                              "在 openspec/changes/ 下记录 proposal.md 和 tasks.md。"
-                                          ],
-                         "evidence":  [
-                                          "2026-05-26: 维护者确认关键决策：中文优先兼容英文、第一版接受剪贴板上屏、ASR 优先 whisper.cpp 路线、UI 接受托盘 + 设置页 + 状态提示。",
-                                          "2026-05-26: 更新 docs/research/mvp-technical-proposal.md，将方案状态改为已确认，并补充剪贴板、SendInput 和 TSF 的解释。",
-                                          "2026-05-26: 创建 openspec/changes/voxtype-mvp-technical-direction/proposal.md 和 tasks.md。"
-                                      ],
-                         "notes":  "MVP 技术方向已确认并写入 OpenSpec。下一项最高优先级任务是 scaffold-001。"
-                     },
-                     {
-                         "id":  "scaffold-001",
-                         "priority":  5,
-                         "area":  "implementation",
-                         "title":  "创建最小可运行项目骨架",
-                         "user_visible_behavior":  "贡献者可以按 README 的命令启动最小应用，并运行基础测试。",
-                         "status":  "passing",
-                         "verification":  [
-                                              "运行项目初始化命令。",
-                                              "运行格式化、lint/typecheck 和测试基线。",
-                                              "更新 README 的真实启动与验证命令。"
-                                          ],
-                         "evidence":  [
-                                          "2026-05-26: 写入 docs/superpowers/plans/2026-05-26-scaffold-voxtype-mvp.md。",
-                                          "2026-05-26: 创建 package.json、Vite/React/TypeScript 配置、src/ 前端骨架、src-tauri/ Rust/Tauri 骨架。",
-                                          "2026-05-26: npm install 成功，0 vulnerabilities。",
-                                          "2026-05-26: cargo fetch --manifest-path src-tauri/Cargo.toml 成功。",
-                                          "2026-05-26: npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、npm run build、cargo check --manifest-path src-tauri/Cargo.toml 通过。",
-                                          "2026-05-27: 新增托盘入口、Tauri client、默认输入设备探测、音频 mono 标准化、whisper.cpp CLI adapter、Windows 剪贴板上屏 adapter，并修正 Tauri identifier。",
-                                          "2026-05-27: npm run typecheck、python -m json.tool docs/harness/feature_list.json、bash init.sh、cargo fmt --all --manifest-path src-tauri/Cargo.toml、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、npm run tauri -- build --debug 均通过。",
-                                          "2026-05-27: 维护者手动验证麦克风探测、mock 闭环和剪贴板上屏请求；新增诊断日志、运行指南、代码导读和 start/stop 录音采集 command。",
-                                          "2026-05-27: TDD 验证 RecordingSession；python -m json.tool docs/harness/feature_list.json、bash init.sh、npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、git diff --check、npm run tauri -- build --debug 均通过。",
-                                          "2026-05-27: 维护者手动验证录音采集成功，返回 782863 个 mono 样本、17751 ms、44100 Hz；新增 16 kHz ASR 输入重采样摘要。",
-                                          "2026-05-27: 新增 transcribe_last_recording command 和 转写最近录音 UI 按钮，通过环境变量 VOXTYPE_WHISPER_CPP_BINARY、VOXTYPE_WHISPER_CPP_MODEL、VOXTYPE_ASR_LANGUAGE 调用 whisper.cpp。",
-                                          "2026-05-27: 新增应用内 ASR 配置保存/检测、结构化 Tauri error 格式化和 ASR 配置 UI；应用内配置优先，环境变量作为 fallback。",
-                                          "2026-05-27: 新增一键安装 whisper.cpp Windows x64 CPU 版和 ggml-base.bin，自动保存 ASR 配置；新增转写并上屏最近录音 command/UI。",
-                                          "2026-05-27: 维护者手动验证真实闭环 command 成功但 whisper.cpp 返回 (音)；新增诊断日志滚动/复制、延迟上屏流程和录音音量摘要。",
-                                          "2026-05-27: 维护者再次手动验证真实闭环成功，确认录音、whisper.cpp 转写、延迟切回目标输入框和剪贴板上屏链路可用。",
-                                          "2026-05-27: 根据维护者反馈继续调试真实闭环：修复剪贴板过早恢复导致粘贴旧内容的问题；新增输入设备列表/选择、最近录音 16 kHz WAV 导出；将非整数比例重采样改为线性插值。",
-                                          "2026-05-27: npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，33 个 Rust 测试全部通过。",
-                                          "2026-05-27: 定位录音变音根因：双声道输入第一次回调后被错误当作 mono 处理；新增 source_channels 并用 TDD 回归测试覆盖。cargo test --manifest-path src-tauri/Cargo.toml 通过，34 个 Rust 测试全部通过。",
-                                          "2026-05-27: 新增 docs/harness/debugging-log.md，集中记录调试问题、根因、修复和验证。",
-                                          "2026-05-27: 默认 UI 改为 macOS 风格用户主界面，原测试操作保留在诊断模式；npm test -- --run src/App.test.tsx、npm run typecheck、npm run build 通过。",
-                                          "2026-05-27: 一键安装下载器新增 20 秒连接超时和 300 秒单文件下载总超时；cargo test --manifest-path src-tauri/Cargo.toml asr_installer 通过，6 个安装器测试通过。",
-                                          "2026-05-27: AGENTS.md 和 docs/harness/working-agreement.md 明确验证发现 bug 必须记录到 docs/harness/debugging-log.md。"
-                                      ],
-                         "notes":  "最小可运行骨架、系统能力边界、真实录音采集、16 kHz ASR 输入准备、应用内 ASR 配置、一键安装 whisper.cpp/model、最近录音 whisper.cpp 转写命令和转写后上屏命令均已接入；维护者已手动验证真实闭环成功，因此 scaffold-001 标记为 passing。后续仍可优化识别质量、模型选择、镜像源、全局快捷键和更可靠的上屏策略。"
-                     },
-                     {
-                         "id":  "v2-001",
-                         "priority":  6,
-                         "area":  "implementation",
-                         "title":  "V2 日常语音输入体验",
-                         "user_visible_behavior":  "维护者可以通过更克制的主界面和彩色流光语音浮窗理解当前语音输入状态；后续接入全局快捷键后，可按住说话、松开转写并上屏。",
-                         "status":  "in_progress",
-                         "verification":  [
-                                              "运行 npm test -- --run。",
-                                              "运行 npm run typecheck。",
-                                              "运行 cargo test --manifest-path src-tauri/Cargo.toml。",
-                                              "手动验证主界面不再显示仿苹果红黄绿窗口按钮。",
-                                              "手动验证语音浮窗能表达待命、录音、转写、成功和失败状态。"
-                                          ],
-                         "evidence":  [
-                                          "2026-05-27: 维护者批准 V2 方向：主界面克制，语音输入状态使用彩色流光波纹浮窗表达；全局快捷键按住说话作为第二版核心体验。",
-                                          "2026-05-27: 写入 docs/superpowers/specs/2026-05-27-v2-daily-dictation-design.md 和 docs/superpowers/plans/2026-05-27-v2-daily-dictation.md。",
-                                          "2026-05-27: 使用 TDD 新增 voiceOverlayModel 和 VoiceOverlay 组件；主界面移除仿苹果红黄绿窗口按钮并嵌入彩色流光语音浮窗；npm test -- --run、npm run typecheck、npm run build 和 git diff --check 通过。"
-                                      ],
-                         "notes":  "当前 V2 从 UI/浮窗和状态模型开始，随后接入简体中文输出偏好、输入设备持久化和全局快捷键。TSF 不在 V2 默认范围内。"
-                     }
-                 ]
+    "project": "VoxType",
+    "last_updated": "2026-05-27",
+    "rules": {
+        "single_active_feature": true,
+        "passing_requires_evidence": true,
+        "do_not_skip_verification": true,
+        "repository_is_system_of_record": true,
+        "open_source_safe_by_default": true,
+        "maintainer_docs_language": "默认使用 zh-CN；代码、命令、API、仓库名和引用的错误消息保持原文。"
+    },
+    "status_legend": {
+        "not_started": "任务尚未开始。",
+        "in_progress": "当前唯一正在推进的任务。",
+        "blocked": "阻塞原因已记录，当前无法继续推进。",
+        "passing": "要求的验证已经通过，并且证据已经记录。"
+    },
+    "features": [
+        {
+            "id": "harness-001",
+            "priority": 1,
+            "area": "harness",
+            "title": "建立开源项目 harness 基线",
+            "user_visible_behavior": "新会话可以只阅读仓库文件，理解项目状态、工作规则、下一步任务和验证入口。",
+            "status": "passing",
+            "verification": [
+                "运行 bash init.sh。",
+                "确认 feature_list.json 是有效 JSON。",
+                "确认 AGENTS.md、README.md、LICENSE 和 docs/harness/* 文件存在。",
+                "确认 progress.md 记录本次配置证据。"
+            ],
+            "evidence": [
+                "2026-05-26: bash init.sh exit 0，输出包含 VoxType harness baseline OK、License: Apache-2.0、Product scaffold: not started。",
+                "2026-05-26: python -m json.tool docs/harness/feature_list.json exit 0。",
+                "2026-05-26: 必需的 harness 文件、LICENSE、.gitignore、.editorconfig、.gitattributes、docs/research/README.md 和 openspec/README.md 均存在。"
+            ],
+            "notes": "Harness 基线已验证。产品发现和调研已完成；下一项最高优先级任务是 spec-001。"
+        },
+        {
+            "id": "discovery-001",
+            "priority": 2,
+            "area": "discovery",
+            "title": "整理原始需求并澄清产品边界",
+            "user_visible_behavior": "维护者可以看到 VoxType 的目标用户、核心场景、非目标、MVP 边界和待决问题。",
+            "status": "passing",
+            "verification": [
+                "阅读 docs/plans/原始需求.md。",
+                "产出 docs/research/requirements-brief.md。",
+                "明确列出已知事实、假设、风险和需要维护者确认的问题。"
+            ],
+            "evidence": [
+                "2026-05-26: 使用 UTF-8 输出阅读 docs/plans/原始需求.md，并整理产品意图、MVP 行为、非目标、假设、风险和维护者待决问题。",
+                "2026-05-26: 写入 TMP/research/requirements-brief.md 作为详细中间记录。",
+                "2026-05-26: 写入 docs/research/requirements-brief.md 作为长期调研文档。"
+            ],
+            "notes": "原始草稿只作为输入材料。许可证事实以仓库内 Apache-2.0 文件为准。"
+        },
+        {
+            "id": "research-001",
+            "priority": 3,
+            "area": "research",
+            "title": "调研语音输入法和本地转写开源项目",
+            "user_visible_behavior": "维护者可以比较相关开源项目的技术路线、许可证、活跃度、可借鉴点和风险。",
+            "status": "passing",
+            "verification": [
+                "使用 web search 和 GitHub API 搜索相关项目。",
+                "记录至少 8 个相关项目或库。",
+                "产出 docs/research/open-source-landscape.md，包含来源 URL、结论和不确定性。"
+            ],
+            "evidence": [
+                "2026-05-26: 使用 Tavily 和 GitHub API 搜索本地听写、Windows 快捷键、Whisper 和 ASR 相关项目。",
+                "2026-05-26: 深读 TMP/research/repos/ 下的本地克隆：Handy、openless、openwhispr、VoiceFlow、whisper-writer、tambourine-voice、faster-whisper-dictation。",
+                "2026-05-26: 通过 GitHub 元数据验证额外生态参考：whisper.cpp、sherpa-onnx、local-whisper、FluidAudio、FluidVoice。",
+                "2026-05-26: 写入 TMP/research/repo-candidates.md 和 TMP/research/solution-analysis.md 作为中间调研记录。",
+                "2026-05-26: 写入 docs/research/open-source-landscape.md 和 docs/research/technical-options.md。"
+            ],
+            "notes": "调研覆盖超过 8 个相关项目或库。对 Apache-2.0 项目而言，GPL/AGPL 项目只能做概念参考。"
+        },
+        {
+            "id": "spec-001",
+            "priority": 4,
+            "area": "spec",
+            "title": "形成 VoxType MVP 技术方案",
+            "user_visible_behavior": "维护者可以在 2-3 个方案中选择 MVP 路线，并看到权衡、风险和验证策略。",
+            "status": "passing",
+            "verification": [
+                "使用 superpowers:brainstorming 产出设计。",
+                "维护者批准设计。",
+                "在 openspec/changes/ 下记录 proposal.md 和 tasks.md。"
+            ],
+            "evidence": [
+                "2026-05-26: 维护者确认关键决策：中文优先兼容英文、第一版接受剪贴板上屏、ASR 优先 whisper.cpp 路线、UI 接受托盘 + 设置页 + 状态提示。",
+                "2026-05-26: 更新 docs/research/mvp-technical-proposal.md，将方案状态改为已确认，并补充剪贴板、SendInput 和 TSF 的解释。",
+                "2026-05-26: 创建 openspec/changes/voxtype-mvp-technical-direction/proposal.md 和 tasks.md。"
+            ],
+            "notes": "MVP 技术方向已确认并写入 OpenSpec。下一项最高优先级任务是 scaffold-001。"
+        },
+        {
+            "id": "scaffold-001",
+            "priority": 5,
+            "area": "implementation",
+            "title": "创建最小可运行项目骨架",
+            "user_visible_behavior": "贡献者可以按 README 的命令启动最小应用，并运行基础测试。",
+            "status": "passing",
+            "verification": [
+                "运行项目初始化命令。",
+                "运行格式化、lint/typecheck 和测试基线。",
+                "更新 README 的真实启动与验证命令。"
+            ],
+            "evidence": [
+                "2026-05-26: 写入 docs/superpowers/plans/2026-05-26-scaffold-voxtype-mvp.md。",
+                "2026-05-26: 创建 package.json、Vite/React/TypeScript 配置、src/ 前端骨架、src-tauri/ Rust/Tauri 骨架。",
+                "2026-05-26: npm install 成功，0 vulnerabilities。",
+                "2026-05-26: cargo fetch --manifest-path src-tauri/Cargo.toml 成功。",
+                "2026-05-26: npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、npm run build、cargo check --manifest-path src-tauri/Cargo.toml 通过。",
+                "2026-05-27: 新增托盘入口、Tauri client、默认输入设备探测、音频 mono 标准化、whisper.cpp CLI adapter、Windows 剪贴板上屏 adapter，并修正 Tauri identifier。",
+                "2026-05-27: npm run typecheck、python -m json.tool docs/harness/feature_list.json、bash init.sh、cargo fmt --all --manifest-path src-tauri/Cargo.toml、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、npm run tauri -- build --debug 均通过。",
+                "2026-05-27: 维护者手动验证麦克风探测、mock 闭环和剪贴板上屏请求；新增诊断日志、运行指南、代码导读和 start/stop 录音采集 command。",
+                "2026-05-27: TDD 验证 RecordingSession；python -m json.tool docs/harness/feature_list.json、bash init.sh、npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、git diff --check、npm run tauri -- build --debug 均通过。",
+                "2026-05-27: 维护者手动验证录音采集成功，返回 782863 个 mono 样本、17751 ms、44100 Hz；新增 16 kHz ASR 输入重采样摘要。",
+                "2026-05-27: 新增 transcribe_last_recording command 和 转写最近录音 UI 按钮，通过环境变量 VOXTYPE_WHISPER_CPP_BINARY、VOXTYPE_WHISPER_CPP_MODEL、VOXTYPE_ASR_LANGUAGE 调用 whisper.cpp。",
+                "2026-05-27: 新增应用内 ASR 配置保存/检测、结构化 Tauri error 格式化和 ASR 配置 UI；应用内配置优先，环境变量作为 fallback。",
+                "2026-05-27: 新增一键安装 whisper.cpp Windows x64 CPU 版和 ggml-base.bin，自动保存 ASR 配置；新增转写并上屏最近录音 command/UI。",
+                "2026-05-27: 维护者手动验证真实闭环 command 成功但 whisper.cpp 返回 (音)；新增诊断日志滚动/复制、延迟上屏流程和录音音量摘要。",
+                "2026-05-27: 维护者再次手动验证真实闭环成功，确认录音、whisper.cpp 转写、延迟切回目标输入框和剪贴板上屏链路可用。",
+                "2026-05-27: 根据维护者反馈继续调试真实闭环：修复剪贴板过早恢复导致粘贴旧内容的问题；新增输入设备列表/选择、最近录音 16 kHz WAV 导出；将非整数比例重采样改为线性插值。",
+                "2026-05-27: npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，33 个 Rust 测试全部通过。",
+                "2026-05-27: 定位录音变音根因：双声道输入第一次回调后被错误当作 mono 处理；新增 source_channels 并用 TDD 回归测试覆盖。cargo test --manifest-path src-tauri/Cargo.toml 通过，34 个 Rust 测试全部通过。",
+                "2026-05-27: 新增 docs/harness/debugging-log.md，集中记录调试问题、根因、修复和验证。",
+                "2026-05-27: 默认 UI 改为 macOS 风格用户主界面，原测试操作保留在诊断模式；npm test -- --run src/App.test.tsx、npm run typecheck、npm run build 通过。",
+                "2026-05-27: 一键安装下载器新增 20 秒连接超时和 300 秒单文件下载总超时；cargo test --manifest-path src-tauri/Cargo.toml asr_installer 通过，6 个安装器测试通过。",
+                "2026-05-27: AGENTS.md 和 docs/harness/working-agreement.md 明确验证发现 bug 必须记录到 docs/harness/debugging-log.md。"
+            ],
+            "notes": "最小可运行骨架、系统能力边界、真实录音采集、16 kHz ASR 输入准备、应用内 ASR 配置、一键安装 whisper.cpp/model、最近录音 whisper.cpp 转写命令和转写后上屏命令均已接入；维护者已手动验证真实闭环成功，因此 scaffold-001 标记为 passing。后续仍可优化识别质量、模型选择、镜像源、全局快捷键和更可靠的上屏策略。"
+        },
+        {
+            "id": "v2-001",
+            "priority": 6,
+            "area": "implementation",
+            "title": "V2 日常语音输入体验",
+            "user_visible_behavior": "维护者可以通过深色主界面和彩色流光语音波纹理解当前语音输入状态；桌面模式下已接入 Ctrl+Alt+Space 全局按住说话，按下开始录音、松开转写并上屏。",
+            "status": "in_progress",
+            "verification": [
+                "运行 npm test -- --run。",
+                "运行 npm run typecheck。",
+                "运行 cargo test --manifest-path src-tauri/Cargo.toml。",
+                "运行 npm run build。",
+                "运行 python -m json.tool docs/harness/feature_list.json。",
+                "运行 bash init.sh。",
+                "手动验证主界面不再显示仿苹果红黄绿窗口按钮。",
+                "手动验证录音态语音波纹的频谱柱会连续起伏。",
+                "手动验证 Ctrl+Alt+Space 在 Windows 桌面里按下开始录音、松开后转写并上屏。"
+            ],
+            "evidence": [
+                "2026-05-27: 维护者批准 V2 方向：主界面克制，语音输入状态使用彩色流光波纹浮窗表达；全局快捷键按住说话作为第二版核心体验。",
+                "2026-05-27: 写入 docs/superpowers/specs/2026-05-27-v2-daily-dictation-design.md 和 docs/superpowers/plans/2026-05-27-v2-daily-dictation.md。",
+                "2026-05-27: 使用 TDD 新增 voiceOverlayModel 和 VoiceOverlay 组件；主界面移除仿苹果红黄绿窗口按钮并嵌入彩色流光语音浮窗；npm test -- --run、npm run typecheck、npm run build 和 git diff --check 通过。",
+                "2026-05-27: whisper.cpp zh 语言调用新增简体中文 prompt；cargo test --manifest-path src-tauri/Cargo.toml 通过，覆盖 Simplified Chinese prompt。",
+                "2026-05-27: 新增 UserPreferences 保存/读取输入设备选择；前端启动后会尝试应用已保存设备；npm test -- --run、npm run typecheck、cargo test --manifest-path src-tauri/Cargo.toml 通过。",
+                "2026-05-27: 新增 tauri-plugin-global-shortcut 和 hotkey 状态机；Rust 注册 Ctrl+Alt+Space 全局快捷键并向前端发送 voxtype-push-to-talk 事件；前端收到按下事件后开始录音，收到松开事件后停止、转写并上屏。",
+                "2026-05-27: 根据维护者反馈，将三条横线波纹改为 24 个彩色频谱柱和流动光带；VoiceOverlay 测试确认渲染 .voice-wave-bar。",
+                "2026-05-27: 主界面和诊断模式统一改为深色径向背景、半透明面板和彩色语音状态视觉。",
+                "2026-05-27: npm test -- --run 通过，5 个测试文件、12 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，42 个 Rust 测试通过。"
+            ],
+            "notes": "V2 已完成主要代码接入：深色主界面、动态彩色语音波纹、简体中文 prompt、输入设备持久化、全局 Ctrl+Alt+Space 按住说话事件。全局快捷键和真实目标软件上屏仍需要维护者在 Windows 桌面中手动验证后，才能把 v2-001 标记为 passing。"
+        }
+    ]
 }

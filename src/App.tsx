@@ -3,7 +3,7 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { VoiceOverlay } from './VoiceOverlay';
 import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getRecordingStatus, getUserPreferences, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getRecordingStatus, getUserPreferences, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
 import type { AppConfig, AppStatus, AsrConfigStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
@@ -66,6 +66,7 @@ export function App() {
   const [asrLanguage, setAsrLanguage] = useState('zh');
   const [isInstallingAsr, setIsInstallingAsr] = useState(false);
   const didLoadRuntime = useRef(false);
+  const isRecordingRef = useRef(false);
   const diagnosticsEndRef = useRef<HTMLDivElement | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([
     {
@@ -162,6 +163,7 @@ export function App() {
   }, [diagnostics, viewMode]);
 
   const isRecording = recordingStatus.state === 'recording';
+  isRecordingRef.current = isRecording;
   const overlayLevel = isRecording ? 0.72 : status.phase === 'transcribing' || status.phase === 'inserting' ? 0.38 : 0.18;
   const voiceOverlayModel = useMemo(() => createVoiceOverlayModel(status, overlayLevel), [status, overlayLevel]);
 
@@ -297,6 +299,30 @@ export function App() {
     }
   }
 
+  async function handleStopTranscribeAndInsertNow() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: '快捷键闭环未执行', result: 'warning', detail: '浏览器预览模式不能调用录音、whisper.cpp 和剪贴板上屏。' });
+      return;
+    }
+    try {
+      const audio = await stopRecording();
+      setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
+      addDiagnostic({ title: '快捷键录音已停止', result: audio.sampleCount > 0 ? 'success' : 'warning', detail: `采集到 ${audio.sampleCount} 个 mono 样本，峰值音量 ${audio.peakAmplitude}，RMS 音量 ${audio.rmsAmplitude}。` });
+
+      setStatus({ phase: 'transcribing', message: '正在识别刚才的语音', lastTranscript: null });
+      const transcript = await transcribeLastRecording();
+      setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: transcript.text });
+      await insertTextWithClipboard(transcript.text);
+      setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: transcript.text });
+      addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${transcript.text}` });
+    } catch (error) {
+      const detail = formatError(error);
+      setRecordingStatus((current) => ({ ...current, state: 'idle' }));
+      setStatus({ phase: 'failed', message: `快捷键语音输入失败：${detail}`, lastTranscript: null });
+      addDiagnostic({ title: '快捷键闭环失败', result: 'error', detail });
+    }
+  }
+
   async function handleSelectInputDevice(deviceName: string) {
     setSelectedInputDeviceName(deviceName);
     if (!isTauriRuntime()) {
@@ -401,6 +427,33 @@ export function App() {
     }
   }
 
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    let unlisten: (() => void) | null = null;
+    void listenToPushToTalk((payload) => {
+      if (payload.action === 'startRecording' && !isRecordingRef.current) {
+        void handleStartRecording();
+        return;
+      }
+      if (payload.action === 'stopAndTranscribe' && isRecordingRef.current) {
+        void handleStopTranscribeAndInsertNow();
+      }
+    })
+      .then((nextUnlisten) => {
+        unlisten = nextUnlisten;
+      })
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '注册全局快捷键监听失败', result: 'error', detail: formatError(error) });
+      });
+
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
   function renderDeviceSelect(compact = false) {
     return (
       <label className={compact ? 'field compact-field' : 'field'}>
@@ -451,7 +504,7 @@ export function App() {
             <div className="voice-copy">
               <p className="eyebrow">LOCAL VOICE INPUT</p>
               <h1 id="app-title">VoxType</h1>
-              <p className="voice-subtitle">录音、转写，然后把文字送到当前光标位置。</p>
+              <p className="voice-subtitle">按住 Ctrl+Alt+Space 说话，松开后自动转写并上屏到当前光标位置。</p>
               <div className="status-strip" data-phase={status.phase}><span>{phaseLabel}</span><strong>{status.message}</strong></div>
             </div>
             <div className="record-orb-wrap">

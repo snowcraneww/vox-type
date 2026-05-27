@@ -227,6 +227,19 @@
 - 结论：第一版 MVP 可视为完成；第二阶段建议从“简体中文输出标准化”、全局快捷键、设备选择持久化、模型选择和下载进度开始。
 - 文档更新：`README.md`、`docs/harness/quality.md`、`docs/harness/session-handoff.md`、`docs/harness/debugging-log.md` 已同步第一版 MVP 完成判断和繁体输出问题。
 
+### 2026-05-27 V2 日常语音输入体验推进
+
+- 使用 `superpowers:brainstorming`、`frontend-design`、`superpowers:systematic-debugging`、`superpowers:test-driven-development`、`documentation-writer` 和 `document-release` 对本轮设计、调试、实现和文档同步进行约束。
+- V2 设计文档和实施计划已写入 `docs/superpowers/specs/2026-05-27-v2-daily-dictation-design.md`、`docs/superpowers/plans/2026-05-27-v2-daily-dictation.md`。
+- 已移除仿苹果红黄绿窗口按钮，主界面改为深色径向背景、半透明工具面板和更克制的日常输入布局；诊断模式保持可进入。
+- 根据维护者反馈，修复“录音时三条彩色线不动”的视觉问题：`VoiceOverlay` 从三条横线改为 24 个彩色频谱柱和流动光带，录音态会错峰起伏。
+- whisper.cpp `zh` 语言调用新增简体中文 prompt，降低跨机器返回繁体中文的概率。
+- 新增输入设备偏好持久化：选择输入设备后保存到 Tauri app config，下次启动会尝试恢复。
+- 新增全局按住说话基础闭环：Rust 通过 `tauri-plugin-global-shortcut` 注册 `Ctrl+Alt+Space`，按下向前端发送 `startRecording`，松开发送 `stopAndTranscribe`；前端收到事件后停止录音、调用 whisper.cpp 并立即剪贴板上屏。
+- 修复规则文档中 PowerShell/UTF-8 规则行的控制字符污染，并记录到 `docs/harness/debugging-log.md`。
+- 已运行验证：`npm test -- --run` 通过，5 个测试文件、12 个测试通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml` 通过，42 个 Rust 测试通过。
+- 仍需维护者手动验证：在 Tauri 桌面模式中把光标放到 Notepad、VS Code 或浏览器输入框，按住 `Ctrl+Alt+Space` 说话，松开后确认目标输入框出现识别文本，并确认语音波纹在录音态连续起伏。
+
 ## 会话记录
 
 ### 会话 001 - 2026-05-26

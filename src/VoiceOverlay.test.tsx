@@ -23,6 +23,7 @@ describe('VoiceOverlay', () => {
     expect(overlay).toHaveAttribute('data-mode', 'recording');
     expect(screen.getByText('说完后松开快捷键')).toBeInTheDocument();
     expect(screen.getByTestId('voice-wave')).toHaveAttribute('aria-hidden', 'true');
+    expect(document.querySelectorAll('.voice-wave-bar')).toHaveLength(24);
   });
 
   it('renders transcribing state', () => {

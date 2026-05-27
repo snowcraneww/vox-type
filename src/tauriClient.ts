@@ -1,5 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, UserPreferences } from './types';
+
+export interface PushToTalkPayload {
+  state: 'pressed' | 'released';
+  action: 'startRecording' | 'stopAndTranscribe' | 'ignore';
+}
 
 export async function getConfig(): Promise<AppConfig> {
   return invoke<AppConfig>('get_config');
@@ -67,6 +73,10 @@ export async function installManagedAsr(): Promise<AsrConfigStatus> {
 
 export async function insertTextWithClipboard(text: string): Promise<void> {
   return invoke('insert_text_with_clipboard', { text });
+}
+
+export async function listenToPushToTalk(handler: (payload: PushToTalkPayload) => void): Promise<() => void> {
+  return listen<PushToTalkPayload>('voxtype-push-to-talk', (event) => handler(event.payload));
 }
 
 export function isTauriRuntime(): boolean {

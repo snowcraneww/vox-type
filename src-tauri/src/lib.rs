@@ -18,7 +18,8 @@ use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
 use preferences::UserPreferences;
 use recorder::RecorderManager;
 use state::AppStatus;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_global_shortcut::ShortcutState;
 
 #[tauri::command]
 fn get_config() -> AppConfig {
@@ -173,11 +174,42 @@ fn insert_text_with_clipboard(text: String) -> Result<(), error::VoxError> {
     ClipboardInsertion.insert_text(&text)
 }
 
+fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    use std::sync::{Arc, Mutex};
+
+    let state = Arc::new(Mutex::new(hotkey::PushToTalkState::default()));
+    let accelerator = hotkey::HotkeyBinding::default().accelerator;
+    let handler_state = Arc::clone(&state);
+
+    app.plugin(
+        tauri_plugin_global_shortcut::Builder::new()
+            .with_shortcuts([accelerator.as_str()])?
+            .with_handler(move |app, _shortcut, event| {
+                let hotkey_event = match event.state() {
+                    ShortcutState::Pressed => hotkey::PushToTalkEvent::Pressed,
+                    ShortcutState::Released => hotkey::PushToTalkEvent::Released,
+                };
+                let action = handler_state
+                    .lock()
+                    .map(|mut state| state.handle_event(hotkey_event))
+                    .unwrap_or(hotkey::PushToTalkAction::Ignore);
+                let payload = hotkey::payload_for_event(hotkey_event, action);
+                let _ = app.emit("voxtype-push-to-talk", payload);
+            })
+            .build(),
+    )?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(RecorderManager::default())
         .setup(|app| {
+            if let Err(error) = setup_push_to_talk_hotkey(app.handle()) {
+                eprintln!("failed to register push-to-talk hotkey: {error}");
+            }
             tray::setup_tray(app.handle())?;
             Ok(())
         })
