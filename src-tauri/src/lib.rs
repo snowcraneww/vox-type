@@ -6,6 +6,7 @@ pub mod config;
 pub mod error;
 pub mod hotkey;
 pub mod insertion;
+pub mod preferences;
 pub mod recorder;
 pub mod state;
 pub mod tray;
@@ -14,6 +15,7 @@ use asr::{AsrEngine, MockAsrEngine, Transcript, WhisperCppEngine};
 use asr_config::{AsrConfig, AsrConfigStatus};
 use config::AppConfig;
 use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
+use preferences::UserPreferences;
 use recorder::RecorderManager;
 use state::AppStatus;
 use tauri::{AppHandle, Manager, State};
@@ -49,10 +51,18 @@ fn list_input_devices() -> Result<Vec<recorder::RecorderInfo>, error::VoxError> 
 
 #[tauri::command]
 fn set_input_device(
+    app: AppHandle,
     recorder: State<'_, RecorderManager>,
     device_name: Option<String>,
 ) -> Result<recorder::RecorderInfo, error::VoxError> {
-    recorder.set_input_device(device_name)
+    let info = recorder.set_input_device(device_name.clone())?;
+    preferences::save_user_preferences(
+        app_config_dir(&app)?,
+        UserPreferences {
+            selected_input_device_name: device_name,
+        },
+    )?;
+    Ok(info)
 }
 
 #[tauri::command]
@@ -76,6 +86,10 @@ fn get_recording_status(
     recorder.status()
 }
 
+#[tauri::command]
+fn get_user_preferences(app: AppHandle) -> Result<UserPreferences, error::VoxError> {
+    Ok(preferences::load_user_preferences(app_config_dir(&app)?))
+}
 #[tauri::command]
 fn get_asr_config_status(app: AppHandle) -> Result<AsrConfigStatus, error::VoxError> {
     let config_dir = app_config_dir(&app)?;
@@ -177,6 +191,7 @@ pub fn run() {
             start_recording,
             stop_recording,
             get_recording_status,
+            get_user_preferences,
             get_asr_config_status,
             save_asr_config,
             install_managed_asr,

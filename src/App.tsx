@@ -3,7 +3,7 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { VoiceOverlay } from './VoiceOverlay';
 import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getRecordingStatus, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getRecordingStatus, getUserPreferences, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
 import type { AppConfig, AppStatus, AsrConfigStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
@@ -51,6 +51,7 @@ export function App() {
   const [recorderInfo, setRecorderInfo] = useState<RecorderInfo | null>(null);
   const [inputDevices, setInputDevices] = useState<RecorderInfo[]>([]);
   const [selectedInputDeviceName, setSelectedInputDeviceName] = useState('');
+  const preferredInputDeviceName = useRef<string | null>(null);
   const [recordingStatus, setRecordingStatus] = useState<RecorderRuntimeStatus>({
     state: 'idle',
     sampleRate: null,
@@ -130,9 +131,21 @@ export function App() {
         setRuntimeMessage(`读取麦克风失败：${detail}`);
         addDiagnostic({ title: '麦克风探测失败', result: 'error', detail });
       });
+    void getUserPreferences()
+      .then((preferences) => {
+        preferredInputDeviceName.current = preferences.selectedInputDeviceName;
+      })
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '读取用户偏好失败', result: 'error', detail: formatError(error) });
+      });
     void listInputDevices()
       .then((devices) => {
         setInputDevices(devices);
+        const preferredDevice = preferredInputDeviceName.current;
+        const hasPreferredDevice = preferredDevice ? devices.some((device) => device.deviceName === preferredDevice) : false;
+        if (preferredDevice && hasPreferredDevice) {
+          void handleSelectInputDevice(preferredDevice);
+        }
         addDiagnostic({
           title: '输入设备列表已读取',
           result: 'info',

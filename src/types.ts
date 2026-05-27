@@ -62,3 +62,7 @@ export interface AsrConfigStatus extends AsrConfig {
   source: string;
   message: string;
 }
+
+export interface UserPreferences {
+  selectedInputDeviceName: string | null;
+}

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, UserPreferences } from './types';
 
 export async function getConfig(): Promise<AppConfig> {
   return invoke<AppConfig>('get_config');
@@ -31,6 +31,10 @@ export async function stopRecording(): Promise<RecordedAudio> {
 
 export async function getRecordingStatus(): Promise<RecorderRuntimeStatus> {
   return invoke<RecorderRuntimeStatus>('get_recording_status');
+}
+
+export async function getUserPreferences(): Promise<UserPreferences> {
+  return invoke<UserPreferences>('get_user_preferences');
 }
 
 export async function simulateDictation(): Promise<AppStatus> {
