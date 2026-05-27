@@ -396,3 +396,12 @@
 - 识别态改为低速呼吸动效，不再是完全静止；录音态仍保持快速流光与波形变化。
 - 主界面进一步压缩：窗口宽度、标题字号、正文字号、header 高度、主区间距、预览浮窗高度和卡片边距都下调，减少粗大感。
 - 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm run typecheck` 通过；`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
+
+### 2026-05-27 V2 声波柱与转写三点动效
+
+- 维护者反馈：黑色胶囊外仍有白边；波浪仍有些怪，希望更像录音软件实时声波；转写中更适合动态点或处理中动效；上屏曾有一次未成功但后续复测成功，本轮不改上屏链路。
+- 将 overlay SVG 视窗同步为 `120 x 32`，与窗口/CSS 尺寸一致，避免缩放合成导致浅色边缘。
+- 录音态从曲线路径改为 20 根多色实时声波柱，模拟音量大小变化；保留渐变流光。
+- 转写态改为三点动态处理状态，背景声波柱降为很低透明度，不再表现为卡住的静态波形。
+- `index.html` overlay 首帧样式增加 `color-scheme: dark`、`margin: 0`、`overflow: hidden`，继续降低 WebView 默认白边风险。
+- 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
