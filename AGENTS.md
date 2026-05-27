@@ -23,6 +23,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 ## 工作规则
 
 - 按开源项目标准工作：不要写入密钥、私有 cookie、个人 token、内部机器路径依赖。
+- Git 提交必须使用项目级身份 `VoxType <maintainers@voxtype.dev>`；不要使用个人姓名、公司邮箱或本机用户名作为 author/committer。
 - WIP=1：一次只推进一个功能、spec 或 harness 任务。
 - 仓库文件优先于聊天记忆。
 - 改动必须限定在当前任务范围内。

@@ -12,6 +12,17 @@
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
+## 2026-05-27 开源隐私清理
+
+- 维护者指出 Git commit 元数据中泄露个人信息。
+- 已暂停 V2 功能推进，优先执行开源安全清理。
+- 初始审计：当前跟踪文件未命中个人信息或常见密钥模式；18 个 commit metadata 命中个人姓名/邮箱/用户名。
+- 已重写本地 Git 历史，把所有 author/committer 改为 `VoxType <maintainers@voxtype.dev>`。
+- 已删除 `refs/original`，执行 reflog expire 和 Git GC。
+- 已设置仓库 local Git 身份：`VoxType <maintainers@voxtype.dev>`。
+- 重扫结果：commit metadata 个人信息扫描 `metadata_findings 0`；当前跟踪文件扫描 `tracked_findings 0`；全历史内容扫描 `history_content_findings 0`；`git fsck --no-reflogs --unreachable --no-progress` 无输出。
+- 当前仓库没有 remote；如果后续添加或已在别处推送过旧历史，需要确保公开远端不保留旧提交。
+
 ## 课程学习状态
 
 已逐节读取 Learn Harness Engineering 中文课程 12 讲正文摘要，并将对本项目的配置影响记录到 `docs/harness/lesson-synthesis.md`。

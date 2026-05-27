@@ -588,6 +588,41 @@ src-tauri/target/debug/bundle/msi/VoxType_0.1.0_x64_en-US.msi
 
 ## 当前调试结论
 
+## 2026-05-27 Git 提交元数据泄露个人信息
+
+### 现象
+
+维护者指出最近多个 commit 里包含个人姓名、公司邮箱或本机用户名等个人信息。进一步检查发现本地历史里的全部 18 个提交都存在个人 author/committer 元数据。
+
+### 影响
+
+VoxType 是开源项目，提交元数据会随仓库历史公开。个人姓名、公司邮箱和本机用户名不应作为项目默认提交身份进入公开历史。
+
+### 根因
+
+仓库没有设置项目级 Git author/committer，提交时沿用了本机或临时命令里的个人身份。后续临时修正提交时也没有统一使用项目身份。
+
+### 修复
+
+- 使用 Git 历史重写把所有提交的 author/committer 统一改为 `VoxType <maintainers@voxtype.dev>`。
+- 删除 `filter-branch` 产生的 `refs/original` 备份引用。
+- 执行 reflog 过期和 Git GC，清理旧提交对象引用。
+- 设置仓库 local Git 身份为 `VoxType <maintainers@voxtype.dev>`。
+- 更新 `AGENTS.md` 和 `docs/harness/working-agreement.md`，要求后续提交使用项目级身份。
+
+### 验证
+
+已完成以下扫描，均未发现残留：
+
+- commit metadata 个人信息扫描：`metadata_findings 0`。
+- 当前跟踪文件个人信息和常见密钥模式扫描：`tracked_findings 0`。
+- 全历史文件内容个人信息和常见密钥模式扫描：`history_content_findings 0`。
+- `git fsck --no-reflogs --unreachable --no-progress`：无输出。
+
+### 后续风险
+
+如果后续已经把旧历史推送到远端，必须强制更新远端并通知所有协作者重新克隆或重置；否则远端仍可能保留旧提交。当前检查到本地仓库没有 remote。
+
 截至 2026-05-27，最重要的根因是录音双声道回调处理错误。这个问题会直接造成导出的 ASR WAV 变音，并解释 whisper.cpp 只返回 `(音)` 的现象。
 
 下一次手动验证应优先确认：
