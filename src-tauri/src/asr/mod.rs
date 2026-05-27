@@ -60,16 +60,10 @@ impl AsrEngine for WhisperCppEngine {
         let wav_path = temp_wav_path();
         write_pcm_wav(&wav_path, pcm_16khz_mono)?;
 
+        let wav_path_string = wav_path.to_string_lossy().to_string();
+        let args = build_whisper_args(&self.model_path, &wav_path_string, &self.language);
         let output = Command::new(&binary)
-            .args([
-                "-m",
-                &self.model_path,
-                "-f",
-                wav_path.to_string_lossy().as_ref(),
-                "-l",
-                &self.language,
-                "-nt",
-            ])
+            .args(args)
             .output()
             .map_err(|error| VoxError::Asr(format!("启动 whisper.cpp 失败：{error}")))?;
 
@@ -94,6 +88,24 @@ impl AsrEngine for WhisperCppEngine {
     }
 }
 
+fn build_whisper_args(model_path: &str, wav_path: &str, language: &str) -> Vec<String> {
+    let mut args = vec![
+        "-m".to_string(),
+        model_path.to_string(),
+        "-f".to_string(),
+        wav_path.to_string(),
+        "-l".to_string(),
+        language.to_string(),
+        "-nt".to_string(),
+    ];
+
+    if language.to_ascii_lowercase().starts_with("zh") {
+        args.push("--prompt".to_string());
+        args.push("请使用简体中文输出。".to_string());
+    }
+
+    args
+}
 fn temp_wav_path() -> PathBuf {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -166,6 +178,13 @@ mod tests {
         );
     }
 
+    #[test]
+    fn whisper_args_include_simplified_chinese_prompt_for_zh() {
+        let args = build_whisper_args("model.bin", "input.wav", "zh");
+
+        assert!(args.contains(&"--prompt".to_string()));
+        assert!(args.contains(&"请使用简体中文输出。".to_string()));
+    }
     #[test]
     fn write_pcm_wav_creates_16khz_mono_header() {
         let temp = tempfile::NamedTempFile::new().unwrap();
