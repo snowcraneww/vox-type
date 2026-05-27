@@ -57,7 +57,7 @@ export function App() {
   const [recorderInfo, setRecorderInfo] = useState<RecorderInfo | null>(null);
   const [inputDevices, setInputDevices] = useState<RecorderInfo[]>([]);
   const [selectedInputDeviceName, setSelectedInputDeviceName] = useState('');
-  const preferredInputDeviceName = useRef<string | null>(null);
+  const [preferredInputDeviceName, setPreferredInputDeviceName] = useState<string | null>(null);
   const [recordingStatus, setRecordingStatus] = useState<RecorderRuntimeStatus>({
     state: 'idle',
     sampleRate: null,
@@ -141,7 +141,7 @@ export function App() {
       });
     void getUserPreferences()
       .then((preferences) => {
-        preferredInputDeviceName.current = preferences.selectedInputDeviceName;
+        setPreferredInputDeviceName(preferences.selectedInputDeviceName);
       })
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取用户偏好失败', result: 'error', detail: formatError(error) });
@@ -157,11 +157,6 @@ export function App() {
     void listInputDevices()
       .then((devices) => {
         setInputDevices(devices);
-        const preferredDevice = preferredInputDeviceName.current;
-        const hasPreferredDevice = preferredDevice ? devices.some((device) => device.deviceName === preferredDevice) : false;
-        if (preferredDevice && hasPreferredDevice) {
-          void handleSelectInputDevice(preferredDevice);
-        }
         addDiagnostic({
           title: '输入设备列表已读取',
           result: 'info',
@@ -172,6 +167,21 @@ export function App() {
         addDiagnostic({ title: '读取输入设备列表失败', result: 'error', detail: formatError(error) });
       });
   }, []);
+
+  useEffect(() => {
+    if (!isTauriRuntime() || !preferredInputDeviceName || inputDevices.length === 0 || isRecordingRef.current) {
+      return;
+    }
+    if (selectedInputDeviceName === preferredInputDeviceName) {
+      return;
+    }
+    const hasPreferredDevice = inputDevices.some((device) => device.deviceName === preferredInputDeviceName);
+    if (hasPreferredDevice) {
+      void handleSelectInputDevice(preferredInputDeviceName);
+    } else {
+      addDiagnostic({ title: '已保存输入设备不可用', result: 'warning', detail: `没有在当前系统输入设备列表中找到：${preferredInputDeviceName}` });
+    }
+  }, [preferredInputDeviceName, inputDevices, selectedInputDeviceName]);
 
   useEffect(() => {
     diagnosticsEndRef.current?.scrollIntoView?.({ block: 'end' });
@@ -258,6 +268,20 @@ export function App() {
       addDiagnostic({ title: nextStatus.ready ? 'ASR 配置检测通过' : 'ASR 配置未就绪', result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
     } catch (error) {
       addDiagnostic({ title: 'ASR 配置检测失败', result: 'error', detail: formatError(error) });
+    }
+  }
+
+  async function handleRefreshHotkeyStatus() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: '全局快捷键状态未读取', result: 'warning', detail: '浏览器预览模式不能读取 Tauri 全局快捷键注册状态。' });
+      return;
+    }
+    try {
+      const nextStatus = await getHotkeyStatus();
+      setHotkeyStatus(nextStatus);
+      addDiagnostic({ title: nextStatus.registered ? '全局快捷键已注册' : '全局快捷键未就绪', result: nextStatus.registered ? 'success' : 'warning', detail: nextStatus.message });
+    } catch (error) {
+      addDiagnostic({ title: '读取全局快捷键状态失败', result: 'error', detail: formatError(error) });
     }
   }
 
@@ -572,6 +596,7 @@ export function App() {
             <div><dt>麦克风</dt><dd>{recorderInfo ? `${recorderInfo.deviceName} / ${recorderInfo.sampleRate} Hz / ${recorderInfo.channels} 声道` : '等待 Tauri 读取'}</dd></div>
             <div><dt>录音流</dt><dd>{isRecording ? `录音中 / ${recordingStatus.sampleCount} 样本 / ${recordingStatus.durationMs} ms` : '空闲'}</dd></div>
           </dl>
+          <div className="button-row"><button type="button" onClick={handleRefreshHotkeyStatus}>刷新全局快捷键状态</button></div>
           <div className="config-form single-row-form">{renderDeviceSelect()}</div>
         </section>
 

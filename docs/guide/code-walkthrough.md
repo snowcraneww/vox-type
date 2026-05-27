@@ -271,6 +271,8 @@ selected_input_device_name: Option<String>
 
 当用户在界面里切换输入设备时，`set_input_device` 会同时更新 `RecorderManager` 和本地偏好文件。下次启动时，前端会先读取 `get_user_preferences`，再读取设备列表，如果保存过的设备仍然存在，就自动切回该设备。
 
+前端恢复偏好时使用 `preferredInputDeviceName` 状态和设备列表 effect，而不是依赖两个异步请求的先后顺序。这样即使“用户偏好”和“设备列表”返回顺序不同，也能在两者都到达后尝试恢复设备。
+
 这和 `asr_config.rs` 分开，是为了避免把 ASR 路径、模型配置和普通 UI 偏好混在同一个模块里。
 
 ## `asr_installer.rs`
