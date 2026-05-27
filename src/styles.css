@@ -798,7 +798,7 @@ h1 { font-size: 30px; font-weight: 740; }
 }
 
 .ripple-capsule {
-  fill: rgba(2, 3, 7, 0.94);
+  fill: rgba(0, 0, 0, 0.96);
   stroke: none;
 }
 
@@ -829,7 +829,7 @@ h1 { font-size: 30px; font-weight: 740; }
 }
 
 .wave-ripple[data-mode="recording"] .ripple-capsule {
-  fill: rgba(2, 3, 7, 0.96);
+  fill: rgba(0, 0, 0, 0.97);
 }
 
 .wave-ripple[data-mode="transcribing"] .soundwave-bars {
@@ -841,17 +841,23 @@ h1 { font-size: 30px; font-weight: 740; }
 }
 
 .transcribing-dots {
-  fill: url(#voice-ripple-gradient);
   filter: url(#voice-ripple-glow);
 }
 
 .transcribing-dot {
-  animation: transcribing-dot 1.05s ease-in-out infinite;
-  animation-delay: calc(var(--dot-index) * 90ms);
-  opacity: 0.35;
+  animation: transcribing-dot 940ms ease-in-out infinite;
+  animation-delay: calc(var(--dot-index) * 95ms);
+  opacity: 0.52;
   transform-box: fill-box;
   transform-origin: center;
 }
+
+.transcribing-dot-0 { fill: #5ac8fa; }
+.transcribing-dot-1 { fill: #7ee7ff; }
+.transcribing-dot-2 { fill: #34c759; }
+.transcribing-dot-3 { fill: #ffd60a; }
+.transcribing-dot-4 { fill: #ff2d92; }
+.transcribing-dot-5 { fill: #bf5af2; }
 
 @keyframes soundwave-idle {
   0%, 100% { opacity: 0.30; transform: scaleY(0.72); }
@@ -865,8 +871,9 @@ h1 { font-size: 30px; font-weight: 740; }
 }
 
 @keyframes transcribing-dot {
-  0%, 100% { opacity: 0.28; transform: scale(0.72); }
-  45% { opacity: 0.92; transform: scale(1.28); }
+  0%, 100% { opacity: 0.30; transform: translateY(3px) scale(0.70); }
+  42% { opacity: 1; transform: translateY(-4px) scale(1.42); }
+  70% { opacity: 0.64; transform: translateY(1px) scale(0.92); }
 }
 
 @media (prefers-reduced-motion: reduce) {

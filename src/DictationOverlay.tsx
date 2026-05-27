@@ -82,7 +82,7 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
               </feMerge>
             </filter>
           </defs>
-          <rect className="ripple-capsule" x="0" y="0" width="120" height="32" rx="16" />
+          <rect className="ripple-capsule" x="1" y="1" width="118" height="30" rx="15" />
           <g className="soundwave-bars" filter="url(#voice-ripple-glow)">
             {Array.from({ length: 20 }, (_, index) => {
               const heights = [4, 7, 10, 5, 12, 8, 3, 11, 6, 13, 9, 4, 12, 7, 10, 5, 8, 11, 6, 3];
@@ -104,7 +104,7 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
           </g>
           {isTranscribing ? (
             <g className="transcribing-dots" aria-hidden="true">
-              {[42, 49, 56, 63, 70, 77].map((cx, index) => <circle className="transcribing-dot" cx={cx} cy="16" data-index={index} key={cx} r="1.9" style={{ '--dot-index': index } as React.CSSProperties} />)}
+              {[42, 49, 56, 63, 70, 77].map((cx, index) => <circle className={`transcribing-dot transcribing-dot-${index}`} cx={cx} cy="16" data-index={index} key={cx} r="2.25" style={{ '--dot-index': index } as React.CSSProperties} />)}
             </g>
           ) : null}
         </svg>
