@@ -1,4 +1,6 @@
 pub mod asr;
+pub mod asr_config;
+pub mod asr_installer;
 pub mod audio;
 pub mod config;
 pub mod error;
@@ -9,11 +11,12 @@ pub mod state;
 pub mod tray;
 
 use asr::{AsrEngine, MockAsrEngine, Transcript, WhisperCppEngine};
+use asr_config::{AsrConfig, AsrConfigStatus};
 use config::AppConfig;
 use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
 use recorder::RecorderManager;
 use state::AppStatus;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 #[tauri::command]
 fn get_config() -> AppConfig {
@@ -40,6 +43,19 @@ fn get_default_input_info() -> Result<recorder::RecorderInfo, error::VoxError> {
 }
 
 #[tauri::command]
+fn list_input_devices() -> Result<Vec<recorder::RecorderInfo>, error::VoxError> {
+    recorder::list_input_devices()
+}
+
+#[tauri::command]
+fn set_input_device(
+    recorder: State<'_, RecorderManager>,
+    device_name: Option<String>,
+) -> Result<recorder::RecorderInfo, error::VoxError> {
+    recorder.set_input_device(device_name)
+}
+
+#[tauri::command]
 fn start_recording(
     recorder: State<'_, RecorderManager>,
 ) -> Result<recorder::RecorderRuntimeStatus, error::VoxError> {
@@ -61,27 +77,81 @@ fn get_recording_status(
 }
 
 #[tauri::command]
+fn get_asr_config_status(app: AppHandle) -> Result<AsrConfigStatus, error::VoxError> {
+    let config_dir = app_config_dir(&app)?;
+    Ok(asr_config::get_asr_config_status(config_dir))
+}
+
+#[tauri::command]
+fn save_asr_config(app: AppHandle, config: AsrConfig) -> Result<AsrConfigStatus, error::VoxError> {
+    let config_dir = app_config_dir(&app)?;
+    asr_config::save_asr_config(config_dir, config)
+}
+
+#[tauri::command]
+fn install_managed_asr(app: AppHandle) -> Result<AsrConfigStatus, error::VoxError> {
+    let app_data_dir = app_data_dir(&app)?;
+    let config_dir = app_config_dir(&app)?;
+    asr_installer::install_managed_asr(app_data_dir, config_dir)
+}
+
+#[tauri::command]
 fn transcribe_last_recording(
+    app: AppHandle,
     recorder: State<'_, RecorderManager>,
 ) -> Result<Transcript, error::VoxError> {
-    let binary_path = std::env::var("VOXTYPE_WHISPER_CPP_BINARY").map_err(|_| {
-        error::VoxError::Config(
-            "缺少环境变量 VOXTYPE_WHISPER_CPP_BINARY，无法调用 whisper.cpp".to_string(),
-        )
-    })?;
-    let model_path = std::env::var("VOXTYPE_WHISPER_CPP_MODEL").map_err(|_| {
-        error::VoxError::Config(
-            "缺少环境变量 VOXTYPE_WHISPER_CPP_MODEL，无法调用 whisper.cpp".to_string(),
-        )
-    })?;
-    let language = std::env::var("VOXTYPE_ASR_LANGUAGE").unwrap_or_else(|_| "zh".to_string());
+    let config = asr_config::load_asr_config(app_config_dir(&app)?);
+    let status = asr_config::status_from_config(config.clone(), "runtime".to_string());
+    if !status.ready {
+        return Err(error::VoxError::Config(status.message));
+    }
     let samples = recorder.last_asr_samples()?;
     let engine = WhisperCppEngine {
-        binary_path,
-        model_path,
-        language,
+        binary_path: config
+            .whisper_binary_path
+            .expect("ready config has binary path"),
+        model_path: config
+            .whisper_model_path
+            .expect("ready config has model path"),
+        language: config.language,
     };
     engine.transcribe(&samples)
+}
+
+#[tauri::command]
+fn transcribe_last_recording_and_insert(
+    app: AppHandle,
+    recorder: State<'_, RecorderManager>,
+) -> Result<Transcript, error::VoxError> {
+    let transcript = transcribe_last_recording(app, recorder)?;
+    ClipboardInsertion.insert_text(&transcript.text)?;
+    Ok(transcript)
+}
+
+#[tauri::command]
+fn export_last_recording_wav(
+    app: AppHandle,
+    recorder: State<'_, RecorderManager>,
+) -> Result<String, error::VoxError> {
+    let recording = recorder.last_recording()?;
+    let export_dir = app_data_dir(&app)?.join("diagnostics");
+    std::fs::create_dir_all(&export_dir)
+        .map_err(|error| error::VoxError::Recorder(format!("创建诊断录音目录失败：{error}")))?;
+    let path = export_dir.join("last-asr-input.wav");
+    asr::write_pcm_wav(&path, &recording.asr_samples)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+fn app_config_dir(app: &AppHandle) -> Result<std::path::PathBuf, error::VoxError> {
+    app.path()
+        .app_config_dir()
+        .map_err(|error| error::VoxError::Config(format!("读取应用配置目录失败：{error}")))
+}
+
+fn app_data_dir(app: &AppHandle) -> Result<std::path::PathBuf, error::VoxError> {
+    app.path()
+        .app_data_dir()
+        .map_err(|error| error::VoxError::Config(format!("读取应用数据目录失败：{error}")))
 }
 
 #[tauri::command]
@@ -102,10 +172,17 @@ pub fn run() {
             get_status,
             simulate_dictation,
             get_default_input_info,
+            list_input_devices,
+            set_input_device,
             start_recording,
             stop_recording,
             get_recording_status,
+            get_asr_config_status,
+            save_asr_config,
+            install_managed_asr,
             transcribe_last_recording,
+            transcribe_last_recording_and_insert,
+            export_last_recording_wav,
             insert_text_with_clipboard
         ])
         .run(tauri::generate_context!())

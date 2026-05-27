@@ -23,8 +23,13 @@ pub fn resample_mono_i16(input: &[i16], source_rate: u32, target_rate: u32) -> V
     let output_len = output_len.max(1);
     (0..output_len)
         .map(|index| {
-            let source_index = (index as u64 * source_rate as u64) / target_rate as u64;
-            input[source_index.min(input.len() as u64 - 1) as usize]
+            let source_position = index as f64 * source_rate as f64 / target_rate as f64;
+            let left_index = source_position.floor() as usize;
+            let right_index = (left_index + 1).min(input.len() - 1);
+            let fraction = source_position - left_index as f64;
+            let left = input[left_index.min(input.len() - 1)] as f64;
+            let right = input[right_index] as f64;
+            (left + (right - left) * fraction).round() as i16
         })
         .collect()
 }
@@ -51,6 +56,15 @@ mod tests {
         let output = resample_mono_i16(&input, 48_000, 16_000);
 
         assert_eq!(output, vec![0, 3]);
+    }
+
+    #[test]
+    fn resampling_uses_linear_interpolation_for_non_integer_ratios() {
+        let input = vec![0, 1000, 2000, 3000];
+
+        let output = resample_mono_i16(&input, 4, 3);
+
+        assert_eq!(output, vec![0, 1333, 2667]);
     }
 
     #[test]

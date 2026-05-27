@@ -4,10 +4,10 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 
 ## 当前状态
 
-- 阶段：项目 harness 初始化、产品发现和开源调研已完成；下一步是 MVP 技术方案 brainstorm / OpenSpec。
-- 产品代码尚未 scaffold。
+- 阶段：项目 harness 初始化、产品发现、开源调研、MVP 技术方向确认和最小真实闭环均已完成；当前重点是提升 MVP 可用性和可靠性。
+- 产品代码已有 Tauri 2 + React/TypeScript + Rust 桌面应用骨架，已接入录音采集、16 kHz ASR 输入、whisper.cpp 一键安装/转写、剪贴板上屏、诊断日志、输入设备选择和诊断 WAV 导出。
 - 原始 AI 生成需求草稿在 `docs/plans/原始需求.md`，只能作为背景材料，不是已批准架构。
-- Rust / Tauri / Whisper.cpp 是原始草稿候选方向。当前调研建议见 `docs/research/technical-options.md`，仍需经过维护者批准和 OpenSpec 记录后再定稿。
+- Rust + Tauri 2 + React/TypeScript + whisper.cpp 是已确认 MVP 路线，详见 `docs/research/mvp-technical-proposal.md` 和 `openspec/changes/voxtype-mvp-technical-direction/`。
 
 ## 开工流程
 
@@ -28,6 +28,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 - 改动必须限定在当前任务范围内。
 - 不要为了宣称完成而降低验证标准。
 - 功能状态只有在验证已运行并记录证据后，才能标为 `passing`。
+- 验证、手动测试或用户反馈发现 bug 时，必须记录到 `docs/harness/debugging-log.md`；如果影响功能状态或后续优先级，同时同步 `docs/harness/progress.md`、`docs/harness/feature_list.json` 或 `docs/harness/session-handoff.md`。
 - 不要重置、回滚或覆盖用户未要求处理的改动。
 - 面向维护者的研究、方案、进度和规则文档默认使用中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 
@@ -58,6 +59,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 - `docs/harness/progress.md`：当前已验证状态与会话日志。
 - `docs/harness/feature_list.json`：功能状态机和优先级。
 - `docs/harness/quality.md`：质量快照。
+- `docs/harness/debugging-log.md`：真实调试问题、根因、修复和验证记录。
 - `docs/harness/evaluator-rubric.md`：验收评分表。
 - `docs/harness/session-handoff.md`：长会话交接模板。
 - `docs/harness/clean-state-checklist.md`：收尾检查。

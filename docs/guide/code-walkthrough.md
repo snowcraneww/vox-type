@@ -47,13 +47,18 @@ flowchart LR
 | `config` | `AppConfig` | 显示快捷键、语言、ASR、上屏策略 |
 | `status` | `AppStatus` | 显示当前阶段和最后一次转写文本 |
 | `recorderInfo` | `RecorderInfo` | 显示默认麦克风信息 |
+| `inputDevices` | `RecorderInfo[]` | 显示可选择的输入设备列表 |
 | `runtimeMessage` | `string` | 告诉你当前是浏览器模式还是 Tauri 模式 |
 | `diagnostics` | `DiagnosticEntry[]` | 显示每一步成功/失败和原因 |
 
-当前两个按钮：
+当前关键按钮：
 
 - `handleSimulateDictation`：调用 mock 听写闭环。
 - `handleClipboardInsert`：调用剪贴板上屏。
+- `handleStartRecording` / `handleStopRecording`：启动和停止真实录音采集。
+- `handleTranscribeLastRecording`：把最近一次录音交给 whisper.cpp 转写。
+- `handleTranscribeAndInsert`：先转写，再给维护者 3 秒切回目标输入框，然后上屏。
+- `handleExportLastRecordingWav`：把最近一次 ASR 输入导出为 WAV，用来复盘识别质量问题。
 
 浏览器模式和 Tauri 模式的区别在这里判断：
 
@@ -89,6 +94,12 @@ export async function simulateDictation(): Promise<AppStatus> {
 | `get_status` | `getStatus` | 返回空闲状态 |
 | `simulate_dictation` | `simulateDictation` | mock ASR + mock insertion |
 | `get_default_input_info` | `getDefaultInputInfo` | 读取默认麦克风信息 |
+| `list_input_devices` | `listInputDevices` | 读取所有可用输入设备 |
+| `set_input_device` | `setInputDevice` | 选择后续录音使用的输入设备 |
+| `start_recording` | `startRecording` | 打开输入设备并开始采集 |
+| `stop_recording` | `stopRecording` | 停止采集并生成 ASR 输入 |
+| `transcribe_last_recording` | `transcribeLastRecording` | 用 whisper.cpp 转写最近录音 |
+| `export_last_recording_wav` | `exportLastRecordingWav` | 导出最近录音的 16 kHz WAV |
 | `insert_text_with_clipboard` | `insertTextWithClipboard` | 用剪贴板尝试上屏 |
 
 Tauri 通过这段注册 command：
@@ -160,7 +171,16 @@ pub fn normalize_to_mono_i16(input: &[i16], channels: u16, sample_rate: u32) -> 
 
 如果输入是双声道，它会把左右声道平均成单声道。whisper.cpp MVP 通常希望我们给它稳定的 mono PCM。
 
-第三，管理真实录音 stream：
+第三，列出和选择输入设备：
+
+```rust
+pub fn list_input_devices() -> Result<Vec<RecorderInfo>, VoxError>
+RecorderManager::set_input_device(...)
+```
+
+如果系统默认设备是 `Remote Audio` 这类远程音频设备，识别结果可能只返回 `(音)`。所以 UI 现在允许先切换到真实麦克风，再开始录音。
+
+第四，管理真实录音 stream：
 
 ```rust
 RecorderManager::start()
@@ -181,7 +201,58 @@ RecorderManager::status()
 - `asrSampleCount`：重采样后的 ASR 样本数量。
 - `asrDurationMs`：按 `16000 Hz` 计算的 ASR 输入时长。
 
-当前已经可以通过 `transcribe_last_recording` 把最近一次录音的 `16 kHz` ASR 输入交给 `WhisperCppEngine`。它需要环境变量提供 whisper.cpp binary 和模型路径。
+当前已经可以通过 `transcribe_last_recording` 把最近一次录音的 `16 kHz` ASR 输入交给 `WhisperCppEngine`。它优先使用应用内保存的 ASR 配置；如果应用内没有保存路径，再用环境变量作为开发者兜底。
+
+`export_last_recording_wav` 会把最近一次 `16 kHz` ASR 输入写成 `last-asr-input.wav`。这个文件不提交到仓库，只用于调试：如果文件里听不到人声，问题在输入设备或录音；如果听得到人声但识别差，问题更可能在模型或 ASR 参数。
+
+## `asr_config.rs`
+
+这个模块专门管理 whisper.cpp 的本机配置。它不负责下载模型，也不负责转写，只回答三个问题：
+
+1. 当前 `whisper-cli.exe` 路径是什么。
+2. 当前模型文件路径是什么。
+3. 这两个路径是否存在，是否已经可以调用真实 ASR。
+
+核心类型：
+
+| 类型 | 作用 |
+|---|---|
+| `AsrConfig` | 用户保存的配置：binary 路径、model 路径、语言 |
+| `AsrConfigStatus` | 给前端展示的检测结果：是否配置、文件是否存在、是否 ready、中文提示 |
+
+读取优先级：
+
+1. 应用内 JSON 配置。
+2. 环境变量 `VOXTYPE_WHISPER_CPP_BINARY`、`VOXTYPE_WHISPER_CPP_MODEL`、`VOXTYPE_ASR_LANGUAGE`。
+3. 默认语言 `zh`。
+
+这样做是为了让普通用户在界面里保存路径，同时保留开发者用环境变量快速实验的能力。
+
+## `asr_installer.rs`
+
+这个模块负责“一键安装 whisper.cpp”。它不参与转写，只负责把外部依赖准备好，并把结果写回 `asr_config.rs`。
+
+当前默认安装：
+
+| 文件 | 来源 | 安装到 |
+|---|---|---|
+| `whisper-bin-x64.zip` | `ggml-org/whisper.cpp` GitHub Release | 应用数据目录的 `managed-asr/whisper.cpp/downloads/` |
+| `whisper-cli.exe` | 从 ZIP 解压 | 应用数据目录的 `managed-asr/whisper.cpp/bin/` |
+| `ggml-base.bin` | `ggerganov/whisper.cpp` Hugging Face 仓库 | 应用数据目录的 `managed-asr/whisper.cpp/models/` |
+
+## `insertion/mod.rs`
+
+这个模块负责把文字送进目标输入框。当前 MVP 使用剪贴板策略：
+
+1. 用 `arboard` 打开系统剪贴板。
+2. 写入本次识别文本。
+3. 读回剪贴板确认写入成功。
+4. 等待一个很短的时间，让系统剪贴板状态稳定。
+5. 用 `enigo` 发送 `Ctrl+V`。
+
+早期版本会在发送 `Ctrl+V` 后马上恢复旧剪贴板。维护者实测发现目标软件可能还没读取新剪贴板，旧剪贴板就被恢复了，导致实际粘贴的是上一次手动复制的内容。因此当前 MVP 暂时不自动恢复旧剪贴板，优先保证上屏可靠性。
+
+安装完成后，模块会调用 `save_asr_config`，所以前端不需要知道真实文件保存在哪里。
 
 ## `asr/mod.rs`
 
@@ -210,7 +281,7 @@ pub trait AsrEngine {
 4. 调用 whisper.cpp CLI。
 5. 从 stdout 读取转写文本。
 
-还缺的是：从真实录音 stream 取得音频，并把 binary/model 路径从配置传进来。
+现在 `transcribe_last_recording` 已经会从 `asr_config.rs` 取得 binary/model 路径。`transcribe_last_recording_and_insert` 会在真实转写完成后调用剪贴板上屏 adapter，形成“最近录音 -> 转写 -> 上屏”的 proof-of-life。
 
 ## `insertion/mod.rs`
 
@@ -259,7 +330,7 @@ VoxError::Recorder("没有找到默认输入设备".to_string())
 
 会变成前端能显示的错误信息。这样 UI 不需要理解 Rust 的内部错误类型。
 
-## 当前代码和真实 MVP 的差距
+## 当前代码和第一版 MVP 状态
 
 ```mermaid
 flowchart TD
@@ -270,12 +341,14 @@ flowchart TD
   A[设置页和状态 UI]:::done --> B[Tauri command]:::done
   B --> C[默认麦克风探测]:::done
   B --> D[Mock 转写]:::done
-  B --> E[剪贴板上屏 adapter]:::partial
+  B --> E[剪贴板上屏 adapter]:::done
   C --> F[持续录音 stream]:::done
   F --> G[重采样到 16 kHz mono]:::done
-  G --> H[真实 whisper.cpp 调用]:::done
-  H --> E
-  E --> I[目标软件 E2E 验证]:::missing
+  G --> H[ASR 配置检测]:::done
+  H --> J[一键安装 whisper.cpp 和模型]:::done
+  J --> K[真实 whisper.cpp 调用]:::done
+  K --> E
+  E --> I[目标软件 E2E 验证]:::done
 ```
 
-下一步真正应该实现的是把 `transcribe_last_recording` 返回的文本接到 `ClipboardInsertion`，形成“录音后转写并上屏”的一键 proof-of-life。
+第一版 MVP proof-of-life 已经跑通：录音、16 kHz ASR 输入、whisper.cpp 转写、延迟切回目标输入框后的剪贴板上屏都已经被维护者手动验证。下一阶段不再是“能不能跑通”，而是把它做得更像日常工具：输出默认简体中文、增加全局快捷键、持久化输入设备选择、支持模型选择/下载进度，并继续提高上屏可靠性。

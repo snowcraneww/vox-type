@@ -102,7 +102,7 @@ fn temp_wav_path() -> PathBuf {
     std::env::temp_dir().join(format!("voxtype-{now}.wav"))
 }
 
-fn write_pcm_wav(path: &PathBuf, pcm_16khz_mono: &[i16]) -> Result<(), VoxError> {
+pub fn write_pcm_wav(path: &PathBuf, pcm_16khz_mono: &[i16]) -> Result<(), VoxError> {
     let mut file =
         File::create(path).map_err(|error| VoxError::Asr(format!("创建临时 WAV 失败：{error}")))?;
     let data_len = (pcm_16khz_mono.len() * 2) as u32;
@@ -164,5 +164,23 @@ mod tests {
             path.extension().and_then(|value| value.to_str()),
             Some("wav")
         );
+    }
+
+    #[test]
+    fn write_pcm_wav_creates_16khz_mono_header() {
+        let temp = tempfile::NamedTempFile::new().unwrap();
+        let path = temp.path().to_path_buf();
+
+        write_pcm_wav(&path, &[0, 1000, -1000]).unwrap();
+        let bytes = std::fs::read(path).unwrap();
+
+        assert_eq!(&bytes[0..4], b"RIFF");
+        assert_eq!(&bytes[8..12], b"WAVE");
+        assert_eq!(
+            u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
+            16_000
+        );
+        assert_eq!(u16::from_le_bytes(bytes[34..36].try_into().unwrap()), 16);
+        assert_eq!(u32::from_le_bytes(bytes[40..44].try_into().unwrap()), 6);
     }
 }

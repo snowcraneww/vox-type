@@ -63,6 +63,8 @@
 - UI: browser QA where applicable
 - Desktop input: Windows-focused manual or scripted E2E checklist
 
+验证过程中如果发现 bug、回归、环境差异或用户反馈的问题，必须写入 `docs/harness/debugging-log.md`，记录现象、影响、根因判断、修复、验证和残余风险。影响功能状态时，同步更新 `docs/harness/progress.md`、`docs/harness/feature_list.json` 或 `docs/harness/session-handoff.md`。
+
 ## 完成前自查
 
 每次声称完成前回答：

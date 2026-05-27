@@ -101,7 +101,7 @@
       "area": "implementation",
       "title": "创建最小可运行项目骨架",
       "user_visible_behavior": "贡献者可以按 README 的命令启动最小应用，并运行基础测试。",
-      "status": "in_progress",
+      "status": "passing",
       "verification": [
         "运行项目初始化命令。",
         "运行格式化、lint/typecheck 和测试基线。",
@@ -118,9 +118,20 @@
         "2026-05-27: 维护者手动验证麦克风探测、mock 闭环和剪贴板上屏请求；新增诊断日志、运行指南、代码导读和 start/stop 录音采集 command。",
         "2026-05-27: TDD 验证 RecordingSession；python -m json.tool docs/harness/feature_list.json、bash init.sh、npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、git diff --check、npm run tauri -- build --debug 均通过。",
         "2026-05-27: 维护者手动验证录音采集成功，返回 782863 个 mono 样本、17751 ms、44100 Hz；新增 16 kHz ASR 输入重采样摘要。",
-        "2026-05-27: 新增 transcribe_last_recording command 和 转写最近录音 UI 按钮，通过环境变量 VOXTYPE_WHISPER_CPP_BINARY、VOXTYPE_WHISPER_CPP_MODEL、VOXTYPE_ASR_LANGUAGE 调用 whisper.cpp。"
+        "2026-05-27: 新增 transcribe_last_recording command 和 转写最近录音 UI 按钮，通过环境变量 VOXTYPE_WHISPER_CPP_BINARY、VOXTYPE_WHISPER_CPP_MODEL、VOXTYPE_ASR_LANGUAGE 调用 whisper.cpp。",
+        "2026-05-27: 新增应用内 ASR 配置保存/检测、结构化 Tauri error 格式化和 ASR 配置 UI；应用内配置优先，环境变量作为 fallback。",
+        "2026-05-27: 新增一键安装 whisper.cpp Windows x64 CPU 版和 ggml-base.bin，自动保存 ASR 配置；新增转写并上屏最近录音 command/UI。",
+        "2026-05-27: 维护者手动验证真实闭环 command 成功但 whisper.cpp 返回 (音)；新增诊断日志滚动/复制、延迟上屏流程和录音音量摘要。",
+        "2026-05-27: 维护者再次手动验证真实闭环成功，确认录音、whisper.cpp 转写、延迟切回目标输入框和剪贴板上屏链路可用。",
+        "2026-05-27: 根据维护者反馈继续调试真实闭环：修复剪贴板过早恢复导致粘贴旧内容的问题；新增输入设备列表/选择、最近录音 16 kHz WAV 导出；将非整数比例重采样改为线性插值。",
+        "2026-05-27: npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，33 个 Rust 测试全部通过。",
+        "2026-05-27: 定位录音变音根因：双声道输入第一次回调后被错误当作 mono 处理；新增 source_channels 并用 TDD 回归测试覆盖。cargo test --manifest-path src-tauri/Cargo.toml 通过，34 个 Rust 测试全部通过。",
+        "2026-05-27: 新增 docs/harness/debugging-log.md，集中记录调试问题、根因、修复和验证。",
+        "2026-05-27: 默认 UI 改为 macOS 风格用户主界面，原测试操作保留在诊断模式；npm test -- --run src/App.test.tsx、npm run typecheck、npm run build 通过。",
+        "2026-05-27: 一键安装下载器新增 20 秒连接超时和 300 秒单文件下载总超时；cargo test --manifest-path src-tauri/Cargo.toml asr_installer 通过，6 个安装器测试通过。",
+        "2026-05-27: AGENTS.md 和 docs/harness/working-agreement.md 明确验证发现 bug 必须记录到 docs/harness/debugging-log.md。"
       ],
-      "notes": "最小 mock 闭环骨架已建立，并已接入部分系统能力边界、真实录音采集、16 kHz ASR 输入准备和最近录音 whisper.cpp 转写命令；真实转写后自动上屏和 Windows 手动 E2E 仍未完成，因此不能标为 passing。"
+      "notes": "最小可运行骨架、系统能力边界、真实录音采集、16 kHz ASR 输入准备、应用内 ASR 配置、一键安装 whisper.cpp/model、最近录音 whisper.cpp 转写命令和转写后上屏命令均已接入；维护者已手动验证真实闭环成功，因此 scaffold-001 标记为 passing。后续仍可优化识别质量、模型选择、镜像源、全局快捷键和更可靠的上屏策略。"
     }
   ]
 }

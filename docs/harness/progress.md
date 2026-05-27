@@ -3,12 +3,12 @@
 ## 当前已验证状态
 
 - 仓库根目录：`C:/grace_repos/open-source/vox-type`
-- 当前阶段：MVP scaffold 进行中，已完成最小 Tauri/React/Rust 骨架，并接入托盘、麦克风探测、录音采集、剪贴板上屏等系统能力 adapter。
-- 产品 scaffold：进行中。
+- 当前阶段：MVP proof-of-life 已完成，当前进入识别质量、输入设备体验和上屏可靠性增强阶段。
+- 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`scaffold-001`，状态 `in_progress`
+- 当前最高优先级未完成项：暂无 harness 内未完成项；下一步应明确创建“提升 MVP 可用性”的新 feature/spec。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
@@ -144,6 +144,88 @@
 - 新增 UI 按钮：`转写最近录音`。
 - 当前验证目标：如果环境变量未设置，诊断日志应显示明确的缺失变量；如果路径有效，whisper.cpp 应返回文本。
 - 仍未完成：真实转写文本自动上屏、whisper.cpp binary/model 下载或配置 UI、Windows E2E。
+
+### 2026-05-27 ASR 配置体验
+
+- 使用 `superpowers:systematic-debugging` 定位维护者看到的 `[object Object]`：Rust 已返回结构化 Tauri error，但前端用 `String(error)` 展示对象。
+- 使用 TDD 新增 `src/errorFormat.ts` 和测试，统一把 `{ message, code }` 格式化为中文可读错误，避免诊断日志再次出现 `[object Object]`。
+- 新增 `src-tauri/src/asr_config.rs`：应用内 ASR 配置保存/读取、环境变量 fallback、binary/model 路径存在性检测、中文状态消息。
+- 新增 Tauri commands：`get_asr_config_status`、`save_asr_config`。
+- `transcribe_last_recording` 已改为优先使用应用内保存的 whisper.cpp binary/model 路径；环境变量只作为未保存配置时的兜底。
+- UI 新增 `ASR 配置` 面板：可填写 `whisper-cli.exe` 路径、模型路径和语言，支持保存与检测。
+- 仍未完成：文件选择器、一键下载 whisper.cpp/model、真实转写后自动上屏、Windows E2E。
+
+### 2026-05-27 ASR 一键安装与真实闭环按钮
+
+- 使用 web-search 和 GitHub API 确认官方来源：`ggml-org/whisper.cpp` GitHub Release 提供 `whisper-bin-x64.zip`，官方模型说明指向 `ggerganov/whisper.cpp` Hugging Face 仓库。
+- 新增设计文档：`docs/superpowers/specs/2026-05-27-asr-one-click-install-design.md`。
+- 新增实现计划：`docs/superpowers/plans/2026-05-27-asr-one-click-install.md`。
+- 新增 `src-tauri/src/asr_installer.rs`：规划应用数据目录安装路径、下载 whisper.cpp Windows x64 CPU 版、校验/解压 ZIP、下载并校验 `ggml-base.bin`，并自动保存 ASR 配置。
+- 新增 Tauri command：`install_managed_asr`。
+- UI 新增 `一键安装 whisper.cpp` 按钮，安装完成后刷新 ASR 配置状态。
+- 新增 `transcribe_last_recording_and_insert` command 和 `转写并上屏最近录音` UI 按钮，用于验证真实“录音 -> 转写 -> 剪贴板上屏”闭环。
+- 仍未完成：模型选择器、镜像源、真实 Windows Notepad/VS Code/浏览器输入框 E2E。
+
+### 2026-05-27 真实闭环手动验证与诊断增强
+
+- 维护者手动验证 `转写并上屏最近录音` command 返回成功，但 whisper.cpp 文本为 `(音)`，说明当前链路跑通但识别质量或输入设备仍需诊断。
+- 根据维护者反馈，修正诊断日志体验：日志不再只保留最新 6 条，改为保留最多 100 条，并提供滚动区域和 `复制全部日志` 按钮。
+- 根据维护者反馈，修正上屏验证流程：`转写并上屏最近录音` 现在先完成转写，再给维护者 3 秒切回目标输入框，之后才发送剪贴板上屏请求。
+- 新增录音音量摘要：`peakAmplitude` 和 `rmsAmplitude`，用于判断 `(音)` 是因为录音太小、未录到麦克风，还是默认输入设备不对。
+
+### 2026-05-27 MVP 真实闭环通过
+
+- 维护者再次手动验证 `真实闭环成功`。
+- 当前证据覆盖：真实录音采集、whisper.cpp 转写、延迟切回目标输入框、剪贴板上屏请求。
+- 将 `scaffold-001` 标记为 `passing`。后续工作从“证明 MVP 能跑通”转向“提升可用性和可靠性”。
+
+### 2026-05-27 真实闭环调试增强
+
+- 维护者反馈：长时间说话后 whisper.cpp 仍只返回 `(音)`；同时真实上屏粘贴了旧剪贴板内容，而不是本次识别文本。
+- 使用 `superpowers:systematic-debugging` 拆分为两个边界问题：ASR 输入质量/设备选择问题，以及剪贴板写入/粘贴时序问题。
+- 剪贴板根因：旧实现写入新文本后立即发送 `Ctrl+V`，随后马上恢复旧剪贴板；Windows 目标软件可能晚于恢复动作读取剪贴板，因此粘贴到旧内容。
+- 剪贴板修复：写入后读回校验，发送 `Ctrl+V` 改用 `Key::V`，并且 MVP 暂时不恢复旧剪贴板，优先保证目标输入框读到本次识别文本。
+- ASR 调试增强：新增输入设备列表和输入设备选择，避免只能使用系统默认的 `Remote Audio`；新增 `导出最近录音 WAV`，把最近一次 16 kHz ASR 输入写为 `last-asr-input.wav` 便于直接播放复盘。
+- ASR 输入质量修复：44.1 kHz -> 16 kHz 重采样从跳点抽样改为线性插值，降低非整数采样率转换失真。
+- 文档更新：`README.md`、`AGENTS.md`、`docs/guide/run-and-understand.md`、`docs/guide/code-walkthrough.md`、`docs/harness/quality.md` 已同步当前状态和验证步骤。
+
+### 2026-05-27 录音变音根因定位
+
+- 维护者播放 `last-asr-input.wav` 后反馈：文件里有自己的声音，但声音变成类似电子音，节奏像原始录音。
+- 使用 TDD 新增回归测试 `stereo_samples_remain_mixed_across_multiple_callbacks`，复现多次 `cpal` 回调后双声道 interleaved 样本被错误当作 mono 追加的问题。
+- 根因：`RecordingBuffer::push_interleaved_i16` 第一次处理双声道回调后把 `channels` 改成 `1`；后续回调仍是双声道输入，但代码不再按双声道 frame 混音。
+- 修复：新增 `source_channels` 保存输入设备真实声道数，后续每次回调都按 `source_channels` 分组混音；`channels` 只表示输出 buffer 已经归一化为 mono。
+- 新增 `docs/harness/debugging-log.md`，集中记录本轮调试发现的问题、根因、修复和验证方式。
+- 验证：`cargo test --manifest-path src-tauri/Cargo.toml` 通过，34 个 Rust 测试全部通过；`npm run typecheck`、`npm test -- --run`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过。
+
+### 2026-05-27 主界面重设计与安装器可靠性增强
+
+- 使用 `frontend-design`、`superpowers:test-driven-development`、`superpowers:systematic-debugging`、`documentation-writer` 和 `superpowers:verification-before-completion` 对本轮工作进行约束。
+- 默认界面从测试工作台改为面向用户的 `VoxType` 主界面：macOS 风格窗口、主录音按钮、最近识别文本、快速设置和 ASR 未就绪提示。
+- 原测试操作保留在 `诊断模式`：运行状态、ASR 配置、测试操作和诊断日志仍可访问。
+- 修复前端测试隔离：`src/test/setup.ts` 在每个测试后调用 Testing Library `cleanup()`，避免不同测试渲染结果互相污染。
+- 修复 jsdom 环境没有 `scrollIntoView` 导致测试失败的问题：诊断日志自动滚动改为可选调用。
+- 一键安装下载器改为显式 `reqwest::blocking::Client`，设置 20 秒连接超时和 300 秒单文件下载总超时，避免目标机器访问 GitHub/Hugging Face 异常时无限卡住。
+- 更新规则：验证、手动测试或用户反馈发现 bug 时，必须记录到 `docs/harness/debugging-log.md`，影响状态时同步 progress、feature list 或 handoff。
+- 更新 `docs/guide/run-and-understand.md`：说明默认主界面、诊断模式、一键安装超时行为和当前剪贴板上屏策略。
+- 本轮局部验证：`npm test -- --run src/App.test.tsx` 通过，2 个前端测试通过；`cargo test --manifest-path src-tauri/Cargo.toml asr_installer` 通过，6 个安装器测试通过；`npm run typecheck`、`npm run build`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过。
+
+### 2026-05-27 UI 二次打磨与跨机器安装包
+
+- 根据维护者反馈，继续优化主界面和诊断模式视觉：统一为更克制的 macOS translucent panel 风格，调整字体层级、圆角、阴影、状态色、按钮和诊断卡片密度。
+- 定位跨机器复制 `src-tauri/target/debug/vox-type.exe` 后显示 `localhost refused to connect` 的原因：debug exe 不是面向分发的 bundle，另一台机器没有 `localhost:1420` 的 Vite dev server。
+- 启用 Tauri bundle：`src-tauri/tauri.conf.json` 中 `bundle.active=true`，icon 使用 `icons/icon.ico`。
+- 生成跨机器验证产物：`src-tauri/target/debug/bundle/nsis/VoxType_0.1.0_x64-setup.exe` 和 `src-tauri/target/debug/bundle/msi/VoxType_0.1.0_x64_en-US.msi`。
+- 文档更新：`docs/guide/run-and-understand.md` 明确本机 debug exe 和跨机器安装包的区别；`docs/harness/debugging-log.md` 记录 localhost refused 问题。
+- 验证：`npm test -- --run src/App.test.tsx`、`npm run typecheck`、`npm run build` 通过；`npm run tauri -- build --debug` 首次因旧进程占用失败，结束旧 `vox-type.exe` 后重跑通过并生成 NSIS/MSI bundle。
+
+### 2026-05-27 第一版 MVP 完成判断与下一阶段
+
+- 维护者反馈：NSIS 安装包在另一台机器可以安装成功，并能运行到转写链路。
+- 维护者反馈：另一台机器返回的转写文本是繁体中文，而本虚拟机上是简体中文。
+- 系统性调试判断：当前 whisper.cpp 只传 `-l zh -nt`，未传简体 prompt，也未做繁简转换后处理；这是文本标准化缺口，不是 MVP 链路阻断。
+- 结论：第一版 MVP 可视为完成；第二阶段建议从“简体中文输出标准化”、全局快捷键、设备选择持久化、模型选择和下载进度开始。
+- 文档更新：`README.md`、`docs/harness/quality.md`、`docs/harness/session-handoff.md`、`docs/harness/debugging-log.md` 已同步第一版 MVP 完成判断和繁体输出问题。
 
 ## 会话记录
 

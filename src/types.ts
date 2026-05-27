@@ -34,6 +34,8 @@ export interface RecordedAudio {
   channels: number;
   sampleCount: number;
   durationMs: number;
+  peakAmplitude: number;
+  rmsAmplitude: number;
   asrSamples: number[];
   asrSampleRate: number;
   asrSampleCount: number;
@@ -43,4 +45,20 @@ export interface RecordedAudio {
 export interface Transcript {
   text: string;
   engine: string;
+}
+
+export interface AsrConfig {
+  whisperBinaryPath: string | null;
+  whisperModelPath: string | null;
+  language: string;
+}
+
+export interface AsrConfigStatus extends AsrConfig {
+  binaryConfigured: boolean;
+  modelConfigured: boolean;
+  binaryExists: boolean;
+  modelExists: boolean;
+  ready: boolean;
+  source: string;
+  message: string;
 }

@@ -18,6 +18,7 @@ pub struct RecordingBuffer {
     pub samples: Vec<i16>,
     pub sample_rate: u32,
     pub channels: u16,
+    source_channels: u16,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -28,6 +29,8 @@ pub struct RecordedAudio {
     pub channels: u16,
     pub sample_count: usize,
     pub duration_ms: u64,
+    pub peak_amplitude: i16,
+    pub rms_amplitude: u16,
     pub asr_samples: Vec<i16>,
     pub asr_sample_rate: u32,
     pub asr_sample_count: usize,
@@ -68,12 +71,16 @@ impl RecordingSession {
             audio::TARGET_SAMPLE_RATE,
         );
         let asr_sample_count = asr_samples.len();
+        let peak_amplitude = peak_amplitude(&self.buffer.samples);
+        let rms_amplitude = rms_amplitude(&self.buffer.samples);
         Ok(RecordedAudio {
             samples: self.buffer.samples.clone(),
             sample_rate: self.buffer.sample_rate,
             channels: self.buffer.channels,
             sample_count,
             duration_ms: audio::duration_ms(sample_count, self.buffer.sample_rate),
+            peak_amplitude,
+            rms_amplitude,
             asr_samples,
             asr_sample_rate: audio::TARGET_SAMPLE_RATE,
             asr_sample_count,
@@ -86,22 +93,46 @@ impl RecordingSession {
     }
 }
 
+fn peak_amplitude(samples: &[i16]) -> i16 {
+    samples
+        .iter()
+        .map(|sample| sample.saturating_abs())
+        .max()
+        .unwrap_or(0)
+}
+
+fn rms_amplitude(samples: &[i16]) -> u16 {
+    if samples.is_empty() {
+        return 0;
+    }
+    let sum_squares: f64 = samples
+        .iter()
+        .map(|sample| {
+            let value = *sample as f64;
+            value * value
+        })
+        .sum();
+    (sum_squares / samples.len() as f64).sqrt().round() as u16
+}
+
 impl RecordingBuffer {
     pub fn empty(sample_rate: u32, channels: u16) -> Self {
         Self {
             samples: Vec::new(),
             sample_rate,
             channels,
+            source_channels: channels,
         }
     }
 
     pub fn push_interleaved_i16(&mut self, input: &[i16]) {
-        if self.channels <= 1 {
+        if self.source_channels <= 1 {
             self.samples.extend_from_slice(input);
+            self.channels = 1;
             return;
         }
 
-        for frame in input.chunks(self.channels as usize) {
+        for frame in input.chunks(self.source_channels as usize) {
             let sum: i32 = frame.iter().map(|sample| *sample as i32).sum();
             self.samples.push((sum / frame.len() as i32) as i16);
         }
@@ -131,6 +162,7 @@ pub struct RecorderRuntimeStatus {
 pub struct RecorderManager {
     active: Mutex<Option<ActiveRecording>>,
     last_recording: Mutex<Option<RecordedAudio>>,
+    selected_device_name: Mutex<Option<String>>,
 }
 
 struct ActiveRecording {
@@ -151,9 +183,12 @@ impl RecorderManager {
         }
 
         let host = cpal::default_host();
-        let device = host
-            .default_input_device()
-            .ok_or_else(|| VoxError::Recorder("没有找到默认输入设备".to_string()))?;
+        let selected_device_name = self
+            .selected_device_name
+            .lock()
+            .map_err(|_| VoxError::Recorder("输入设备选择锁已损坏".to_string()))?
+            .clone();
+        let device = input_device_by_name(&host, selected_device_name.as_deref())?;
         let config = device
             .default_input_config()
             .map_err(|error| VoxError::Recorder(format!("读取默认输入配置失败：{error}")))?;
@@ -197,7 +232,8 @@ impl RecorderManager {
         *self
             .last_recording
             .lock()
-            .map_err(|_| VoxError::Recorder("最后录音锁已损坏".to_string()))? = Some(recorded.clone());
+            .map_err(|_| VoxError::Recorder("最后录音锁已损坏".to_string()))? =
+            Some(recorded.clone());
         Ok(recorded)
     }
 
@@ -242,6 +278,51 @@ impl RecorderManager {
         }
         Ok(recording.asr_samples.clone())
     }
+
+    pub fn last_recording(&self) -> Result<RecordedAudio, VoxError> {
+        let last_recording = self
+            .last_recording
+            .lock()
+            .map_err(|_| VoxError::Recorder("最后录音锁已损坏".to_string()))?;
+        last_recording
+            .clone()
+            .ok_or_else(|| VoxError::Recorder("还没有可导出的录音".to_string()))
+    }
+
+    pub fn set_input_device(&self, device_name: Option<String>) -> Result<RecorderInfo, VoxError> {
+        if self
+            .active
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音状态锁已损坏".to_string()))?
+            .is_some()
+        {
+            return Err(VoxError::Recorder("录音进行中不能切换输入设备".to_string()));
+        }
+
+        let normalized = device_name.and_then(|value| {
+            let trimmed = value.trim().to_string();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed)
+            }
+        });
+        let host = cpal::default_host();
+        let device = input_device_by_name(&host, normalized.as_deref())?;
+        let info = input_info_from_device(&device)?;
+        *self
+            .selected_device_name
+            .lock()
+            .map_err(|_| VoxError::Recorder("输入设备选择锁已损坏".to_string()))? = normalized;
+        Ok(info)
+    }
+
+    pub fn selected_device_name(&self) -> Result<Option<String>, VoxError> {
+        self.selected_device_name
+            .lock()
+            .map_err(|_| VoxError::Recorder("输入设备选择锁已损坏".to_string()))
+            .map(|value| value.clone())
+    }
 }
 
 pub fn default_input_info() -> Result<RecorderInfo, VoxError> {
@@ -249,9 +330,53 @@ pub fn default_input_info() -> Result<RecorderInfo, VoxError> {
     let device = host
         .default_input_device()
         .ok_or_else(|| VoxError::Recorder("没有找到默认输入设备".to_string()))?;
+    input_info_from_device(&device)
+}
+
+pub fn list_input_devices() -> Result<Vec<RecorderInfo>, VoxError> {
+    let host = cpal::default_host();
+    let devices = host
+        .input_devices()
+        .map_err(|error| VoxError::Recorder(format!("读取输入设备列表失败：{error}")))?;
+    let mut infos = Vec::new();
+    for device in devices {
+        if let Ok(info) = input_info_from_device(&device) {
+            infos.push(info);
+        }
+    }
+    if infos.is_empty() {
+        return Err(VoxError::Recorder("没有找到可用输入设备".to_string()));
+    }
+    Ok(infos)
+}
+
+fn input_device_by_name(
+    host: &cpal::Host,
+    selected_device_name: Option<&str>,
+) -> Result<cpal::Device, VoxError> {
+    if let Some(selected_device_name) = selected_device_name {
+        let devices = host
+            .input_devices()
+            .map_err(|error| VoxError::Recorder(format!("读取输入设备列表失败：{error}")))?;
+        for device in devices {
+            let name = device.name().unwrap_or_default();
+            if name == selected_device_name {
+                return Ok(device);
+            }
+        }
+        return Err(VoxError::Recorder(format!(
+            "没有找到已选择的输入设备：{selected_device_name}"
+        )));
+    }
+
+    host.default_input_device()
+        .ok_or_else(|| VoxError::Recorder("没有找到默认输入设备".to_string()))
+}
+
+fn input_info_from_device(device: &cpal::Device) -> Result<RecorderInfo, VoxError> {
     let config = device
         .default_input_config()
-        .map_err(|error| VoxError::Recorder(format!("读取默认输入配置失败：{error}")))?;
+        .map_err(|error| VoxError::Recorder(format!("读取输入配置失败：{error}")))?;
     let device_name = device.name().unwrap_or_else(|_| "未知麦克风".to_string());
 
     Ok(RecorderInfo {
@@ -333,6 +458,17 @@ mod tests {
     }
 
     #[test]
+    fn stereo_samples_remain_mixed_across_multiple_callbacks() {
+        let mut buffer = RecordingBuffer::empty(16_000, 2);
+
+        buffer.push_interleaved_i16(&[100, 300, -100, -300]);
+        buffer.push_interleaved_i16(&[200, 400, -200, -400]);
+
+        assert_eq!(buffer.samples, vec![200, -200, 300, -300]);
+        assert_eq!(buffer.channels, 1);
+    }
+
+    #[test]
     fn normalize_keeps_mono_samples() {
         let buffer = normalize_to_mono_i16(&[1, -1, 2], 1, 16_000);
         assert_eq!(buffer.samples, vec![1, -1, 2]);
@@ -377,5 +513,22 @@ mod tests {
         assert_eq!(result.asr_sample_rate, 16_000);
         assert_eq!(result.asr_samples, vec![0, 3]);
         assert_eq!(result.asr_sample_count, 2);
+    }
+
+    #[test]
+    fn recorded_audio_exposes_volume_summary() {
+        let mut session = RecordingSession::new(16_000, 1);
+        session.push_interleaved_i16(&[0, 3000, -4000]).unwrap();
+
+        let result = session.stop().unwrap();
+
+        assert_eq!(result.peak_amplitude, 4000);
+        assert!(result.rms_amplitude > 2800);
+    }
+
+    #[test]
+    fn recorder_manager_tracks_selected_device_name_without_hardware() {
+        let manager = RecorderManager::default();
+        assert_eq!(manager.selected_device_name().unwrap(), None);
     }
 }
