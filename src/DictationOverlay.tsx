@@ -31,6 +31,7 @@ function overlayLabel(mode: string) {
 export function DictationOverlay({ initialPayload = null }: DictationOverlayProps) {
   const [payload, setPayload] = useState<PushToTalkPayload | null>(initialPayload);
   const mode = useMemo(() => overlayMode(payload), [payload]);
+  const isRecording = mode === 'recording';
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -58,17 +59,26 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
   return (
     <main className="overlay-root" data-mode={mode}>
       <section className="wave-ripple" role="status" aria-label={overlayLabel(mode)} data-mode={mode}>
-        <svg className="wave-ripple-svg" aria-hidden="true" viewBox="0 0 300 82" preserveAspectRatio="none">
+        <svg className="wave-ripple-svg" aria-hidden="true" viewBox="0 0 176 46" preserveAspectRatio="none">
           <defs>
-            <linearGradient id="voice-ripple-gradient" x1="0" x2="1" y1="0" y2="0">
+            <linearGradient id="voice-ripple-gradient" gradientUnits="userSpaceOnUse" x1="-176" x2="176" y1="0" y2="0">
               <stop offset="0%" stopColor="#5ac8fa" />
-              <stop offset="32%" stopColor="#7ee7ff" />
-              <stop offset="57%" stopColor="#ff2d92" />
-              <stop offset="78%" stopColor="#bf5af2" />
+              <stop offset="18%" stopColor="#7ee7ff" />
+              <stop offset="34%" stopColor="#34c759" />
+              <stop offset="52%" stopColor="#ffd60a" />
+              <stop offset="70%" stopColor="#ff2d92" />
+              <stop offset="86%" stopColor="#bf5af2" />
               <stop offset="100%" stopColor="#ffd60a" />
+              {isRecording ? <animate attributeName="x1" dur="1.15s" repeatCount="indefinite" values="-176;0;-176" /> : null}
+              {isRecording ? <animate attributeName="x2" dur="1.15s" repeatCount="indefinite" values="176;352;176" /> : null}
             </linearGradient>
-            <filter id="voice-ripple-glow" x="-20%" y="-80%" width="140%" height="260%">
-              <feGaussianBlur stdDeviation="3.2" result="blur" />
+            <radialGradient id="voice-capsule-shine" cx="50%" cy="10%" r="85%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+              <stop offset="48%" stopColor="rgba(255,255,255,0.045)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            </radialGradient>
+            <filter id="voice-ripple-glow" x="-16%" y="-90%" width="132%" height="280%">
+              <feGaussianBlur stdDeviation="2.1" result="blur" />
               <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.72 0" result="glow" />
               <feMerge>
                 <feMergeNode in="glow" />
@@ -76,18 +86,20 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
               </feMerge>
             </filter>
           </defs>
+          <rect className="ripple-capsule" x="2" y="4" width="172" height="38" rx="19" />
+          <rect className="ripple-shine" x="3" y="5" width="170" height="36" rx="18" />
           <g filter="url(#voice-ripple-glow)">
-            <path className="ripple-line ripple-line-a" pathLength="100" d="M -46 43 C -8 18 24 64 62 41 S 129 16 164 42 S 226 66 265 40 S 330 19 354 43">
-              <animate attributeName="d" dur="1.55s" repeatCount="indefinite" values="M -46 43 C -8 18 24 64 62 41 S 129 16 164 42 S 226 66 265 40 S 330 19 354 43; M -46 39 C -4 62 25 22 63 43 S 130 66 166 39 S 229 19 266 43 S 327 64 354 39; M -46 43 C -8 18 24 64 62 41 S 129 16 164 42 S 226 66 265 40 S 330 19 354 43" />
+            <path className="ripple-line ripple-line-a" pathLength="100" d="M -8 23 C 0 12 9 34 18 23 S 36 12 45 23 S 63 34 72 23 S 90 12 99 23 S 117 34 126 23 S 144 12 153 23 S 171 34 184 23">
+              {isRecording ? <animate attributeName="d" dur="820ms" repeatCount="indefinite" values="M -8 23 C 0 12 9 34 18 23 S 36 12 45 23 S 63 34 72 23 S 90 12 99 23 S 117 34 126 23 S 144 12 153 23 S 171 34 184 23; M -8 23 C 0 33 9 13 18 23 S 36 34 45 23 S 63 12 72 23 S 90 34 99 23 S 117 12 126 23 S 144 34 153 23 S 171 12 184 23; M -8 23 C 0 12 9 34 18 23 S 36 12 45 23 S 63 34 72 23 S 90 12 99 23 S 117 34 126 23 S 144 12 153 23 S 171 34 184 23" /> : null}
             </path>
-            <path className="ripple-line ripple-line-b" pathLength="100" d="M -54 39 C -13 56 20 26 58 39 S 124 56 162 39 S 229 21 268 40 S 326 58 356 37">
-              <animate attributeName="d" dur="1.9s" repeatCount="indefinite" values="M -54 39 C -13 56 20 26 58 39 S 124 56 162 39 S 229 21 268 40 S 326 58 356 37; M -54 44 C -12 24 21 58 59 40 S 126 24 164 43 S 230 60 269 39 S 328 21 356 44; M -54 39 C -13 56 20 26 58 39 S 124 56 162 39 S 229 21 268 40 S 326 58 356 37" />
+            <path className="ripple-line ripple-line-b" pathLength="100" d="M -8 24 C 0 17 9 31 18 24 S 36 17 45 24 S 63 31 72 24 S 90 17 99 24 S 117 31 126 24 S 144 17 153 24 S 171 31 184 24">
+              {isRecording ? <animate attributeName="d" dur="980ms" repeatCount="indefinite" values="M -8 24 C 0 17 9 31 18 24 S 36 17 45 24 S 63 31 72 24 S 90 17 99 24 S 117 31 126 24 S 144 17 153 24 S 171 31 184 24; M -8 22 C 0 30 9 16 18 22 S 36 30 45 22 S 63 16 72 22 S 90 30 99 22 S 117 16 126 22 S 144 30 153 22 S 171 16 184 22; M -8 24 C 0 17 9 31 18 24 S 36 17 45 24 S 63 31 72 24 S 90 17 99 24 S 117 31 126 24 S 144 17 153 24 S 171 31 184 24" /> : null}
             </path>
-            <path className="ripple-line ripple-line-c" pathLength="100" d="M -50 47 C -10 33 24 51 63 47 S 127 31 166 46 S 229 60 269 45 S 329 32 356 48">
-              <animate attributeName="d" dur="2.25s" repeatCount="indefinite" values="M -50 47 C -10 33 24 51 63 47 S 127 31 166 46 S 229 60 269 45 S 329 32 356 48; M -50 42 C -9 54 24 35 64 45 S 128 57 168 43 S 230 30 270 46 S 329 57 356 42; M -50 47 C -10 33 24 51 63 47 S 127 31 166 46 S 229 60 269 45 S 329 32 356 48" />
+            <path className="ripple-line ripple-line-c" pathLength="100" d="M -8 22 C 0 19 9 27 18 22 S 36 19 45 22 S 63 27 72 22 S 90 19 99 22 S 117 27 126 22 S 144 19 153 22 S 171 27 184 22">
+              {isRecording ? <animate attributeName="d" dur="1.12s" repeatCount="indefinite" values="M -8 22 C 0 19 9 27 18 22 S 36 19 45 22 S 63 27 72 22 S 90 19 99 22 S 117 27 126 22 S 144 19 153 22 S 171 27 184 22; M -8 25 C 0 28 9 18 18 25 S 36 28 45 25 S 63 18 72 25 S 90 28 99 25 S 117 18 126 25 S 144 28 153 25 S 171 18 184 25; M -8 22 C 0 19 9 27 18 22 S 36 19 45 22 S 63 27 72 22 S 90 19 99 22 S 117 27 126 22 S 144 19 153 22 S 171 27 184 22" /> : null}
             </path>
-            <path className="ripple-line ripple-line-d" pathLength="100" d="M -44 35 C -6 45 21 16 61 35 S 128 55 166 36 S 231 18 268 36 S 328 54 354 34">
-              <animate attributeName="d" dur="1.72s" repeatCount="indefinite" values="M -44 35 C -6 45 21 16 61 35 S 128 55 166 36 S 231 18 268 36 S 328 54 354 34; M -44 37 C -6 20 22 52 62 34 S 130 17 168 37 S 230 54 269 35 S 328 19 354 38; M -44 35 C -6 45 21 16 61 35 S 128 55 166 36 S 231 18 268 36 S 328 54 354 34" />
+            <path className="ripple-line ripple-line-d" pathLength="100" d="M -8 23 C 0 15 9 32 18 23 S 36 15 45 23 S 63 32 72 23 S 90 15 99 23 S 117 32 126 23 S 144 15 153 23 S 171 32 184 23">
+              {isRecording ? <animate attributeName="d" dur="1.28s" repeatCount="indefinite" values="M -8 23 C 0 15 9 32 18 23 S 36 15 45 23 S 63 32 72 23 S 90 15 99 23 S 117 32 126 23 S 144 15 153 23 S 171 32 184 23; M -8 23 C 0 32 9 15 18 23 S 36 32 45 23 S 63 15 72 23 S 90 32 99 23 S 117 15 126 23 S 144 32 153 23 S 171 15 184 23; M -8 23 C 0 15 9 32 18 23 S 36 15 45 23 S 63 32 72 23 S 90 15 99 23 S 117 32 126 23 S 144 15 153 23 S 171 32 184 23" /> : null}
             </path>
           </g>
         </svg>

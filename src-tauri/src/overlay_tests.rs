@@ -8,5 +8,5 @@ fn overlay_uses_stable_label_and_route() {
 
 #[test]
 fn overlay_size_matches_tauri_window_config() {
-    assert_eq!(overlay_size(), (300, 82));
+    assert_eq!(overlay_size(), (176, 46));
 }

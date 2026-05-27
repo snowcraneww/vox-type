@@ -3,8 +3,8 @@ use tauri::{AppHandle, Manager, PhysicalPosition};
 
 pub const DICTATION_OVERLAY_LABEL: &str = "dictation-overlay";
 pub const DICTATION_OVERLAY_URL: &str = "index.html?view=overlay";
-const OVERLAY_WIDTH: i32 = 300;
-const OVERLAY_HEIGHT: i32 = 82;
+const OVERLAY_WIDTH: i32 = 176;
+const OVERLAY_HEIGHT: i32 = 46;
 const OVERLAY_MARGIN_BOTTOM: i32 = 92;
 
 pub fn dictation_overlay_label() -> &'static str {

@@ -379,3 +379,11 @@
 - 消除白框：`index.html` 在 React 加载前就给 overlay 页面加透明背景样式，避免透明 Tauri 窗口首帧出现浏览器默认白底。
 - 窗口尺寸同步缩小到 `300 x 82`，Rust 定位常量和回归测试同步更新。
 - 验证：`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run build` 通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
+
+### 2026-05-27 V2 小胶囊多周期波纹调整
+
+- 维护者反馈：波纹方向接近，但窗口仍太大、白色背景不对、波形周期太长导致峰谷太少，颜色没有流光感；按住录音时应流动，松开后应保持完整静态波纹，不应断成两节。
+- 调整为黑色小胶囊底，窗口尺寸缩到 `176 x 46`，约为上一版视觉面积的四分之一。
+- 波形改为短周期多峰谷曲线，在胶囊内显示更多波峰波谷，线条更细。
+- 录音态才渲染 SVG `animate` 和流动渐变；识别态不渲染 `animate`，保持完整静态波纹，避免松开后断裂或继续流动。
+- 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run typecheck` 通过；`npm run build` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。

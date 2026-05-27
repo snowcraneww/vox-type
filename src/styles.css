@@ -750,7 +750,7 @@ h1 { font-size: 44px; }
   display: grid;
   height: 100vh;
   justify-items: center;
-  padding: 0 0 2px;
+  padding: 0;
   pointer-events: none;
   width: 100vw;
 }
@@ -760,86 +760,94 @@ h1 { font-size: 44px; }
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  height: 82px;
+  height: 46px;
   overflow: visible;
   padding: 0;
   position: relative;
-  width: 300px;
+  width: 176px;
 }
 
 .wave-ripple-svg {
   display: block;
-  height: 82px;
+  height: 46px;
   overflow: visible;
-  width: 300px;
+  width: 176px;
+}
+
+.ripple-capsule {
+  fill: rgba(3, 5, 10, 0.86);
+  stroke: rgba(255, 255, 255, 0.10);
+  stroke-width: 1;
+}
+
+.ripple-shine {
+  fill: url(#voice-capsule-shine);
+  opacity: 0.72;
 }
 
 .ripple-line {
-  animation: ripple-flow 2.4s ease-in-out infinite;
+  animation: none;
   fill: none;
-  opacity: 0.72;
+  opacity: 0.84;
   stroke: url(#voice-ripple-gradient);
-  stroke-dasharray: 58 42;
   stroke-linecap: round;
-  stroke-width: 4.4;
+  stroke-width: 2.8;
   transform-box: fill-box;
   transform-origin: center;
 }
 
 .ripple-line-a {
-  animation-duration: 1.45s;
-  stroke-width: 5.2;
-}
-
-.ripple-line-b {
-  animation-delay: -360ms;
-  animation-duration: 1.72s;
-  opacity: 0.62;
-  stroke-width: 3.8;
-}
-
-.ripple-line-c {
-  animation-delay: -620ms;
-  animation-duration: 2.05s;
-  opacity: 0.48;
   stroke-width: 3.2;
 }
 
+.ripple-line-b {
+  opacity: 0.62;
+  stroke-width: 2.3;
+}
+
+.ripple-line-c {
+  opacity: 0.48;
+  stroke-width: 1.7;
+}
+
 .ripple-line-d {
-  animation-delay: -920ms;
-  animation-duration: 1.62s;
-  opacity: 0.38;
-  stroke-width: 2.8;
+  opacity: 0.42;
+  stroke-width: 1.4;
 }
 
 .wave-ripple[data-mode="idle"] .ripple-line {
-  animation-duration: 3.4s;
-  opacity: 0.34;
-  stroke-width: 2.8;
+  opacity: 0.32;
 }
 
 .wave-ripple[data-mode="recording"] .ripple-line {
-  animation-name: ripple-recording;
+  animation: ripple-flow 860ms linear infinite;
   opacity: 0.9;
 }
 
+.wave-ripple[data-mode="recording"] .ripple-capsule {
+  fill: rgba(3, 5, 10, 0.92);
+  stroke: rgba(126, 231, 255, 0.22);
+}
+
+.wave-ripple[data-mode="recording"] .ripple-line-b {
+  animation-delay: -180ms;
+}
+
+.wave-ripple[data-mode="recording"] .ripple-line-c {
+  animation-delay: -320ms;
+}
+
+.wave-ripple[data-mode="recording"] .ripple-line-d {
+  animation-delay: -460ms;
+}
+
 .wave-ripple[data-mode="transcribing"] .ripple-line {
-  animation-duration: 1.05s;
-  opacity: 0.76;
-  stroke-dasharray: 28 18;
+  opacity: 0.66;
 }
 
 @keyframes ripple-flow {
-  0% { stroke-dashoffset: 0; transform: translate3d(-8px, 0, 0) scaleY(0.72); }
-  50% { transform: translate3d(5px, 0, 0) scaleY(1.14); }
-  100% { stroke-dashoffset: -100; transform: translate3d(12px, 0, 0) scaleY(0.72); }
-}
-
-@keyframes ripple-recording {
-  0% { stroke-dashoffset: 0; transform: translate3d(-10px, 0, 0) scaleY(0.66); }
-  28% { transform: translate3d(-1px, -1px, 0) scaleY(1.38); }
-  58% { transform: translate3d(7px, 2px, 0) scaleY(0.92); }
-  100% { stroke-dashoffset: -118; transform: translate3d(14px, 0, 0) scaleY(0.70); }
+  0% { transform: translate3d(-9px, 0, 0); }
+  100% { transform: translate3d(9px, 0, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
