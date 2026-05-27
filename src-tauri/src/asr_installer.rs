@@ -198,7 +198,7 @@ mod tests {
 
     #[test]
     fn install_plan_uses_app_data_managed_asr_directory() {
-        let root = PathBuf::from("C:/Users/example/AppData/Roaming/dev.voxtype.desktop");
+        let root = PathBuf::from("D:/VoxType/AppData/Roaming/dev.voxtype.desktop");
 
         let plan = managed_install_plan(root.clone());
 

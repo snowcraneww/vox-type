@@ -254,6 +254,7 @@
 - 2026-05-27 继续补强：新增全局快捷键注册状态可观测性。Rust 保存 `HotkeyRegistrationStatus`，前端通过 `get_hotkey_status` 在主界面和诊断模式显示 `Ctrl+Alt+Space` 是否注册成功；如果失败，维护者不需要只看终端猜测原因。
 - 2026-05-27 V2 收尾补强：修复输入设备偏好恢复竞态，避免用户偏好和设备列表异步返回顺序导致已保存麦克风偶尔不恢复；诊断模式新增 `刷新全局快捷键状态` 按钮，方便维护者验证前后重新读取注册状态。
 - 2026-05-27 分发烟测：`npm run tauri -- build --debug` 首次因旧 `vox-type.exe` 进程占用失败；结束旧进程后重跑通过，生成 `src-tauri/target/debug/bundle/msi/VoxType_0.1.0_x64_en-US.msi` 和 `src-tauri/target/debug/bundle/nsis/VoxType_0.1.0_x64-setup.exe`。
+- 2026-05-27 V2 主界面闭环补强：主界面主按钮从“停止录音采集”改为日常输入闭环，再次点击会停止录音、调用 whisper.cpp、等待 3 秒切回目标输入框并尝试上屏；诊断模式仍保留纯录音采集按钮用于排查。
 
 ## 会话记录
 

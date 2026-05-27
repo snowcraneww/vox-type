@@ -460,9 +460,35 @@ export function App() {
 
   async function handlePrimaryRecordingAction() {
     if (isRecording) {
-      await handleStopRecording();
+      await handleStopRecordingAndInsertWithDelay();
     } else {
       await handleStartRecording();
+    }
+  }
+
+  async function handleStopRecordingAndInsertWithDelay() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: '语音输入未执行', result: 'warning', detail: '浏览器预览模式不能调用录音、whisper.cpp 和剪贴板上屏。' });
+      return;
+    }
+    try {
+      const audio = await stopRecording();
+      setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
+      addDiagnostic({ title: '录音已停止', result: audio.sampleCount > 0 ? 'success' : 'warning', detail: `采集到 ${audio.sampleCount} 个 mono 样本，峰值音量 ${audio.peakAmplitude}，RMS 音量 ${audio.rmsAmplitude}。` });
+
+      setStatus({ phase: 'transcribing', message: '正在识别；完成后会给你 3 秒切回目标输入框', lastTranscript: null });
+      const transcript = await transcribeLastRecording();
+      setStatus({ phase: 'inserting', message: '转写完成，请在 3 秒内切回目标输入框', lastTranscript: transcript.text });
+      addDiagnostic({ title: '主界面转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
+      await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
+      await insertTextWithClipboard(transcript.text);
+      setStatus({ phase: 'succeeded', message: '语音输入完成', lastTranscript: transcript.text });
+      addDiagnostic({ title: '主界面语音输入完成', result: 'success', detail: `文本：${transcript.text}` });
+    } catch (error) {
+      const detail = formatError(error);
+      setRecordingStatus((current) => ({ ...current, state: 'idle' }));
+      setStatus({ phase: 'failed', message: `语音输入失败：${detail}`, lastTranscript: null });
+      addDiagnostic({ title: '主界面语音输入失败', result: 'error', detail });
     }
   }
 
