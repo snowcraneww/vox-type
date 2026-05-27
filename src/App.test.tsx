@@ -9,9 +9,11 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'VoxType' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '开始录音' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '诊断模式' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: '语音输入状态：已就绪' })).toBeInTheDocument();
     expect(screen.getByText('中文优先，兼容英文')).toBeInTheDocument();
     expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '诊断工作台' })).not.toBeInTheDocument();
+    expect(document.querySelector('.traffic-lights')).not.toBeInTheDocument();
   });
 
   it('opens the diagnostic workbench on request', () => {

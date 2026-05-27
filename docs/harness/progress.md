@@ -8,7 +8,7 @@
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：暂无 harness 内未完成项；下一步应明确创建“提升 MVP 可用性”的新 feature/spec。
+- 当前最高优先级未完成项：`v2-001`，第二版日常语音输入体验。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
@@ -302,3 +302,19 @@
   - 创建 Rust mock 核心模块和测试。
   - 安装 npm/cargo 依赖，并运行基础验证。
 - 下一步最佳动作：继续 `scaffold-001`，接入真实托盘、真实录音、whisper.cpp 路线 proof-of-life、剪贴板上屏，并进行 Windows 手动 E2E。
+
+### 2026-05-27 V2 日常语音输入体验启动
+
+- 维护者批准第二版方向：主界面要克制、专业，不再做夸张仿苹果窗口装饰；语音输入状态用小型彩色流光波纹浮窗表达。
+- 使用 `web-search` 调研 Windows 语音输入和 Siri/AI voice waveform 类交互，结论是 V2 应贴近“光标在目标输入框、按住快捷键、浮窗提示、文字进入当前光标”的系统语音输入模型。
+- 使用 `frontend-design` 约束 UI 方向：主界面安静，彩色和动效集中在语音浮窗，不让整页变花。
+- 新增设计文档：`docs/superpowers/specs/2026-05-27-v2-daily-dictation-design.md`。
+- 新增实施计划：`docs/superpowers/plans/2026-05-27-v2-daily-dictation.md`。
+- 新增 feature：`v2-001`，状态 `in_progress`。
+### 2026-05-27 V2 浮窗与主界面第一批实现
+
+- 使用 TDD 新增 `src/voiceOverlayModel.ts` 和 `src/voiceOverlayModel.test.ts`，覆盖录音、成功截断和失败诊断提示。
+- 使用 TDD 新增 `src/VoiceOverlay.tsx` 和 `src/VoiceOverlay.test.tsx`，覆盖彩色流光语音浮窗的录音、转写、成功和失败状态。
+- 主界面移除夸张仿苹果标题栏和红黄绿窗口按钮，改为更克制的工具窗口；默认主界面嵌入语音浮窗作为 V2 状态预览。
+- 根据本轮 PowerShell 中文替换踩坑，更新 `AGENTS.md` 和 `docs/harness/working-agreement.md`：编辑中文文件时避免在 PowerShell 命令里用中文片段局部替换，优先使用 Git Bash、ASCII 锚点或 UTF-8 no BOM 整文件写入。
+- 验证通过：`npm test -- --run src/voiceOverlayModel.test.ts src/VoiceOverlay.test.tsx src/App.test.tsx`、`npm test -- --run`、`npm run typecheck`、`npm run build`、`git diff --check`。

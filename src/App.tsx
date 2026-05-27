@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatDiagnosticsForCopy } from './diagnostics';
+import { VoiceOverlay } from './VoiceOverlay';
+import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
 import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getRecordingStatus, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
 import type { AppConfig, AppStatus, AsrConfigStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
@@ -145,6 +147,10 @@ export function App() {
   useEffect(() => {
     diagnosticsEndRef.current?.scrollIntoView?.({ block: 'end' });
   }, [diagnostics, viewMode]);
+
+  const isRecording = recordingStatus.state === 'recording';
+  const overlayLevel = isRecording ? 0.72 : status.phase === 'transcribing' || status.phase === 'inserting' ? 0.38 : 0.18;
+  const voiceOverlayModel = useMemo(() => createVoiceOverlayModel(status, overlayLevel), [status, overlayLevel]);
 
   const phaseLabel = useMemo(() => {
     const labels: Record<AppStatus['phase'], string> = {
@@ -373,7 +379,6 @@ export function App() {
     }
   }
 
-  const isRecording = recordingStatus.state === 'recording';
 
   async function handlePrimaryRecordingAction() {
     if (isRecording) {
@@ -420,12 +425,14 @@ export function App() {
   function renderUserView() {
     return (
       <main className="app-shell user-shell">
-        <section className="mac-window" aria-labelledby="app-title">
-          <div className="window-titlebar">
-            <div className="traffic-lights" aria-hidden="true"><span /><span /><span /></div>
-            <span className="window-title">VoxType</span>
+        <section className="tool-window" aria-labelledby="app-title">
+          <header className="tool-header">
+            <div>
+              <span className="product-mark">VoxType</span>
+              <p>本地优先语音输入工具</p>
+            </div>
             <button className="ghost-button" type="button" onClick={() => setViewMode('diagnostic')}>诊断模式</button>
-          </div>
+          </header>
 
           <div className="voice-dashboard">
             <div className="voice-copy">
@@ -435,6 +442,7 @@ export function App() {
               <div className="status-strip" data-phase={status.phase}><span>{phaseLabel}</span><strong>{status.message}</strong></div>
             </div>
             <div className="record-orb-wrap">
+              <VoiceOverlay model={voiceOverlayModel} />
               <button className="record-orb" data-phase={status.phase} type="button" onClick={() => void handlePrimaryRecordingAction()}>
                 <span className="record-symbol" />
                 <span>{isRecording ? '停止录音' : '开始录音'}</span>

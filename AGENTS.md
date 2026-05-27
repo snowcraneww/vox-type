@@ -31,6 +31,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 - 验证、手动测试或用户反馈发现 bug 时，必须记录到 `docs/harness/debugging-log.md`；如果影响功能状态或后续优先级，同时同步 `docs/harness/progress.md`、`docs/harness/feature_list.json` 或 `docs/harness/session-handoff.md`。
 - 不要重置、回滚或覆盖用户未要求处理的改动。
 - 面向维护者的研究、方案、进度和规则文档默认使用中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
+- Windows PowerShell 5.1 容易把 UTF-8 中文命令片段按本地代码页解释。编辑中文文件时，不要依赖 PowerShell 里包含中文的局部字符串替换；优先使用 Git Bash、ASCII 锚点替换、或用 .NET `UTF8Encoding(false)` 整文件写入，避免产生乱码或 BOM。
 
 ## 技能使用
 

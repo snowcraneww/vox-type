@@ -106,28 +106,6 @@ button:focus-visible {
   width: min(100%, 860px);
 }
 
-.window-titlebar {
-  align-items: center;
-  background: rgba(248, 249, 251, 0.78);
-  border-bottom: 1px solid var(--hairline);
-  display: grid;
-  grid-template-columns: 94px 1fr auto;
-  min-height: 48px;
-  padding: 0 14px;
-}
-
-.traffic-lights { display: flex; gap: 8px; }
-.traffic-lights span { border-radius: 50%; height: 12px; width: 12px; }
-.traffic-lights span:nth-child(1) { background: #ff5f57; }
-.traffic-lights span:nth-child(2) { background: #febc2e; }
-.traffic-lights span:nth-child(3) { background: #28c840; }
-
-.window-title {
-  color: #5e6570;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-}
 
 .ghost-button,
 .secondary-button {
@@ -417,4 +395,224 @@ blockquote {
   .quick-settings { grid-template-columns: 1fr; }
   .setup-banner { align-items: stretch; flex-direction: column; }
   .hero { align-items: stretch; flex-direction: column; }
+}
+
+.voice-overlay {
+  --voice-level: 0;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 24px;
+  box-shadow: 0 22px 58px rgba(18, 24, 38, 0.16), inset 0 1px 0 rgba(255,255,255,0.92);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(180px, 260px) 1fr;
+  min-height: 116px;
+  overflow: hidden;
+  padding: 18px 22px;
+  position: relative;
+}
+
+.voice-overlay::before {
+  background: linear-gradient(120deg, rgba(10,132,255,0.12), rgba(255,45,146,0.10), rgba(255,149,0,0.10));
+  content: "";
+  inset: 0;
+  opacity: 0.72;
+  position: absolute;
+  pointer-events: none;
+}
+
+.voice-overlay[data-mode="failed"]::before {
+  background: linear-gradient(120deg, rgba(255,69,58,0.12), rgba(255,159,10,0.12));
+}
+
+.voice-wave-stage {
+  background: rgba(255,255,255,0.62);
+  border: 1px solid rgba(255,255,255,0.70);
+  border-radius: 20px;
+  height: 76px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.voice-wave-stage::before {
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.92), transparent 58%);
+  content: "";
+  filter: blur(12px);
+  inset: 8px;
+  opacity: 0.8;
+  position: absolute;
+}
+
+.voice-wave-line {
+  animation: voice-wave-flow 4.8s linear infinite;
+  background: linear-gradient(90deg, #0a84ff, #35d0ff, #a259ff, #ff2d92, #ff9f0a, #32d074, #0a84ff);
+  border-radius: 999px;
+  filter: drop-shadow(0 0 12px rgba(10,132,255,0.42));
+  height: 5px;
+  left: -35%;
+  position: absolute;
+  right: -35%;
+  top: 50%;
+  transform: translateY(-50%) scaleY(calc(1 + var(--voice-level) * 2.4));
+}
+
+.voice-wave-line::before,
+.voice-wave-line::after {
+  background: inherit;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: 0.58;
+  position: absolute;
+  transform: translateY(-16px) scaleY(0.72);
+}
+
+.voice-wave-line::after {
+  opacity: 0.46;
+  transform: translateY(16px) scaleY(0.62);
+}
+
+.line-b {
+  animation-duration: 6.2s;
+  filter: drop-shadow(0 0 14px rgba(255,45,146,0.35));
+  opacity: 0.72;
+  transform: translateY(-50%) scaleY(calc(0.8 + var(--voice-level) * 1.8));
+}
+
+.line-c {
+  animation-duration: 7.4s;
+  opacity: 0.54;
+  transform: translateY(-50%) scaleY(calc(0.65 + var(--voice-level) * 1.4));
+}
+
+.voice-glow-core {
+  animation: voice-core-pulse 2.8s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(255,255,255,0.96), rgba(53,208,255,0.38) 42%, transparent 70%);
+  border-radius: 50%;
+  height: 58px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 58px;
+}
+
+.voice-overlay[data-mode="idle"] .voice-wave-line { opacity: 0.42; transform: translateY(-50%) scaleY(0.62); }
+.voice-overlay[data-mode="transcribing"] .voice-wave-line,
+.voice-overlay[data-mode="inserting"] .voice-wave-line { height: 7px; transform: translateY(-50%) scaleY(0.88); }
+.voice-overlay[data-mode="succeeded"] .voice-wave-line { opacity: 0.68; transform: translateY(-50%) scaleY(0.55); }
+.voice-overlay[data-mode="failed"] .voice-wave-line { background: linear-gradient(90deg, #ff453a, #ff9f0a, #ffd60a, #ff453a); filter: drop-shadow(0 0 12px rgba(255,69,58,0.34)); }
+
+.voice-overlay-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.voice-overlay-copy strong {
+  color: #14171c;
+  font-size: 18px;
+  font-weight: 760;
+}
+
+.voice-overlay-copy span,
+.voice-overlay-copy em {
+  color: #5c6470;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.voice-overlay-copy p {
+  color: #1d2430;
+  font-size: 15px;
+  font-weight: 680;
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.voice-overlay-copy em { color: #b45309; }
+
+@keyframes voice-wave-flow {
+  from { background-position: 0 0; }
+  to { background-position: 420px 0; }
+}
+
+@keyframes voice-core-pulse {
+  0%, 100% { opacity: 0.54; transform: translate(-50%, -50%) scale(0.92); }
+  50% { opacity: 0.92; transform: translate(-50%, -50%) scale(calc(1.02 + var(--voice-level) * 0.22)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-wave-line,
+  .voice-glow-core { animation: none; }
+}
+
+@media (max-width: 720px) {
+  .voice-overlay { grid-template-columns: 1fr; }
+  .voice-wave-stage { height: 68px; }
+}
+
+.tool-window {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(29, 34, 40, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 28px 78px rgba(25, 32, 44, 0.16), inset 0 1px 0 rgba(255,255,255,0.92);
+  overflow: hidden;
+  width: min(100%, 980px);
+}
+
+.tool-header {
+  align-items: center;
+  border-bottom: 1px solid rgba(29, 34, 40, 0.08);
+  display: flex;
+  justify-content: space-between;
+  min-height: 68px;
+  padding: 18px 24px;
+}
+
+.product-mark {
+  color: #12161d;
+  display: block;
+  font-size: 15px;
+  font-weight: 820;
+  letter-spacing: 0;
+}
+
+.tool-header p {
+  color: #69717d;
+  font-size: 13px;
+  font-weight: 650;
+  margin: 2px 0 0;
+}
+
+.tool-window .voice-dashboard {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 390px);
+  padding-top: 40px;
+}
+
+.tool-window .record-orb-wrap {
+  gap: 16px;
+}
+
+.tool-window .record-orb {
+  aspect-ratio: auto;
+  background: #151922;
+  border-radius: 999px;
+  box-shadow: 0 16px 34px rgba(18, 24, 38, 0.20);
+  display: inline-flex;
+  gap: 10px;
+  height: auto;
+  min-height: 46px;
+  padding: 10px 18px;
+  width: auto;
+}
+
+.tool-window .record-symbol {
+  height: 12px;
+  width: 12px;
 }
