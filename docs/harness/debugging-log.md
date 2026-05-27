@@ -671,3 +671,47 @@ VoxType 是开源项目，提交元数据会随仓库历史公开。个人姓名
 3. 若浮窗能显示，回到 VS Code 输入框，按住 `Ctrl+Alt+Space`。
 4. 如果没有浮窗，也没有诊断日志“收到全局快捷键按下”，说明快捷键没有进入 VoxType，可能被系统、VS Code、RDP 或其他软件占用。
 5. 如果有日志但录音/转写/上屏失败，复制全部诊断日志继续排查后续链路。
+
+## 2026-05-27 全局快捷键事件监听权限失败
+
+### 现象
+
+维护者再次验证后，诊断日志显示：
+
+`event.listen not allowed. Permissions associated with this command: core:event:allow-listen, core:event:default`
+
+同时 `全局快捷键已注册：Ctrl+Alt+Space`，并且 `测试桌面浮窗` 可以显示底部浮窗。
+
+### 根因
+
+Rust 侧全局快捷键注册成功，overlay command 也能显示窗口；失败点在前端事件监听权限。Tauri 2 默认 capability 没有显式授予 `core:event:allow-listen`，所以 `listen('voxtype-push-to-talk')` 被 ACL 拦截。结果是 Rust 发出的快捷键事件没有进入 React，录音、转写和上屏流程都不会启动。
+
+开发模式下日志出现两次，是因为 React `StrictMode` 会触发 effect 挂载/卸载/再挂载；异步 `listen()` 如果在卸载后才返回，也可能留下重复监听。
+
+### 修复
+
+- 新增 `src-tauri/capabilities/default.json`，授予 `main` 和 `dictation-overlay` 窗口 `core:default`、`core:event:allow-listen` 和 `core:event:allow-unlisten`。
+- 修复 `App.tsx` 和 `DictationOverlay.tsx` 中异步监听的清理竞态：如果组件已经卸载，`listen()` 返回后立即调用 `unlisten()`。
+- 缩小 overlay 窗口尺寸到 `340 x 86`，并让 overlay 页面根节点完全透明，去掉胶囊背后的黑色方框感。
+- 同步 `src-tauri/src/overlay.rs` 中的定位尺寸常量为 `340 x 86`，新增 Rust 回归测试锁住窗口配置和定位逻辑的一致性。
+- 缩小底部胶囊和字体，降低阴影和黑色底色强度，让浮窗更像小型系统状态条。
+
+### 验证结果
+
+- `npm test -- --run` 通过：6 个测试文件、16 个测试。
+- `npm run typecheck` 通过。
+- `cargo test --manifest-path src-tauri/Cargo.toml` 通过：45 个 Rust 测试。
+- `cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过。
+- `npm run build` 通过。
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过。
+- `bash init.sh` 通过。
+- `git diff --check` 通过。
+- `npm run tauri -- build --debug` 第一次失败原因是旧 `vox-type.exe` 进程占用目标文件；关闭本项目进程后重跑通过，并生成 debug 版 exe/MSI/NSIS 安装包。
+
+### 下次验证方法
+
+1. 重新运行 `npm run tauri -- dev`。
+2. 启动后诊断日志不应再出现 `event.listen not allowed`。
+3. 点 `测试桌面浮窗`，底部应只看到一个小胶囊，不应有黑色方形背景。
+4. 聚焦 VS Code、Notepad 或浏览器输入框，按住 `Ctrl+Alt+Space`。
+5. 诊断日志应出现 `收到全局快捷键按下`；松开后应出现 `收到全局快捷键松开`，然后进入录音停止、转写和上屏日志。

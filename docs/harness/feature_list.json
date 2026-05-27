@@ -168,7 +168,10 @@
                 "2026-05-27: 主界面主按钮从纯录音停止改为日常闭环：开始录音后再次点击会停止、转写、等待 3 秒切回目标输入框并上屏；诊断模式保留纯录音采集按钮。",
                 "2026-05-27: 维护者手动验证 Ctrl+Alt+Space 在 VS Code 输入框中没有任何可见反应；已按 systematic-debugging 拆分链路，新增 dictation-overlay 桌面浮窗、测试桌面浮窗/隐藏桌面浮窗按钮、热键事件诊断日志和前端回归测试。",
                 "2026-05-27: overlay Rust command 改为找不到窗口或显示失败时返回明确错误，避免测试桌面浮窗按钮出现假阳性；快捷键闭环结束或失败后前端会调用 hideDictationOverlay 收尾。",
-                "2026-05-27: npm test -- --run src/App.test.tsx src/DictationOverlay.test.tsx 通过，2 个测试文件、6 个测试通过；npm run typecheck 通过。"
+                "2026-05-27: npm test -- --run src/App.test.tsx src/DictationOverlay.test.tsx 通过，2 个测试文件、6 个测试通过；npm run typecheck 通过。",
+                "2026-05-27: 维护者验证确认测试桌面浮窗可显示，但日志出现 event.listen not allowed；新增 Tauri capability 授予 core:event:allow-listen/core:event:allow-unlisten，并修复 React StrictMode 下异步 listen 清理竞态。",
+                "2026-05-27: overlay 页面根节点透明化并缩小窗口到 340 x 86，去掉胶囊背后黑色方框感；底部状态条改得更小、更轻。",
+                "2026-05-27: 同步 Rust overlay 定位尺寸常量并新增 overlay_size_matches_tauri_window_config 回归测试；npm test -- --run、npm run typecheck、cargo test、cargo fmt --check、npm run build、cargo clippy、bash init.sh、git diff --check、npm run tauri -- build --debug 均通过。"
             ],
             "notes": "V2 已完成主要代码接入：深色主界面、动态彩色语音波纹、主按钮日常语音输入闭环、简体中文 prompt、输入设备持久化和可靠恢复、全局 Ctrl+Alt+Space 按住说话事件、可见并可刷新的快捷键注册状态、独立桌面浮窗和热键事件诊断日志。维护者已验证旧版本按快捷键没有可见反应；当前已补强可观测性，仍需要维护者重新手动验证桌面浮窗、热键事件、录音转写和目标软件上屏后，才能把 v2-001 标记为 passing。"
         }

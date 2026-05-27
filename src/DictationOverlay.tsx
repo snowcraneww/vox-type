@@ -26,13 +26,21 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
     if (!isTauriRuntime()) {
       return;
     }
+    let disposed = false;
     let unlisten: (() => void) | null = null;
     void listenToPushToTalk((nextPayload) => {
       setPayload(nextPayload);
     }).then((nextUnlisten) => {
+      if (disposed) {
+        nextUnlisten();
+        return;
+      }
       unlisten = nextUnlisten;
+    }).catch(() => {
+      // The main window reports listener permission failures. The overlay stays passive.
     });
     return () => {
+      disposed = true;
       unlisten?.();
     };
   }, []);

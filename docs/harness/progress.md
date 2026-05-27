@@ -360,3 +360,13 @@
 - 继续补强：快捷键闭环完成或失败后前端统一调用 `hideDictationOverlay()` 收尾；新增回归测试覆盖按下开始录音、松开转写上屏和隐藏浮窗。
 - UI 收敛：主界面继续压缩为深色半透明系统工具风格；底部小浮窗改为更小的胶囊状态条，录音态彩色频谱柱起伏更明显。
 - 验证：`npm test -- --run src/App.test.tsx src/DictationOverlay.test.tsx` 通过，2 个测试文件、6 个测试通过；`npm run typecheck` 通过。
+
+### 2026-05-27 V2 事件权限与浮窗视觉修复
+
+- 维护者验证后提供关键日志：`event.listen not allowed`，同时全局快捷键注册成功、测试桌面浮窗可显示。
+- 根因确认：Tauri 2 capability 未授予 `core:event:allow-listen`，导致前端不能监听 Rust 发出的 `voxtype-push-to-talk` 事件；快捷键注册本身不是失败点。
+- 新增 `src-tauri/capabilities/default.json`，对 `main` 和 `dictation-overlay` 授予 `core:default`、`core:event:allow-listen`、`core:event:allow-unlisten`。
+- 修复 React StrictMode 下异步 `listen()` 返回过晚可能造成的重复监听清理竞态。
+- 浮窗视觉继续收敛：overlay 页面根节点透明化，去掉胶囊背后的黑色方框；窗口缩小到 `340 x 86`，胶囊、字体和阴影都缩小。
+- 同步 Rust overlay 定位常量为 `340 x 86`，新增 `overlay_size_matches_tauri_window_config` 回归测试，避免配置尺寸和定位尺寸再次脱节。
+- 验证：`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml` 通过，45 个 Rust 测试通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`npm run build` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`bash init.sh` 通过；`git diff --check` 通过；`npm run tauri -- build --debug` 第二次通过并生成 debug 包。第一次 debug build 失败是因为旧的 `vox-type.exe` 进程占用目标文件，关闭该项目进程后通过。

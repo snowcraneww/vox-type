@@ -527,6 +527,7 @@ export function App() {
       return;
     }
 
+    let disposed = false;
     let unlisten: (() => void) | null = null;
     void listenToPushToTalk((payload) => {
       addDiagnostic({
@@ -541,15 +542,23 @@ export function App() {
       if (payload.action === 'stopAndTranscribe' && isRecordingRef.current) {
         void handleStopTranscribeAndInsertNow();
       }
-    })
+      })
       .then((nextUnlisten) => {
+        if (disposed) {
+          nextUnlisten();
+          return;
+        }
         unlisten = nextUnlisten;
       })
       .catch((error: unknown) => {
+        if (disposed) {
+          return;
+        }
         addDiagnostic({ title: '注册全局快捷键监听失败', result: 'error', detail: formatError(error) });
       });
 
     return () => {
+      disposed = true;
       unlisten?.();
     };
   }, []);
