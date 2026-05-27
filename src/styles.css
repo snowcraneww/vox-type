@@ -19,6 +19,8 @@ button {
   padding: 8px 12px;
 }
 
+button + button { margin-left: 8px; }
+
 .app-shell {
   display: grid;
   gap: 16px;
@@ -64,3 +66,6 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 dt { color: #5b6871; font-size: 13px; }
 dd { margin: 2px 0 0; }
 blockquote { border-left: 3px solid #1f6feb; margin: 12px 0; padding-left: 12px; }
+.runtime-message { color: #5b6871; }
+.button-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.button-row button + button { margin-left: 0; }

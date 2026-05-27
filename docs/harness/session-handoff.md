@@ -11,10 +11,12 @@
 - `spec-001` 已标记为 `passing`。
 - `scaffold-001` 已开始，状态 `in_progress`。
 - 产品代码已有最小 Tauri/React/Rust mock 骨架。
+- 2026-05-27 验证通过：`npm run typecheck`、`python -m json.tool docs/harness/feature_list.json`、`bash init.sh`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`cargo test --manifest-path src-tauri/Cargo.toml`、`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`、`npm run build`、`npm run tauri -- build --debug`。
+- Tauri debug build 产物：`src-tauri/target/debug/vox-type.exe`。
 
 ## 本轮改动
 
-- 建立项目级 agent 规则和开源协作文档。
+- 建立项目级 agent 规则、Apache-2.0 许可证和 harness 文档。
 - 建立 harness 状态文件和课程学习映射。
 - 建立 `feature_list.json` 作为任务事实源。
 - 建立 research 和 OpenSpec 入口目录。
@@ -25,15 +27,18 @@
 - 已确认 MVP 技术方向，并写入 `openspec/changes/voxtype-mvp-technical-direction/`。
 - 已创建实现计划：`docs/superpowers/plans/2026-05-26-scaffold-voxtype-mvp.md`。
 - 已创建最小产品骨架：`src/`、`src-tauri/`、`package.json`。
+- 已接入托盘入口、默认输入设备探测、音频 mono 标准化、whisper.cpp CLI adapter 和 Windows 剪贴板上屏 adapter。
+- 已修正 Tauri identifier 为 `dev.voxtype.desktop`。
+- 维护者确认暂不需要 `CONTRIBUTING.md`；`init.sh` 和 README 已不再把它作为必需入口。
 - 中间调研资料保存在 `TMP/research/`；第三方克隆在 `TMP/research/repos/` 且被 Git 忽略。
 - 维护者文档语言规则：默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 
 ## 仍损坏或未验证
 
-- 真实麦克风录音尚未接入。
-- 真实 whisper.cpp 推理尚未接入。
-- 真实剪贴板上屏尚未接入。
-- 托盘入口尚未接入。
+- 真实持续麦克风录音 stream 尚未接入。
+- 真实 whisper.cpp 模型推理闭环尚未手动验证。
+- 真实剪贴板上屏 adapter 已接入，但 Notepad、VS Code、浏览器输入框尚未手动 E2E。
+- 托盘入口已接入，但尚未手动确认系统托盘显示和菜单行为。
 - Windows 手动 E2E 尚未执行。
 - CMake 已安装在 `C:/Program Files/CMake/bin/cmake.exe`，但当前 shell 的 PATH 尚未刷新。
 

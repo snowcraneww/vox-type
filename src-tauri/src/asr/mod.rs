@@ -1,4 +1,11 @@
 use serde::{Deserialize, Serialize};
+use std::{
+    fs::File,
+    io::{Seek, SeekFrom, Write},
+    path::PathBuf,
+    process::Command,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::error::VoxError;
 
@@ -27,16 +34,104 @@ impl AsrEngine for MockAsrEngine {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WhisperCppEngine {
+    pub binary_path: String,
     pub model_path: String,
+    pub language: String,
 }
 
 impl AsrEngine for WhisperCppEngine {
-    fn transcribe(&self, _pcm_16khz_mono: &[i16]) -> Result<Transcript, VoxError> {
-        Err(VoxError::Asr(format!(
-            "whisper.cpp 尚未接入，模型路径占位：{}",
-            self.model_path
-        )))
+    fn transcribe(&self, pcm_16khz_mono: &[i16]) -> Result<Transcript, VoxError> {
+        let binary = PathBuf::from(&self.binary_path);
+        if !binary.is_file() {
+            return Err(VoxError::Asr(format!(
+                "whisper.cpp 可执行文件不存在：{}",
+                self.binary_path
+            )));
+        }
+
+        let model = PathBuf::from(&self.model_path);
+        if !model.is_file() {
+            return Err(VoxError::Model(format!(
+                "模型文件不存在：{}",
+                self.model_path
+            )));
+        }
+
+        let wav_path = temp_wav_path();
+        write_pcm_wav(&wav_path, pcm_16khz_mono)?;
+
+        let output = Command::new(&binary)
+            .args([
+                "-m",
+                &self.model_path,
+                "-f",
+                wav_path.to_string_lossy().as_ref(),
+                "-l",
+                &self.language,
+                "-nt",
+            ])
+            .output()
+            .map_err(|error| VoxError::Asr(format!("启动 whisper.cpp 失败：{error}")))?;
+
+        let _ = std::fs::remove_file(&wav_path);
+
+        if !output.status.success() {
+            return Err(VoxError::Asr(format!(
+                "whisper.cpp 执行失败：{}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            )));
+        }
+
+        let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if text.is_empty() {
+            return Err(VoxError::Asr("whisper.cpp 没有返回文本".to_string()));
+        }
+
+        Ok(Transcript {
+            text,
+            engine: "whisper.cpp".to_string(),
+        })
     }
+}
+
+fn temp_wav_path() -> PathBuf {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|value| value.as_nanos())
+        .unwrap_or_default();
+    std::env::temp_dir().join(format!("voxtype-{now}.wav"))
+}
+
+fn write_pcm_wav(path: &PathBuf, pcm_16khz_mono: &[i16]) -> Result<(), VoxError> {
+    let mut file =
+        File::create(path).map_err(|error| VoxError::Asr(format!("创建临时 WAV 失败：{error}")))?;
+    let data_len = (pcm_16khz_mono.len() * 2) as u32;
+    let byte_rate = 16_000u32 * 2;
+
+    file.write_all(b"RIFF").map_err(wav_error)?;
+    file.write_all(&(36 + data_len).to_le_bytes())
+        .map_err(wav_error)?;
+    file.write_all(b"WAVEfmt ").map_err(wav_error)?;
+    file.write_all(&16u32.to_le_bytes()).map_err(wav_error)?;
+    file.write_all(&1u16.to_le_bytes()).map_err(wav_error)?;
+    file.write_all(&1u16.to_le_bytes()).map_err(wav_error)?;
+    file.write_all(&16_000u32.to_le_bytes())
+        .map_err(wav_error)?;
+    file.write_all(&byte_rate.to_le_bytes())
+        .map_err(wav_error)?;
+    file.write_all(&2u16.to_le_bytes()).map_err(wav_error)?;
+    file.write_all(&16u16.to_le_bytes()).map_err(wav_error)?;
+    file.write_all(b"data").map_err(wav_error)?;
+    file.write_all(&data_len.to_le_bytes()).map_err(wav_error)?;
+    for sample in pcm_16khz_mono {
+        file.write_all(&sample.to_le_bytes()).map_err(wav_error)?;
+    }
+    file.seek(SeekFrom::Start(0)).map_err(wav_error)?;
+    Ok(())
+}
+
+fn wav_error(error: std::io::Error) -> VoxError {
+    VoxError::Asr(format!("写入临时 WAV 失败：{error}"))
 }
 
 #[cfg(test)]
@@ -47,5 +142,27 @@ mod tests {
     fn mock_engine_returns_chinese_transcript() {
         let transcript = MockAsrEngine.transcribe(&[]).unwrap();
         assert_eq!(transcript.text, "这是 VoxType 的模拟转写结果。");
+    }
+
+    #[test]
+    fn whisper_engine_reports_missing_binary_before_running() {
+        let engine = WhisperCppEngine {
+            binary_path: "missing-whisper-cli.exe".to_string(),
+            model_path: "model.bin".to_string(),
+            language: "zh".to_string(),
+        };
+
+        let error = engine.transcribe(&[0, 1, -1]).unwrap_err();
+
+        assert!(error.to_string().contains("whisper.cpp 可执行文件不存在"));
+    }
+
+    #[test]
+    fn whisper_engine_builds_temp_wav_path_with_wav_extension() {
+        let path = temp_wav_path();
+        assert_eq!(
+            path.extension().and_then(|value| value.to_str()),
+            Some("wav")
+        );
     }
 }

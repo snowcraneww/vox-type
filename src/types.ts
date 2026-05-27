@@ -13,3 +13,9 @@ export interface AppStatus {
   message: string;
   lastTranscript: string | null;
 }
+
+export interface RecorderInfo {
+  deviceName: string;
+  sampleRate: number;
+  channels: number;
+}

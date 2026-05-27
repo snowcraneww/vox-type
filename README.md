@@ -44,7 +44,6 @@ cargo check --manifest-path src-tauri/Cargo.toml
 ## 重要文档
 
 - `AGENTS.md`：agent 工作规则。
-- `CONTRIBUTING.md`：开源贡献约定。
 - `docs/harness/working-agreement.md`：人和 agent 的协作规则。
 - `docs/harness/feature_list.json`：当前任务和功能状态。
 - `docs/harness/progress.md`：已验证状态和会话日志。

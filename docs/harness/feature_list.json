@@ -1,6 +1,6 @@
 {
   "project": "VoxType",
-  "last_updated": "2026-05-26",
+  "last_updated": "2026-05-27",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -26,7 +26,7 @@
       "verification": [
         "运行 bash init.sh。",
         "确认 feature_list.json 是有效 JSON。",
-        "确认 AGENTS.md、README.md、CONTRIBUTING.md 和 docs/harness/* 文件存在。",
+        "确认 AGENTS.md、README.md、LICENSE 和 docs/harness/* 文件存在。",
         "确认 progress.md 记录本次配置证据。"
       ],
       "evidence": [
@@ -112,9 +112,11 @@
         "2026-05-26: 创建 package.json、Vite/React/TypeScript 配置、src/ 前端骨架、src-tauri/ Rust/Tauri 骨架。",
         "2026-05-26: npm install 成功，0 vulnerabilities。",
         "2026-05-26: cargo fetch --manifest-path src-tauri/Cargo.toml 成功。",
-        "2026-05-26: npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、npm run build、cargo check --manifest-path src-tauri/Cargo.toml 通过。"
+        "2026-05-26: npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、npm run build、cargo check --manifest-path src-tauri/Cargo.toml 通过。",
+        "2026-05-27: 新增托盘入口、Tauri client、默认输入设备探测、音频 mono 标准化、whisper.cpp CLI adapter、Windows 剪贴板上屏 adapter，并修正 Tauri identifier。",
+        "2026-05-27: npm run typecheck、python -m json.tool docs/harness/feature_list.json、bash init.sh、cargo fmt --all --manifest-path src-tauri/Cargo.toml、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、npm run tauri -- build --debug 均通过。"
       ],
-      "notes": "最小 mock 闭环骨架已建立；真实麦克风录音、真实 whisper.cpp 推理、剪贴板上屏和托盘仍未完成，因此不能标为 passing。"
+      "notes": "最小 mock 闭环骨架已建立，并已接入部分系统能力边界；真实持续录音 stream、真实 whisper.cpp 模型闭环和 Windows 手动 E2E 仍未完成，因此不能标为 passing。"
     }
   ]
 }

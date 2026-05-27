@@ -3,7 +3,7 @@
 ## 当前已验证状态
 
 - 仓库根目录：`C:/grace_repos/open-source/vox-type`
-- 当前阶段：MVP scaffold 进行中，已完成最小 Tauri/React/Rust mock 闭环骨架。
+- 当前阶段：MVP scaffold 进行中，已完成最小 Tauri/React/Rust 骨架，并接入部分系统能力 adapter。
 - 产品 scaffold：进行中。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
@@ -83,6 +83,27 @@
 - 当前未完成：真实麦克风录音、真实 whisper.cpp 推理、真实剪贴板上屏、托盘入口、Windows 手动 E2E。
 - CMake：已通过 `winget install --id Kitware.CMake -e --accept-package-agreements --accept-source-agreements` 安装到 `C:/Program Files/CMake/bin/cmake.exe`；当前 shell 的 PATH 尚未刷新，后续可直接调用完整路径或临时追加 PATH。
 
+### 2026-05-27 MVP 系统能力适配边界
+
+- 保留 `scaffold-001` 为 `in_progress`，因为真实按住录音、真实 whisper.cpp 模型推理闭环和 Windows 手动 E2E 仍未完成。
+- 新增 Tauri 托盘入口：`src-tauri/src/tray.rs`，菜单包含显示主窗口和退出。
+- 新增前端 Tauri client：`src/tauriClient.ts`，浏览器预览模式保留 fallback，Tauri 运行时调用真实 command。
+- 新增默认输入设备探测：`get_default_input_info` 通过 `cpal` 返回麦克风名称、采样率和声道数。
+- 新增音频 buffer 和 mono 标准化工具：`RecordingBuffer`、`normalize_to_mono_i16`；尚未建立持续录音 stream。
+- 新增 `WhisperCppEngine` adapter：校验 binary/model、写入临时 16 kHz mono WAV、调用 whisper.cpp CLI、读取 stdout；模型和 binary 仍由本机配置提供，不提交到仓库。
+- 新增 Windows 剪贴板上屏 adapter：通过 `arboard` 写入文本、`enigo` 发送 `Ctrl+V`、再恢复旧剪贴板文本；真实目标应用上屏仍需手动 E2E 验证。
+- 修正 Tauri identifier：`dev.voxtype.app` -> `dev.voxtype.desktop`，避免 `.app` 结尾警告。
+- 维护者确认暂不需要 `CONTRIBUTING.md`，因此 `init.sh` 和 README 不再把它作为必需入口；项目仍保持 Apache-2.0 开源许可证。
+- `npm run typecheck`：通过。
+- `python -m json.tool docs/harness/feature_list.json`：通过。
+- `bash init.sh`：通过，输出 `Product scaffold: started`。
+- `cargo fmt --all --manifest-path src-tauri/Cargo.toml`：通过。
+- `npm test -- --run`：通过，1 个测试文件、1 个测试通过。
+- `cargo test --manifest-path src-tauri/Cargo.toml`：通过，15 个 Rust 测试通过。
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`：通过。
+- `npm run build`：通过。
+- `npm run tauri -- build --debug`：通过，生成 `src-tauri/target/debug/vox-type.exe`。
+
 ## 会话记录
 
 ### 会话 001 - 2026-05-26
@@ -91,7 +112,7 @@
 - 已完成：
   - 读取课程目录、官方模板和 12 讲正文摘要。
   - 创建 `docs/harness/lesson-synthesis.md`，把课程原则映射到 VoxType。
-  - 创建/更新 `AGENTS.md`、`README.md`、`CONTRIBUTING.md`、`init.sh`。
+  - 创建/更新 `AGENTS.md`、`README.md`、`init.sh`。
   - 创建 `LICENSE`，许可证采用 Apache-2.0。
   - 创建 `.gitignore`、`.editorconfig`、`.gitattributes`。
   - 创建 `docs/harness/working-agreement.md`、`feature_list.json`、`quality.md`、`evaluator-rubric.md`、`session-handoff.md`、`clean-state-checklist.md`、`research-log.md`。
@@ -105,7 +126,6 @@
 - 更新过的文件或工件：
   - `AGENTS.md`
   - `README.md`
-  - `CONTRIBUTING.md`
   - `LICENSE`
   - `.gitignore`
   - `.editorconfig`

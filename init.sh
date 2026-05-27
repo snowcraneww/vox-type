@@ -4,7 +4,6 @@ set -euo pipefail
 required_files=(
   "AGENTS.md"
   "README.md"
-  "CONTRIBUTING.md"
   "LICENSE"
   ".gitignore"
   ".editorconfig"
@@ -45,7 +44,7 @@ fi
 python - <<'PY'
 from pathlib import Path
 import re
-paths = [Path('AGENTS.md'), Path('README.md'), Path('CONTRIBUTING.md')]
+paths = [Path('AGENTS.md'), Path('README.md')]
 for root in [Path('docs/harness'), Path('docs/research'), Path('openspec')]:
     paths.extend(path for path in root.rglob('*') if path.is_file())
 bad = []
