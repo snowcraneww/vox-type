@@ -405,3 +405,12 @@
 - 转写态改为三点动态处理状态，背景声波柱降为很低透明度，不再表现为卡住的静态波形。
 - `index.html` overlay 首帧样式增加 `color-scheme: dark`、`margin: 0`、`overflow: hidden`，继续降低 WebView 默认白边风险。
 - 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
+
+### 2026-05-27 V2 去边框、六点转写与主界面收敛
+
+- 维护者反馈：录音浮窗效果不错，但外侧仍像有灰白边；转写态 3 个点太少；主窗口和浮窗精致度不匹配；录音动画仍是固定节奏，暂未随真实说话节奏变化。
+- 去掉胶囊内部高光矩形，只保留纯黑胶囊底，降低白边视觉来源。
+- 转写态从 3 个点改为 6 个五彩动态点，点位错峰动效更明显。
+- 主窗口继续细化：按钮、输入框、窗口宽度、header、标题、正文、主预览区、卡片间距和边框强度都下调。
+- 说明：录音动画要真正跟随说话节奏，需要 Rust 录音流向前端发送实时音量 level 事件；本轮未接实时音量，只优化固定动画表现。
+- 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm run typecheck` 通过；`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run build` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
