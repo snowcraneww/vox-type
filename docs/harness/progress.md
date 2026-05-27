@@ -347,3 +347,16 @@
 - 主界面移除夸张仿苹果标题栏和红黄绿窗口按钮，改为更克制的工具窗口；默认主界面嵌入语音浮窗作为 V2 状态预览。
 - 根据本轮 PowerShell 中文替换踩坑，更新 `AGENTS.md` 和 `docs/harness/working-agreement.md`：编辑中文文件时避免在 PowerShell 命令里用中文片段局部替换，优先使用 Git Bash、ASCII 锚点或 UTF-8 no BOM 整文件写入。
 - 验证通过：`npm test -- --run src/voiceOverlayModel.test.ts src/VoiceOverlay.test.tsx src/App.test.tsx`、`npm test -- --run`、`npm run typecheck`、`npm run build`、`git diff --check`。
+
+### 2026-05-27 V2 全局快捷键无反馈调试
+
+- 维护者手动验证：在 VS Code 输入框中按住 `Ctrl+Alt+Space` 说中文，没有出现录音反馈，松开后也没有文字进入输入框。
+- 根因调查结论：`tauri-plugin-global-shortcut` 和底层 `global-hotkey` 支持 Windows `Pressed/Released`，但旧实现缺少桌面级可见反馈和热键事件诊断日志；用户无法区分“快捷键没进应用”和“进入应用后录音/转写/上屏失败”。
+- 已新增 Tauri 隐藏窗口 `dictation-overlay`：默认不显示，收到按住说话事件后在屏幕底部显示小型五彩流光波纹浮窗。
+- 已新增诊断按钮：诊断模式中 `测试桌面浮窗` / `隐藏桌面浮窗`，用于单独验证 overlay 窗口是否能显示在桌面上。
+- 已新增热键事件日志：前端收到 `voxtype-push-to-talk` 后会记录“收到全局快捷键按下/松开”。如果按快捷键后没有这条日志，说明系统没有把该快捷键事件交给 VoxType。
+- 已调整浮窗行为：按下快捷键显示“正在听”，松开后保持显示“正在识别”，直到快捷键闭环完成或失败后由前端隐藏。
+- 继续补强：`show_dictation_overlay` / `hide_dictation_overlay` 现在会在找不到 overlay 窗口或系统显示失败时返回明确错误，避免诊断按钮误报成功。
+- 继续补强：快捷键闭环完成或失败后前端统一调用 `hideDictationOverlay()` 收尾；新增回归测试覆盖按下开始录音、松开转写上屏和隐藏浮窗。
+- UI 收敛：主界面继续压缩为深色半透明系统工具风格；底部小浮窗改为更小的胶囊状态条，录音态彩色频谱柱起伏更明显。
+- 验证：`npm test -- --run src/App.test.tsx src/DictationOverlay.test.tsx` 通过，2 个测试文件、6 个测试通过；`npm run typecheck` 通过。

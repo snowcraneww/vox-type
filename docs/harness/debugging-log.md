@@ -630,3 +630,44 @@ VoxType 是开源项目，提交元数据会随仓库历史公开。个人姓名
 1. 重新录音后导出的 `last-asr-input.wav` 是否恢复为正常人声。
 2. `转写最近录音` 是否从 `(音)` 变成可读中文。
 3. `转写并上屏最近录音` 是否粘贴本次识别文本，而不是旧剪贴板。
+
+## 2026-05-27 Ctrl+Alt+Space 无反应
+
+### 现象
+
+维护者在 VS Code 输入框中聚焦后，按住 `Ctrl+Alt+Space` 说一句中文，没有看到任何浮窗或状态变化；松开后文字也没有进入输入框。
+
+### 初步根因
+
+代码层面已经注册 `tauri-plugin-global-shortcut`，底层 `global-hotkey` 在 Windows 上通过 `WM_HOTKEY` 发出 `Pressed`，再轮询主键释放发出 `Released`。但旧实现有两个可观测性缺口：
+
+1. 没有独立桌面浮窗；主窗口不在前台时，即使热键事件进入应用，用户也看不到“正在录音”。
+2. 前端收到 `voxtype-push-to-talk` 后没有单独写诊断日志；用户无法判断事件是否进入前端。
+
+因此本轮不能直接断言是插件、VS Code、RDP 或组合键冲突导致，必须先补观测点。
+
+### 修复
+
+- 新增 `dictation-overlay` Tauri 窗口，默认隐藏、无边框、透明、always-on-top、skip taskbar。
+- 新增 `src/DictationOverlay.tsx`，渲染底部小型五彩流光波纹浮窗。
+- Rust 热键 handler 收到 `StartRecording` 时显示 overlay，收到 `StopAndTranscribe` 时保持 overlay 进入识别态。
+- 前端快捷键闭环完成或失败后隐藏 overlay。
+- 主窗口收到热键事件时写入诊断日志：`收到全局快捷键按下` / `收到全局快捷键松开`。
+- 诊断模式新增 `测试桌面浮窗` 和 `隐藏桌面浮窗`，用于把 overlay 显示问题和热键事件问题拆开排查。
+- `show_dictation_overlay` / `hide_dictation_overlay` 改为找不到窗口或显示失败时返回明确错误，避免诊断按钮出现“请求已发送但实际窗口不存在”的假阳性。
+- 快捷键闭环结束或失败后，前端统一调用 `hideDictationOverlay()` 收尾，避免底部浮窗卡在识别态。
+- 主界面和底部浮窗进一步收敛为深色半透明系统工具风格，底部浮窗的彩色频谱柱录音态动效更明显。
+
+### 自动化验证
+
+- `npm test -- --run src/App.test.tsx src/DictationOverlay.test.tsx` 通过，2 个测试文件、6 个测试通过。
+- `npm run typecheck` 通过。
+- 新增前端回归测试覆盖：收到快捷键按下会启动录音；收到松开会停止录音、转写、上屏，并调用 `hideDictationOverlay()`。
+
+### 下次验证方法
+
+1. 运行 `npm run tauri -- dev`。
+2. 进入诊断模式，点击 `测试桌面浮窗`。如果底部没有出现小型彩色浮窗，并且诊断日志显示“桌面浮窗显示失败”，优先排查 Tauri overlay 窗口；如果日志显示“请求已发送”但看不见，优先排查窗口层级、透明窗口或多屏位置。
+3. 若浮窗能显示，回到 VS Code 输入框，按住 `Ctrl+Alt+Space`。
+4. 如果没有浮窗，也没有诊断日志“收到全局快捷键按下”，说明快捷键没有进入 VoxType，可能被系统、VS Code、RDP 或其他软件占用。
+5. 如果有日志但录音/转写/上屏失败，复制全部诊断日志继续排查后续链路。

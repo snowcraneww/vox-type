@@ -651,3 +651,222 @@ blockquote {
   .voice-wave-bars { gap: 3px; inset: 20px 14px; }
   .voice-overlay { min-height: 220px; }
 }
+
+/* V2.1 daily dictation refinement: keep the main surface calm and move live state into a small desktop overlay. */
+body:has(.user-shell) {
+  background:
+    radial-gradient(circle at 50% -8%, rgba(255, 255, 255, 0.10), transparent 28%),
+    radial-gradient(circle at 18% 16%, rgba(90, 200, 250, 0.12), transparent 24%),
+    radial-gradient(circle at 84% 24%, rgba(255, 45, 146, 0.09), transparent 24%),
+    linear-gradient(150deg, #050608 0%, #0b0f17 50%, #050608 100%);
+}
+
+body:has(.overlay-root) {
+  background: transparent;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.tool-window {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.095), rgba(255,255,255,0.035)),
+    rgba(11, 14, 21, 0.84);
+  border-radius: 22px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255,255,255,0.13);
+  width: min(100%, 820px);
+}
+
+.tool-header {
+  min-height: 64px;
+  padding: 16px 22px;
+}
+
+.voice-dashboard {
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  padding: 34px 38px 22px;
+}
+
+h1 { font-size: 44px; }
+
+.voice-subtitle {
+  color: rgba(235, 239, 247, 0.78);
+  font-size: 15px;
+  max-width: 420px;
+}
+
+.status-strip,
+.transcript-card,
+.setting-chip,
+.setup-banner,
+.panel,
+.hero {
+  border-radius: 18px;
+}
+
+.voice-overlay {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.105), rgba(255,255,255,0.045)),
+    rgba(8, 10, 16, 0.78);
+  border-radius: 22px;
+  min-height: 190px;
+  padding: 15px;
+}
+
+.voice-wave-stage {
+  height: 96px;
+}
+
+.voice-overlay-copy strong {
+  font-size: 17px;
+}
+
+.transcript-card,
+.setup-banner,
+.quick-settings {
+  margin-left: 38px;
+  margin-right: 38px;
+}
+
+.overlay-root {
+  align-items: end;
+  display: grid;
+  height: 100vh;
+  justify-items: center;
+  padding: 0 0 10px;
+  pointer-events: none;
+  width: 100vw;
+}
+
+.mini-dictation {
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.09)),
+    rgba(9, 11, 17, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  box-shadow:
+    0 24px 78px rgba(0, 0, 0, 0.48),
+    0 0 38px rgba(90, 200, 250, 0.16),
+    inset 0 1px 0 rgba(255,255,255,0.34);
+  display: grid;
+  gap: 13px;
+  grid-template-columns: 166px minmax(0, 1fr);
+  min-height: 88px;
+  overflow: hidden;
+  padding: 13px 20px 13px 16px;
+  position: relative;
+  width: 404px;
+}
+
+.mini-dictation::before {
+  animation: mini-aurora 4.2s ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 18% 40%, rgba(90, 200, 250, 0.45), transparent 34%),
+    radial-gradient(circle at 58% 22%, rgba(255, 45, 146, 0.34), transparent 32%),
+    radial-gradient(circle at 88% 74%, rgba(255, 214, 10, 0.24), transparent 38%);
+  content: "";
+  inset: 0;
+  opacity: 0.86;
+  position: absolute;
+}
+
+.mini-dictation::after {
+  animation: mini-light-sweep 2.8s linear infinite;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.30), transparent);
+  content: "";
+  filter: blur(8px);
+  height: 100%;
+  left: -36%;
+  opacity: 0.42;
+  position: absolute;
+  top: 0;
+  transform: skewX(-18deg);
+  width: 36%;
+}
+
+.mini-wave {
+  align-items: center;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(18, 1fr);
+  height: 56px;
+  position: relative;
+  z-index: 1;
+}
+
+.mini-wave-bar {
+  --bar-index: 0;
+  animation: mini-wave-idle 1.55s ease-in-out infinite;
+  animation-delay: calc(var(--bar-index) * -72ms);
+  background: linear-gradient(180deg, #ffffff, #5ac8fa 32%, #ff2d92 68%, #ffd60a);
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(90, 200, 250, 0.30);
+  display: block;
+  height: 24px;
+  min-height: 12px;
+  opacity: 0.74;
+  transform-origin: center;
+}
+
+.mini-dictation[data-mode="recording"] .mini-wave-bar {
+  animation-name: mini-wave-recording;
+  animation-duration: 620ms;
+  opacity: 0.98;
+}
+
+.mini-dictation[data-mode="transcribing"] .mini-wave-bar {
+  animation-duration: 980ms;
+  filter: hue-rotate(32deg);
+}
+
+.mini-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.mini-copy strong {
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.mini-copy span {
+  color: rgba(247, 248, 251, 0.74);
+  font-size: 12px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes mini-wave-idle {
+  0%, 100% { transform: scaleY(0.38); }
+  50% { transform: scaleY(0.76); }
+}
+
+@keyframes mini-wave-recording {
+  0%, 100% { transform: scaleY(0.44); }
+  32% { transform: scaleY(2.08); }
+  66% { transform: scaleY(0.78); }
+}
+
+@keyframes mini-aurora {
+  from { filter: hue-rotate(0deg); transform: translate3d(-1%, 0, 0) scale(1); }
+  to { filter: hue-rotate(22deg); transform: translate3d(1%, -1%, 0) scale(1.05); }
+}
+
+@keyframes mini-light-sweep {
+  from { transform: translateX(0) skewX(-18deg); }
+  to { transform: translateX(420%) skewX(-18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-dictation::before,
+  .mini-dictation::after,
+  .mini-wave-bar { animation: none; }
+}

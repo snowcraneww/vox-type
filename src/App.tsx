@@ -3,7 +3,7 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { VoiceOverlay } from './VoiceOverlay';
 import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
 import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
@@ -73,6 +73,7 @@ export function App() {
   const [asrLanguage, setAsrLanguage] = useState('zh');
   const [isInstallingAsr, setIsInstallingAsr] = useState(false);
   const didLoadRuntime = useRef(false);
+  const nextDiagnosticIdRef = useRef(2);
   const isRecordingRef = useRef(false);
   const diagnosticsEndRef = useRef<HTMLDivElement | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([
@@ -90,7 +91,7 @@ export function App() {
       ...current.slice(Math.max(0, current.length - MAX_DIAGNOSTIC_ENTRIES + 1)),
       {
         ...entry,
-        id: Date.now(),
+        id: nextDiagnosticIdRef.current++,
         time: new Date().toLocaleTimeString(),
       },
     ]);
@@ -271,6 +272,31 @@ export function App() {
     }
   }
 
+
+  async function handleShowOverlayTest() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: '桌面浮窗未显示', result: 'warning', detail: '浏览器预览模式不能显示 Tauri 桌面浮窗。' });
+      return;
+    }
+    try {
+      await showDictationOverlay();
+      addDiagnostic({ title: '桌面浮窗显示请求已发送', result: 'success', detail: '如果底部没有出现小型彩色语音浮窗，说明 overlay 窗口配置或系统窗口层级需要继续排查。' });
+    } catch (error) {
+      addDiagnostic({ title: '桌面浮窗显示失败', result: 'error', detail: formatError(error) });
+    }
+  }
+
+  async function handleHideOverlayTest() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    try {
+      await hideDictationOverlay();
+      addDiagnostic({ title: '桌面浮窗已隐藏', result: 'info', detail: '已发送隐藏 overlay 窗口请求。' });
+    } catch (error) {
+      addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(error) });
+    }
+  }
   async function handleRefreshHotkeyStatus() {
     if (!isTauriRuntime()) {
       addDiagnostic({ title: '全局快捷键状态未读取', result: 'warning', detail: '浏览器预览模式不能读取 Tauri 全局快捷键注册状态。' });
@@ -359,6 +385,10 @@ export function App() {
       setRecordingStatus((current) => ({ ...current, state: 'idle' }));
       setStatus({ phase: 'failed', message: `快捷键语音输入失败：${detail}`, lastTranscript: null });
       addDiagnostic({ title: '快捷键闭环失败', result: 'error', detail });
+    } finally {
+      await hideDictationOverlay().catch((error: unknown) => {
+        addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(error) });
+      });
     }
   }
 
@@ -499,6 +529,11 @@ export function App() {
 
     let unlisten: (() => void) | null = null;
     void listenToPushToTalk((payload) => {
+      addDiagnostic({
+        title: payload.state === 'pressed' ? '收到全局快捷键按下' : '收到全局快捷键松开',
+        result: 'info',
+        detail: `事件 ${payload.state}，动作 ${payload.action}。如果你在目标输入框里按快捷键但这里没有日志，说明系统没有把快捷键事件交给 VoxType。`,
+      });
       if (payload.action === 'startRecording' && !isRecordingRef.current) {
         void handleStartRecording();
         return;
@@ -622,7 +657,7 @@ export function App() {
             <div><dt>麦克风</dt><dd>{recorderInfo ? `${recorderInfo.deviceName} / ${recorderInfo.sampleRate} Hz / ${recorderInfo.channels} 声道` : '等待 Tauri 读取'}</dd></div>
             <div><dt>录音流</dt><dd>{isRecording ? `录音中 / ${recordingStatus.sampleCount} 样本 / ${recordingStatus.durationMs} ms` : '空闲'}</dd></div>
           </dl>
-          <div className="button-row"><button type="button" onClick={handleRefreshHotkeyStatus}>刷新全局快捷键状态</button></div>
+          <div className="button-row"><button type="button" onClick={handleRefreshHotkeyStatus}>刷新全局快捷键状态</button><button type="button" onClick={handleShowOverlayTest}>测试桌面浮窗</button><button type="button" onClick={handleHideOverlayTest}>隐藏桌面浮窗</button></div>
           <div className="config-form single-row-form">{renderDeviceSelect()}</div>
         </section>
 

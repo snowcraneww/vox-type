@@ -79,6 +79,14 @@ export async function insertTextWithClipboard(text: string): Promise<void> {
   return invoke('insert_text_with_clipboard', { text });
 }
 
+export async function showDictationOverlay(): Promise<void> {
+  return invoke('show_dictation_overlay');
+}
+
+export async function hideDictationOverlay(): Promise<void> {
+  return invoke('hide_dictation_overlay');
+}
+
 export async function listenToPushToTalk(handler: (payload: PushToTalkPayload) => void): Promise<() => void> {
   return listen<PushToTalkPayload>('voxtype-push-to-talk', (event) => handler(event.payload));
 }

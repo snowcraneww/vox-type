@@ -6,6 +6,9 @@ pub mod config;
 pub mod error;
 pub mod hotkey;
 pub mod insertion;
+pub mod overlay;
+#[cfg(test)]
+mod overlay_tests;
 pub mod preferences;
 pub mod recorder;
 pub mod state;
@@ -187,6 +190,15 @@ fn app_data_dir(app: &AppHandle) -> Result<std::path::PathBuf, error::VoxError> 
 fn insert_text_with_clipboard(text: String) -> Result<(), error::VoxError> {
     ClipboardInsertion.insert_text(&text)
 }
+#[tauri::command]
+fn show_dictation_overlay(app: AppHandle) -> Result<(), error::VoxError> {
+    overlay::show_dictation_overlay(&app)
+}
+
+#[tauri::command]
+fn hide_dictation_overlay(app: AppHandle) -> Result<(), error::VoxError> {
+    overlay::hide_dictation_overlay(&app)
+}
 
 fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     use std::sync::{Arc, Mutex};
@@ -208,6 +220,19 @@ fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::
                     .map(|mut state| state.handle_event(hotkey_event))
                     .unwrap_or(hotkey::PushToTalkAction::Ignore);
                 let payload = hotkey::payload_for_event(hotkey_event, action);
+                match action {
+                    hotkey::PushToTalkAction::StartRecording => {
+                        if let Err(error) = overlay::show_dictation_overlay(app) {
+                            eprintln!("failed to show dictation overlay: {error}");
+                        }
+                    }
+                    hotkey::PushToTalkAction::StopAndTranscribe => {
+                        if let Err(error) = overlay::show_dictation_overlay(app) {
+                            eprintln!("failed to keep dictation overlay visible: {error}");
+                        }
+                    }
+                    hotkey::PushToTalkAction::Ignore => {}
+                }
                 let _ = app.emit("voxtype-push-to-talk", payload);
             })
             .build(),
@@ -259,7 +284,9 @@ pub fn run() {
             transcribe_last_recording,
             transcribe_last_recording_and_insert,
             export_last_recording_wav,
-            insert_text_with_clipboard
+            insert_text_with_clipboard,
+            show_dictation_overlay,
+            hide_dictation_overlay
         ])
         .run(tauri::generate_context!())
         .expect("failed to run VoxType");
