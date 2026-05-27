@@ -28,6 +28,7 @@ pub struct RecordedAudio {
     pub channels: u16,
     pub sample_count: usize,
     pub duration_ms: u64,
+    pub asr_samples: Vec<i16>,
     pub asr_sample_rate: u32,
     pub asr_sample_count: usize,
     pub asr_duration_ms: u64,
@@ -73,6 +74,7 @@ impl RecordingSession {
             channels: self.buffer.channels,
             sample_count,
             duration_ms: audio::duration_ms(sample_count, self.buffer.sample_rate),
+            asr_samples,
             asr_sample_rate: audio::TARGET_SAMPLE_RATE,
             asr_sample_count,
             asr_duration_ms: audio::duration_ms(asr_sample_count, audio::TARGET_SAMPLE_RATE),
@@ -128,6 +130,7 @@ pub struct RecorderRuntimeStatus {
 #[derive(Default)]
 pub struct RecorderManager {
     active: Mutex<Option<ActiveRecording>>,
+    last_recording: Mutex<Option<RecordedAudio>>,
 }
 
 struct ActiveRecording {
@@ -190,7 +193,12 @@ impl RecorderManager {
             .session
             .lock()
             .map_err(|_| VoxError::Recorder("录音缓冲区锁已损坏".to_string()))?;
-        session.stop()
+        let recorded = session.stop()?;
+        *self
+            .last_recording
+            .lock()
+            .map_err(|_| VoxError::Recorder("最后录音锁已损坏".to_string()))? = Some(recorded.clone());
+        Ok(recorded)
     }
 
     pub fn status(&self) -> Result<RecorderRuntimeStatus, VoxError> {
@@ -219,6 +227,20 @@ impl RecorderManager {
             sample_count,
             duration_ms: audio::duration_ms(sample_count, active.sample_rate),
         })
+    }
+
+    pub fn last_asr_samples(&self) -> Result<Vec<i16>, VoxError> {
+        let last_recording = self
+            .last_recording
+            .lock()
+            .map_err(|_| VoxError::Recorder("最后录音锁已损坏".to_string()))?;
+        let recording = last_recording
+            .as_ref()
+            .ok_or_else(|| VoxError::Recorder("还没有可转写的录音".to_string()))?;
+        if recording.asr_samples.is_empty() {
+            return Err(VoxError::Recorder("最后一次录音没有 ASR 样本".to_string()));
+        }
+        Ok(recording.asr_samples.clone())
     }
 }
 
@@ -343,5 +365,17 @@ mod tests {
         let error = session.push_interleaved_i16(&[1, 2, 3]).unwrap_err();
 
         assert!(error.to_string().contains("录音已经停止"));
+    }
+
+    #[test]
+    fn recorded_audio_exposes_asr_samples_at_target_rate() {
+        let mut session = RecordingSession::new(48_000, 1);
+        session.push_interleaved_i16(&[0, 1, 2, 3, 4, 5]).unwrap();
+
+        let result = session.stop().unwrap();
+
+        assert_eq!(result.asr_sample_rate, 16_000);
+        assert_eq!(result.asr_samples, vec![0, 3]);
+        assert_eq!(result.asr_sample_count, 2);
     }
 }

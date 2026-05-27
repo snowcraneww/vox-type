@@ -34,7 +34,13 @@ export interface RecordedAudio {
   channels: number;
   sampleCount: number;
   durationMs: number;
+  asrSamples: number[];
   asrSampleRate: number;
   asrSampleCount: number;
   asrDurationMs: number;
+}
+
+export interface Transcript {
+  text: string;
+  engine: string;
 }

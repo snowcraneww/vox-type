@@ -33,6 +33,7 @@
 - 已接入托盘入口、默认输入设备探测、音频 mono 标准化、whisper.cpp CLI adapter 和 Windows 剪贴板上屏 adapter。
 - 已接入 UI 诊断日志、录音采集按钮、`start_recording`、`stop_recording`、`get_recording_status`。
 - 已接入 16 kHz ASR 输入准备摘要：`asr_sample_rate`、`asr_sample_count`、`asr_duration_ms`。
+- 已接入 `transcribe_last_recording` command 和 `转写最近录音` UI 按钮；通过 `VOXTYPE_WHISPER_CPP_BINARY`、`VOXTYPE_WHISPER_CPP_MODEL`、`VOXTYPE_ASR_LANGUAGE` 配置 whisper.cpp。
 - 已修正 Tauri identifier 为 `dev.voxtype.desktop`。
 - 维护者确认暂不需要 `CONTRIBUTING.md`；`init.sh` 和 README 已不再把它作为必需入口。
 - 中间调研资料保存在 `TMP/research/`；第三方克隆在 `TMP/research/repos/` 且被 Git 忽略。
@@ -41,7 +42,7 @@
 ## 仍损坏或未验证
 
 - 真实持续麦克风录音 stream 已接入，但尚未与 whisper.cpp 转写串联。
-- 真实 whisper.cpp 模型推理闭环尚未手动验证，下一步是把停止录音得到的 16 kHz ASR 样本交给 `WhisperCppEngine`。
+- 真实 whisper.cpp 模型推理闭环尚未手动验证；下一步需要维护者配置 whisper.cpp binary/model 后点击 `转写最近录音`。
 - 真实剪贴板上屏 adapter 已接入，但 Notepad、VS Code、浏览器输入框尚未手动 E2E。
 - 托盘入口已接入，但尚未手动确认系统托盘显示和菜单行为。
 - Windows 手动 E2E 尚未执行。

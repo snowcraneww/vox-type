@@ -12,6 +12,7 @@ describe('App', () => {
     expect(screen.getByText('剪贴板粘贴并恢复')).toBeInTheDocument();
     expect(screen.getByText('开始录音采集')).toBeInTheDocument();
     expect(screen.getByText('停止录音采集')).toBeInTheDocument();
+    expect(screen.getByText('转写最近录音')).toBeInTheDocument();
     expect(screen.getByText('测试剪贴板上屏')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '诊断日志' })).toBeInTheDocument();
   });

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppConfig, AppStatus, RecordedAudio, RecorderInfo, RecorderRuntimeStatus } from './types';
+import type { AppConfig, AppStatus, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript } from './types';
 
 export async function getConfig(): Promise<AppConfig> {
   return invoke<AppConfig>('get_config');
@@ -27,6 +27,10 @@ export async function getRecordingStatus(): Promise<RecorderRuntimeStatus> {
 
 export async function simulateDictation(): Promise<AppStatus> {
   return invoke<AppStatus>('simulate_dictation');
+}
+
+export async function transcribeLastRecording(): Promise<Transcript> {
+  return invoke<Transcript>('transcribe_last_recording');
 }
 
 export async function insertTextWithClipboard(text: string): Promise<void> {

@@ -117,9 +117,10 @@
         "2026-05-27: npm run typecheck、python -m json.tool docs/harness/feature_list.json、bash init.sh、cargo fmt --all --manifest-path src-tauri/Cargo.toml、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、npm run tauri -- build --debug 均通过。",
         "2026-05-27: 维护者手动验证麦克风探测、mock 闭环和剪贴板上屏请求；新增诊断日志、运行指南、代码导读和 start/stop 录音采集 command。",
         "2026-05-27: TDD 验证 RecordingSession；python -m json.tool docs/harness/feature_list.json、bash init.sh、npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、git diff --check、npm run tauri -- build --debug 均通过。",
-        "2026-05-27: 维护者手动验证录音采集成功，返回 782863 个 mono 样本、17751 ms、44100 Hz；新增 16 kHz ASR 输入重采样摘要。"
+        "2026-05-27: 维护者手动验证录音采集成功，返回 782863 个 mono 样本、17751 ms、44100 Hz；新增 16 kHz ASR 输入重采样摘要。",
+        "2026-05-27: 新增 transcribe_last_recording command 和 转写最近录音 UI 按钮，通过环境变量 VOXTYPE_WHISPER_CPP_BINARY、VOXTYPE_WHISPER_CPP_MODEL、VOXTYPE_ASR_LANGUAGE 调用 whisper.cpp。"
       ],
-      "notes": "最小 mock 闭环骨架已建立，并已接入部分系统能力边界、真实录音采集和 16 kHz ASR 输入准备；真实 whisper.cpp 模型闭环、录音后转写上屏和 Windows 手动 E2E 仍未完成，因此不能标为 passing。"
+      "notes": "最小 mock 闭环骨架已建立，并已接入部分系统能力边界、真实录音采集、16 kHz ASR 输入准备和最近录音 whisper.cpp 转写命令；真实转写后自动上屏和 Windows 手动 E2E 仍未完成，因此不能标为 passing。"
     }
   ]
 }

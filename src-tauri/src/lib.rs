@@ -8,7 +8,7 @@ pub mod recorder;
 pub mod state;
 pub mod tray;
 
-use asr::{AsrEngine, MockAsrEngine};
+use asr::{AsrEngine, MockAsrEngine, Transcript, WhisperCppEngine};
 use config::AppConfig;
 use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
 use recorder::RecorderManager;
@@ -61,6 +61,30 @@ fn get_recording_status(
 }
 
 #[tauri::command]
+fn transcribe_last_recording(
+    recorder: State<'_, RecorderManager>,
+) -> Result<Transcript, error::VoxError> {
+    let binary_path = std::env::var("VOXTYPE_WHISPER_CPP_BINARY").map_err(|_| {
+        error::VoxError::Config(
+            "缺少环境变量 VOXTYPE_WHISPER_CPP_BINARY，无法调用 whisper.cpp".to_string(),
+        )
+    })?;
+    let model_path = std::env::var("VOXTYPE_WHISPER_CPP_MODEL").map_err(|_| {
+        error::VoxError::Config(
+            "缺少环境变量 VOXTYPE_WHISPER_CPP_MODEL，无法调用 whisper.cpp".to_string(),
+        )
+    })?;
+    let language = std::env::var("VOXTYPE_ASR_LANGUAGE").unwrap_or_else(|_| "zh".to_string());
+    let samples = recorder.last_asr_samples()?;
+    let engine = WhisperCppEngine {
+        binary_path,
+        model_path,
+        language,
+    };
+    engine.transcribe(&samples)
+}
+
+#[tauri::command]
 fn insert_text_with_clipboard(text: String) -> Result<(), error::VoxError> {
     ClipboardInsertion.insert_text(&text)
 }
@@ -81,6 +105,7 @@ pub fn run() {
             start_recording,
             stop_recording,
             get_recording_status,
+            transcribe_last_recording,
             insert_text_with_clipboard
         ])
         .run(tauri::generate_context!())

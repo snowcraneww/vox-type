@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getConfig, getDefaultInputInfo, getRecordingStatus, insertTextWithClipboard, isTauriRuntime, simulateDictation, startRecording, stopRecording } from './tauriClient';
+import { getConfig, getDefaultInputInfo, getRecordingStatus, insertTextWithClipboard, isTauriRuntime, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
 import type { AppConfig, AppStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
@@ -232,6 +232,30 @@ export function App() {
     }
   }
 
+  async function handleTranscribeLastRecording() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({
+        title: '真实转写未执行',
+        result: 'warning',
+        detail: '浏览器预览模式不能调用 whisper.cpp，请使用 npm run tauri -- dev。',
+      });
+      return;
+    }
+    try {
+      setStatus({ phase: 'transcribing', message: '正在调用 whisper.cpp 转写最近录音', lastTranscript: null });
+      const transcript = await transcribeLastRecording();
+      setStatus({ phase: 'succeeded', message: '真实转写完成', lastTranscript: transcript.text });
+      addDiagnostic({
+        title: '真实转写成功',
+        result: 'success',
+        detail: `${transcript.engine} 返回文本：${transcript.text}`,
+      });
+    } catch (error) {
+      setStatus({ phase: 'failed', message: `真实转写失败：${String(error)}`, lastTranscript: null });
+      addDiagnostic({ title: '真实转写失败', result: 'error', detail: String(error) });
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="hero" aria-labelledby="app-title">
@@ -265,6 +289,7 @@ export function App() {
           <button type="button" onClick={handleStartRecording} disabled={recordingStatus.state === 'recording'}>开始录音采集</button>
           <button type="button" onClick={handleStopRecording} disabled={recordingStatus.state !== 'recording'}>停止录音采集</button>
           <button type="button" onClick={handleRefreshRecordingStatus}>刷新录音状态</button>
+          <button type="button" onClick={handleTranscribeLastRecording}>转写最近录音</button>
           <button type="button" onClick={handleSimulateDictation}>模拟一次语音输入闭环</button>
           <button type="button" onClick={handleClipboardInsert}>测试剪贴板上屏</button>
         </div>

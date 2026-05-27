@@ -137,6 +137,14 @@
 - `RecordedAudio` 现在包含 `asr_sample_rate`、`asr_sample_count`、`asr_duration_ms`，停止录音后 UI 诊断日志会显示已准备的 16 kHz ASR 样本数量。
 - 仍未完成：把 ASR 样本交给 `WhisperCppEngine`，配置 whisper.cpp binary/model，真实转写后再上屏。
 
+### 2026-05-27 whisper.cpp 最近录音转写命令
+
+- 新增 `transcribe_last_recording` Tauri command：从 `RecorderManager` 读取最近一次录音的 16 kHz ASR 样本，并交给 `WhisperCppEngine`。
+- 新增环境变量配置：`VOXTYPE_WHISPER_CPP_BINARY`、`VOXTYPE_WHISPER_CPP_MODEL`、`VOXTYPE_ASR_LANGUAGE`。
+- 新增 UI 按钮：`转写最近录音`。
+- 当前验证目标：如果环境变量未设置，诊断日志应显示明确的缺失变量；如果路径有效，whisper.cpp 应返回文本。
+- 仍未完成：真实转写文本自动上屏、whisper.cpp binary/model 下载或配置 UI、Windows E2E。
+
 ## 会话记录
 
 ### 会话 001 - 2026-05-26
