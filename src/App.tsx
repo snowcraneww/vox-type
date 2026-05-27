@@ -196,18 +196,18 @@ export function App() {
         state: 'idle',
         sampleRate: audio.sampleRate,
         channels: audio.channels,
-        sampleCount: audio.sampleCount,
-        durationMs: audio.durationMs,
+        sampleCount: audio.asrSampleCount,
+        durationMs: audio.asrDurationMs,
       });
       setStatus({
         phase: 'succeeded',
-        message: `录音已停止：${audio.durationMs} ms，${audio.sampleCount} 个 mono 样本`,
+        message: `录音已停止：${audio.durationMs} ms，已准备 ${audio.asrSampleCount} 个 16 kHz ASR 样本`,
         lastTranscript: null,
       });
       addDiagnostic({
         title: '录音已停止',
         result: audio.sampleCount > 0 ? 'success' : 'warning',
-        detail: `采集到 ${audio.sampleCount} 个 mono 样本，时长 ${audio.durationMs} ms，采样率 ${audio.sampleRate} Hz。下一步才会接 whisper.cpp 转写。`,
+        detail: `采集到 ${audio.sampleCount} 个 mono 样本，时长 ${audio.durationMs} ms，采样率 ${audio.sampleRate} Hz；已重采样为 ${audio.asrSampleCount} 个 ${audio.asrSampleRate} Hz ASR 样本。下一步才会接 whisper.cpp 转写。`,
       });
     } catch (error) {
       setStatus({ phase: 'failed', message: `停止录音失败：${String(error)}`, lastTranscript: null });

@@ -177,8 +177,11 @@ RecorderManager::status()
 - `channels`：停止后 buffer 的声道数，当前会归一成 `1`。
 - `sampleCount`：样本数量。
 - `durationMs`：按采样率计算出的录音时长。
+- `asrSampleRate`：准备给 ASR 的目标采样率，当前是 `16000`。
+- `asrSampleCount`：重采样后的 ASR 样本数量。
+- `asrDurationMs`：按 `16000 Hz` 计算的 ASR 输入时长。
 
-当前还没有把录音结果传给 whisper.cpp。下一步要做的是重采样到 16 kHz mono，然后调用 `WhisperCppEngine`。
+当前还没有把录音结果传给 whisper.cpp。下一步要做的是把 `asrSampleRate = 16000` 的 ASR 输入交给 `WhisperCppEngine`。
 
 ## `asr/mod.rs`
 
@@ -269,10 +272,10 @@ flowchart TD
   B --> D[Mock 转写]:::done
   B --> E[剪贴板上屏 adapter]:::partial
   C --> F[持续录音 stream]:::done
-  F --> G[重采样到 16 kHz mono]:::missing
+  F --> G[重采样到 16 kHz mono]:::done
   G --> H[真实 whisper.cpp 调用]:::partial
   H --> E
   E --> I[目标软件 E2E 验证]:::missing
 ```
 
-下一步真正应该实现的是把 `RecordedAudio` 转成 whisper.cpp 需要的 16 kHz mono WAV/PCM，然后增加“录音后转写”的 Tauri command。这样才会从“能录到样本”进入“真实语音输入 proof-of-life”。
+下一步真正应该实现的是把 `RecordedAudio` 的 16 kHz ASR 输入交给 whisper.cpp，然后增加“录音后转写”的 Tauri command。这样才会从“能录到样本”进入“真实语音输入 proof-of-life”。

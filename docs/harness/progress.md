@@ -128,6 +128,15 @@
 - `git diff --check`：通过。
 - `npm run tauri -- build --debug`：首次因旧 `vox-type.exe` 进程占用失败；结束旧进程后重跑通过，生成 `src-tauri/target/debug/vox-type.exe`。
 
+### 2026-05-27 录音采集手动验证与 ASR 输入准备
+
+- 维护者手动验证录音采集成功：`开始录音采集` 后说话，`停止录音采集` 返回 `782863` 个 mono 样本、`17751 ms`、`44100 Hz`。
+- 继续用 TDD 增加 `audio::resample_mono_i16`，把 mono PCM 从源采样率转换到目标采样率。
+- TDD RED：新增重采样测试后，`cargo test --manifest-path src-tauri/Cargo.toml resampling` 因 `resample_mono_i16` 未实现失败。
+- TDD GREEN：实现重采样后，`cargo test --manifest-path src-tauri/Cargo.toml audio::tests` 通过，4 个 audio 测试通过。
+- `RecordedAudio` 现在包含 `asr_sample_rate`、`asr_sample_count`、`asr_duration_ms`，停止录音后 UI 诊断日志会显示已准备的 16 kHz ASR 样本数量。
+- 仍未完成：把 ASR 样本交给 `WhisperCppEngine`，配置 whisper.cpp binary/model，真实转写后再上屏。
+
 ## 会话记录
 
 ### 会话 001 - 2026-05-26

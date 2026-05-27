@@ -12,6 +12,7 @@
 - `scaffold-001` 已开始，状态 `in_progress`。
 - 产品代码已有最小 Tauri/React/Rust mock 骨架。
 - 产品代码已有录音采集 proof-of-life：Tauri command 可启动/停止 `cpal` 输入 stream，并返回采样数和时长。
+- 维护者手动验证录音采集成功：`782863` 个 mono 样本、`17751 ms`、`44100 Hz`。
 - 2026-05-27 验证通过：`npm run typecheck`、`python -m json.tool docs/harness/feature_list.json`、`bash init.sh`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`cargo test --manifest-path src-tauri/Cargo.toml`、`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`、`npm run build`、`npm run tauri -- build --debug`。
 - 2026-05-27 录音采集验证通过：`cargo test --manifest-path src-tauri/Cargo.toml` 17 个测试通过，`npm run tauri -- build --debug` 通过。
 - Tauri debug build 产物：`src-tauri/target/debug/vox-type.exe`。
@@ -31,6 +32,7 @@
 - 已创建最小产品骨架：`src/`、`src-tauri/`、`package.json`。
 - 已接入托盘入口、默认输入设备探测、音频 mono 标准化、whisper.cpp CLI adapter 和 Windows 剪贴板上屏 adapter。
 - 已接入 UI 诊断日志、录音采集按钮、`start_recording`、`stop_recording`、`get_recording_status`。
+- 已接入 16 kHz ASR 输入准备摘要：`asr_sample_rate`、`asr_sample_count`、`asr_duration_ms`。
 - 已修正 Tauri identifier 为 `dev.voxtype.desktop`。
 - 维护者确认暂不需要 `CONTRIBUTING.md`；`init.sh` 和 README 已不再把它作为必需入口。
 - 中间调研资料保存在 `TMP/research/`；第三方克隆在 `TMP/research/repos/` 且被 Git 忽略。
@@ -39,7 +41,7 @@
 ## 仍损坏或未验证
 
 - 真实持续麦克风录音 stream 已接入，但尚未与 whisper.cpp 转写串联。
-- 真实 whisper.cpp 模型推理闭环尚未手动验证。
+- 真实 whisper.cpp 模型推理闭环尚未手动验证，下一步是把停止录音得到的 16 kHz ASR 样本交给 `WhisperCppEngine`。
 - 真实剪贴板上屏 adapter 已接入，但 Notepad、VS Code、浏览器输入框尚未手动 E2E。
 - 托盘入口已接入，但尚未手动确认系统托盘显示和菜单行为。
 - Windows 手动 E2E 尚未执行。

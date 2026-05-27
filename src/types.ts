@@ -34,4 +34,7 @@ export interface RecordedAudio {
   channels: number;
   sampleCount: number;
   durationMs: number;
+  asrSampleRate: number;
+  asrSampleCount: number;
+  asrDurationMs: number;
 }

@@ -187,7 +187,7 @@ npm run tauri -- dev
 - 诊断日志出现“启动录音失败”或“停止录音失败”。
 - `sampleCount` 一直是 0，说明没有采集到输入样本。常见原因是默认输入设备不是实际麦克风、系统权限阻止录音，或远程桌面音频设备没有输入数据。
 
-注意：这一步只证明 `cpal` 录到了音频样本，还不会自动转成文字。下一步才会把录音结果接到 whisper.cpp。
+注意：这一步证明 `cpal` 录到了音频样本，并且会准备一份 `16 kHz` ASR 输入摘要。它还不会自动转成文字，下一步才会把这份 ASR 输入接到 whisper.cpp。
 
 ### 3. 模拟闭环
 
@@ -532,7 +532,7 @@ pub trait AsrEngine {
 | Tauri command | 已有配置、状态、mock 闭环、麦克风信息、剪贴板上屏 | 增加 start/stop dictation command |
 | hotkey | 只有边界 | 接 Windows 全局快捷键 |
 | recorder | 可读取默认设备，可启动/停止 `cpal` 录音 stream，可输出样本数和时长 | 把录音结果接到 ASR |
-| audio | 有基础时长和 mono 标准化工具 | 增加重采样到 16 kHz |
+| audio | 有基础时长、mono 标准化工具和 16 kHz 重采样工具 | 后续评估更高质量重采样算法 |
 | asr | 有 mock 和 whisper.cpp CLI adapter | 配置真实 binary/model，并跑真实音频 |
 | insertion | 有 mock 和 Windows 剪贴板 adapter | 做 Notepad、VS Code、浏览器 E2E |
 | tray | 已有显示和退出 | 手动验证托盘行为 |
@@ -554,8 +554,8 @@ pub trait AsrEngine {
 
 第二条线是“继续实现 MVP”：
 
-1. 把录音 buffer 标准化/重采样成 whisper.cpp 需要的 16 kHz mono PCM。
-2. 配置 whisper.cpp binary 和 model 路径。
+1. 配置 whisper.cpp binary 和 model 路径。
+2. 把停止录音得到的 16 kHz ASR 样本交给 `WhisperCppEngine`。
 3. 做一条真实音频到文本再上屏的 proof-of-life。
 4. 对 Notepad、VS Code、浏览器输入框做 Windows 手动 E2E。
 

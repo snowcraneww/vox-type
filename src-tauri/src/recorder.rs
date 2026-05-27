@@ -28,6 +28,9 @@ pub struct RecordedAudio {
     pub channels: u16,
     pub sample_count: usize,
     pub duration_ms: u64,
+    pub asr_sample_rate: u32,
+    pub asr_sample_count: usize,
+    pub asr_duration_ms: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -58,12 +61,21 @@ impl RecordingSession {
         }
         self.state = RecorderState::Idle;
         let sample_count = self.buffer.samples.len();
+        let asr_samples = audio::resample_mono_i16(
+            &self.buffer.samples,
+            self.buffer.sample_rate,
+            audio::TARGET_SAMPLE_RATE,
+        );
+        let asr_sample_count = asr_samples.len();
         Ok(RecordedAudio {
             samples: self.buffer.samples.clone(),
             sample_rate: self.buffer.sample_rate,
             channels: self.buffer.channels,
             sample_count,
             duration_ms: audio::duration_ms(sample_count, self.buffer.sample_rate),
+            asr_sample_rate: audio::TARGET_SAMPLE_RATE,
+            asr_sample_count,
+            asr_duration_ms: audio::duration_ms(asr_sample_count, audio::TARGET_SAMPLE_RATE),
         })
     }
 
@@ -319,6 +331,8 @@ mod tests {
         assert_eq!(result.sample_count, 2);
         assert_eq!(result.duration_ms, 0);
         assert_eq!(result.samples, vec![200, -200]);
+        assert_eq!(result.asr_sample_rate, 16_000);
+        assert_eq!(result.asr_sample_count, 2);
     }
 
     #[test]
