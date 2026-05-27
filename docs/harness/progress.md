@@ -253,6 +253,7 @@
 - 2026-05-27 目标完成审计：V2 计划文件已按当前代码和证据勾选；自动化验证覆盖 UI、类型、Rust 状态机、构建和文档格式，但不能证明 OS 全局快捷键和目标软件焦点上屏，所以 `v2-001` 继续保持 `in_progress`，直到维护者完成上述手动验证。
 - 2026-05-27 继续补强：新增全局快捷键注册状态可观测性。Rust 保存 `HotkeyRegistrationStatus`，前端通过 `get_hotkey_status` 在主界面和诊断模式显示 `Ctrl+Alt+Space` 是否注册成功；如果失败，维护者不需要只看终端猜测原因。
 - 2026-05-27 V2 收尾补强：修复输入设备偏好恢复竞态，避免用户偏好和设备列表异步返回顺序导致已保存麦克风偶尔不恢复；诊断模式新增 `刷新全局快捷键状态` 按钮，方便维护者验证前后重新读取注册状态。
+- 2026-05-27 分发烟测：`npm run tauri -- build --debug` 首次因旧 `vox-type.exe` 进程占用失败；结束旧进程后重跑通过，生成 `src-tauri/target/debug/bundle/msi/VoxType_0.1.0_x64_en-US.msi` 和 `src-tauri/target/debug/bundle/nsis/VoxType_0.1.0_x64-setup.exe`。
 
 ## 会话记录
 
