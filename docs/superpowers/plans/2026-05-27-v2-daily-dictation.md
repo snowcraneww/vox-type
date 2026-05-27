@@ -120,6 +120,6 @@
 
 ## Completion audit notes
 
-- Code and automated verification for V2 are complete as of commit `874fe6c` plus this plan/spec sync.
+- Code and automated verification for V2 are complete as of commit `66fd448` plus the recorded verification runs.
 - The remaining unchecked item is real Windows manual verification of `Ctrl+Alt+Space` global push-to-talk in a target application. Automated tests prove the Rust state machine, event boundary, frontend typecheck, build, and unit tests; they do not prove OS-level focus and global shortcut behavior.
 - Keep `v2-001` as `in_progress` until that manual verification is recorded in `docs/harness/progress.md` and `docs/harness/feature_list.json`.

@@ -160,7 +160,7 @@
                 "2026-05-27: 新增 tauri-plugin-global-shortcut 和 hotkey 状态机；Rust 注册 Ctrl+Alt+Space 全局快捷键并向前端发送 voxtype-push-to-talk 事件；前端收到按下事件后开始录音，收到松开事件后停止、转写并上屏。",
                 "2026-05-27: 根据维护者反馈，将三条横线波纹改为 24 个彩色频谱柱和流动光带；VoiceOverlay 测试确认渲染 .voice-wave-bar。",
                 "2026-05-27: 主界面和诊断模式统一改为深色径向背景、半透明面板和彩色语音状态视觉。",
-                "2026-05-27: npm test -- --run 通过，5 个测试文件、12 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，42 个 Rust 测试通过。",
+                "2026-05-27: npm test -- --run 通过，5 个测试文件、12 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，43 个 Rust 测试通过。",
                 "2026-05-27: 新增 get_hotkey_status command 和前端快捷键状态展示；主界面快速设置会显示 Ctrl+Alt+Space 是否已注册，诊断模式运行状态会显示注册成功或失败消息。",
                 "2026-05-27: 修复输入设备偏好恢复竞态，改为等待偏好和设备列表都到达后恢复；诊断模式新增刷新全局快捷键状态按钮。",
                 "2026-05-27: npm run tauri -- build --debug 首次因旧 vox-type.exe 进程占用失败；结束旧进程后重跑通过，生成 MSI 和 NSIS debug bundle。",
