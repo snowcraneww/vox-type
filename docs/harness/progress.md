@@ -437,3 +437,11 @@
 - 胶囊和内容整体平移到安全边距内部；clipPath 同步更新。
 - 6 个转写点间距加大，动画从上下跳改为固定位置的半径/亮度流动，形成光从左到右扫过的感觉。
 - 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
+
+### 2026-05-27 V2 单层准白边框
+
+- 维护者反馈：透明安全边距让胶囊背后的内层灰框变得更大；期望去掉背后灰框，最多保留一层准白边框。
+- 撤回 `136 x 44` 外层安全边距，overlay 窗口、SVG、胶囊重新贴合为 `120 x 32`。
+- 胶囊从无边框改为单层 `rgba(255,255,255,0.28)` 准白描边，避免同时出现“背后灰框”和“胶囊边框”两层。
+- 6 个转写点保持固定位置的光感流动，不恢复上下跳动。
+- 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。

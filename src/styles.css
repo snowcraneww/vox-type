@@ -783,23 +783,24 @@ h1 { font-size: 30px; font-weight: 740; }
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  height: 44px;
+  height: 32px;
   overflow: visible;
   padding: 0;
   position: relative;
-  width: 136px;
+  width: 120px;
 }
 
 .wave-ripple-svg {
   display: block;
-  height: 44px;
+  height: 32px;
   overflow: visible;
-  width: 136px;
+  width: 120px;
 }
 
 .ripple-capsule {
   fill: rgba(0, 0, 0, 0.96);
-  stroke: none;
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1;
 }
 
 .soundwave-bars {
