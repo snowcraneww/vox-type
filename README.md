@@ -48,6 +48,8 @@ cargo check --manifest-path src-tauri/Cargo.toml
 - `docs/harness/feature_list.json`：当前任务和功能状态。
 - `docs/harness/progress.md`：已验证状态和会话日志。
 - `docs/harness/research-log.md`：课程学习和后续调研记录。
+- `docs/guide/run-and-understand.md`：如何运行当前应用，以及代码模块和语音输入流程说明。
+- `docs/guide/code-walkthrough.md`：面向 Rust/Tauri 新手的当前代码导读。
 - `docs/research/requirements-brief.md`：整理后的需求 brief。
 - `docs/research/open-source-landscape.md`：相关开源项目调研。
 - `docs/research/technical-options.md`：MVP 技术选项建议。

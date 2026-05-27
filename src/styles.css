@@ -69,3 +69,31 @@ blockquote { border-left: 3px solid #1f6feb; margin: 12px 0; padding-left: 12px;
 .runtime-message { color: #5b6871; }
 .button-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .button-row button + button { margin-left: 0; }
+
+.diagnostic-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.diagnostic-list li {
+  border-left: 4px solid #94a3b8;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.diagnostic-list li[data-result="success"] { border-left-color: #16a34a; }
+.diagnostic-list li[data-result="warning"] { border-left-color: #d97706; }
+.diagnostic-list li[data-result="error"] { border-left-color: #dc2626; }
+
+.diagnostic-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.diagnostic-header time { color: #64748b; font-size: 13px; }
+.diagnostic-list p { margin: 6px 0 0; }

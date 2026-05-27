@@ -15,6 +15,7 @@
 - [x] 建立 `config` 本地配置模块。
 - [x] 建立 `hotkey` 全局快捷键模块。
 - [x] 建立 `recorder` 麦克风录音模块。
+- [x] 接入 `cpal` 开始/停止录音采集 proof-of-life。
 - [x] 建立 `audio` 音频标准化模块。
 - [x] 建立 `asr` adapter，并优先接 whisper.cpp 路线。
 - [x] 建立 `insertion` adapter，并优先实现剪贴板粘贴方案。

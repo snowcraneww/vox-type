@@ -19,3 +19,19 @@ export interface RecorderInfo {
   sampleRate: number;
   channels: number;
 }
+
+export interface RecorderRuntimeStatus {
+  state: 'idle' | 'recording';
+  sampleRate: number | null;
+  channels: number | null;
+  sampleCount: number;
+  durationMs: number;
+}
+
+export interface RecordedAudio {
+  samples: number[];
+  sampleRate: number;
+  channels: number;
+  sampleCount: number;
+  durationMs: number;
+}

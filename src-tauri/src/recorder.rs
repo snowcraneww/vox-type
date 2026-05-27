@@ -1,5 +1,9 @@
+use std::sync::{Arc, Mutex};
+
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use serde::{Deserialize, Serialize};
 
+use crate::audio;
 use crate::error::VoxError;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -14,6 +18,58 @@ pub struct RecordingBuffer {
     pub samples: Vec<i16>,
     pub sample_rate: u32,
     pub channels: u16,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordedAudio {
+    pub samples: Vec<i16>,
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub sample_count: usize,
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecordingSession {
+    buffer: RecordingBuffer,
+    state: RecorderState,
+}
+
+impl RecordingSession {
+    pub fn new(sample_rate: u32, channels: u16) -> Self {
+        Self {
+            buffer: RecordingBuffer::empty(sample_rate, channels),
+            state: RecorderState::Recording,
+        }
+    }
+
+    pub fn push_interleaved_i16(&mut self, input: &[i16]) -> Result<(), VoxError> {
+        if self.state != RecorderState::Recording {
+            return Err(VoxError::Recorder("录音已经停止".to_string()));
+        }
+        self.buffer.push_interleaved_i16(input);
+        Ok(())
+    }
+
+    pub fn stop(&mut self) -> Result<RecordedAudio, VoxError> {
+        if self.state != RecorderState::Recording {
+            return Err(VoxError::Recorder("录音已经停止".to_string()));
+        }
+        self.state = RecorderState::Idle;
+        let sample_count = self.buffer.samples.len();
+        Ok(RecordedAudio {
+            samples: self.buffer.samples.clone(),
+            sample_rate: self.buffer.sample_rate,
+            channels: self.buffer.channels,
+            sample_count,
+            duration_ms: audio::duration_ms(sample_count, self.buffer.sample_rate),
+        })
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.buffer.samples.len()
+    }
 }
 
 impl RecordingBuffer {
@@ -47,9 +103,114 @@ pub struct RecorderInfo {
     pub channels: u16,
 }
 
-pub fn default_input_info() -> Result<RecorderInfo, VoxError> {
-    use cpal::traits::{DeviceTrait, HostTrait};
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RecorderRuntimeStatus {
+    pub state: String,
+    pub sample_rate: Option<u32>,
+    pub channels: Option<u16>,
+    pub sample_count: usize,
+    pub duration_ms: u64,
+}
 
+#[derive(Default)]
+pub struct RecorderManager {
+    active: Mutex<Option<ActiveRecording>>,
+}
+
+struct ActiveRecording {
+    session: Arc<Mutex<RecordingSession>>,
+    stream: cpal::Stream,
+    sample_rate: u32,
+    channels: u16,
+}
+
+impl RecorderManager {
+    pub fn start(&self) -> Result<RecorderRuntimeStatus, VoxError> {
+        let mut active = self
+            .active
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音状态锁已损坏".to_string()))?;
+        if active.is_some() {
+            return Err(VoxError::Recorder("录音已经在进行中".to_string()));
+        }
+
+        let host = cpal::default_host();
+        let device = host
+            .default_input_device()
+            .ok_or_else(|| VoxError::Recorder("没有找到默认输入设备".to_string()))?;
+        let config = device
+            .default_input_config()
+            .map_err(|error| VoxError::Recorder(format!("读取默认输入配置失败：{error}")))?;
+        let sample_rate = config.sample_rate().0;
+        let channels = config.channels();
+        let session = Arc::new(Mutex::new(RecordingSession::new(sample_rate, channels)));
+        let stream = build_input_stream(&device, &config, Arc::clone(&session))?;
+        stream
+            .play()
+            .map_err(|error| VoxError::Recorder(format!("启动录音流失败：{error}")))?;
+
+        *active = Some(ActiveRecording {
+            session,
+            stream,
+            sample_rate,
+            channels,
+        });
+
+        Ok(RecorderRuntimeStatus {
+            state: "recording".to_string(),
+            sample_rate: Some(sample_rate),
+            channels: Some(channels),
+            sample_count: 0,
+            duration_ms: 0,
+        })
+    }
+
+    pub fn stop(&self) -> Result<RecordedAudio, VoxError> {
+        let active = self
+            .active
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音状态锁已损坏".to_string()))?
+            .take()
+            .ok_or_else(|| VoxError::Recorder("没有正在进行的录音".to_string()))?;
+        drop(active.stream);
+        let mut session = active
+            .session
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音缓冲区锁已损坏".to_string()))?;
+        session.stop()
+    }
+
+    pub fn status(&self) -> Result<RecorderRuntimeStatus, VoxError> {
+        let active = self
+            .active
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音状态锁已损坏".to_string()))?;
+        let Some(active) = active.as_ref() else {
+            return Ok(RecorderRuntimeStatus {
+                state: "idle".to_string(),
+                sample_rate: None,
+                channels: None,
+                sample_count: 0,
+                duration_ms: 0,
+            });
+        };
+        let session = active
+            .session
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音缓冲区锁已损坏".to_string()))?;
+        let sample_count = session.sample_count();
+        Ok(RecorderRuntimeStatus {
+            state: "recording".to_string(),
+            sample_rate: Some(active.sample_rate),
+            channels: Some(active.channels),
+            sample_count,
+            duration_ms: audio::duration_ms(sample_count, active.sample_rate),
+        })
+    }
+}
+
+pub fn default_input_info() -> Result<RecorderInfo, VoxError> {
     let host = cpal::default_host();
     let device = host
         .default_input_device()
@@ -72,6 +233,59 @@ pub fn normalize_to_mono_i16(input: &[i16], channels: u16, sample_rate: u32) -> 
     buffer
 }
 
+fn build_input_stream(
+    device: &cpal::Device,
+    config: &cpal::SupportedStreamConfig,
+    session: Arc<Mutex<RecordingSession>>,
+) -> Result<cpal::Stream, VoxError> {
+    let stream_config = config.config();
+    let error_callback = |error| eprintln!("VoxType 录音流错误：{error}");
+    match config.sample_format() {
+        cpal::SampleFormat::I16 => device.build_input_stream(
+            &stream_config,
+            move |data: &[i16], _| push_input_samples(&session, data),
+            error_callback,
+            None,
+        ),
+        cpal::SampleFormat::U16 => device.build_input_stream(
+            &stream_config,
+            move |data: &[u16], _| {
+                let converted: Vec<i16> = data
+                    .iter()
+                    .map(|sample| (*sample as i32 - 32_768) as i16)
+                    .collect();
+                push_input_samples(&session, &converted);
+            },
+            error_callback,
+            None,
+        ),
+        cpal::SampleFormat::F32 => device.build_input_stream(
+            &stream_config,
+            move |data: &[f32], _| {
+                let converted: Vec<i16> = data
+                    .iter()
+                    .map(|sample| (sample.clamp(-1.0, 1.0) * i16::MAX as f32) as i16)
+                    .collect();
+                push_input_samples(&session, &converted);
+            },
+            error_callback,
+            None,
+        ),
+        sample_format => {
+            return Err(VoxError::Recorder(format!(
+                "暂不支持的输入采样格式：{sample_format:?}"
+            )));
+        }
+    }
+    .map_err(|error| VoxError::Recorder(format!("创建录音流失败：{error}")))
+}
+
+fn push_input_samples(session: &Arc<Mutex<RecordingSession>>, samples: &[i16]) {
+    if let Ok(mut session) = session.lock() {
+        let _ = session.push_interleaved_i16(samples);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,5 +303,31 @@ mod tests {
         let buffer = normalize_to_mono_i16(&[1, -1, 2], 1, 16_000);
         assert_eq!(buffer.samples, vec![1, -1, 2]);
         assert_eq!(buffer.sample_rate, 16_000);
+    }
+
+    #[test]
+    fn recording_session_collects_samples_and_returns_summary_on_stop() {
+        let mut session = RecordingSession::new(16_000, 2);
+        session
+            .push_interleaved_i16(&[100, 300, -100, -300])
+            .unwrap();
+
+        let result = session.stop().unwrap();
+
+        assert_eq!(result.sample_rate, 16_000);
+        assert_eq!(result.channels, 1);
+        assert_eq!(result.sample_count, 2);
+        assert_eq!(result.duration_ms, 0);
+        assert_eq!(result.samples, vec![200, -200]);
+    }
+
+    #[test]
+    fn stopped_recording_session_rejects_more_samples() {
+        let mut session = RecordingSession::new(16_000, 1);
+        let _ = session.stop().unwrap();
+
+        let error = session.push_interleaved_i16(&[1, 2, 3]).unwrap_err();
+
+        assert!(error.to_string().contains("录音已经停止"));
     }
 }

@@ -3,7 +3,7 @@
 ## 当前已验证状态
 
 - 仓库根目录：`C:/grace_repos/open-source/vox-type`
-- 当前阶段：MVP scaffold 进行中，已完成最小 Tauri/React/Rust 骨架，并接入部分系统能力 adapter。
+- 当前阶段：MVP scaffold 进行中，已完成最小 Tauri/React/Rust 骨架，并接入托盘、麦克风探测、录音采集、剪贴板上屏等系统能力 adapter。
 - 产品 scaffold：进行中。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
@@ -103,6 +103,30 @@
 - `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`：通过。
 - `npm run build`：通过。
 - `npm run tauri -- build --debug`：通过，生成 `src-tauri/target/debug/vox-type.exe`。
+
+### 2026-05-27 MVP 录音采集 proof-of-life
+
+- 维护者手动验证 Tauri 桌面模式日志：麦克风探测成功，设备为 `Remote Audio / 44100 Hz / 2 声道`。
+- 维护者手动验证 `simulate_dictation`：Rust command 返回 mock 文本 `这是 VoxType 的模拟转写结果。`。
+- 维护者手动验证剪贴板上屏请求：程序已写入剪贴板、发送 `Ctrl+V` 并尝试恢复旧剪贴板；目标应用是否收到文本仍需按窗口焦点单独确认。
+- 新增 UI 诊断日志面板，记录麦克风探测、模拟闭环、剪贴板上屏、录音启动/停止的成功或失败原因。
+- 修复 React 开发模式 `StrictMode` 导致麦克风探测日志重复的问题。
+- 修复 Mermaid 文档语法，避免节点标签中的括号、引号和 `#[...]` 被误解析。
+- 新增 `docs/guide/run-and-understand.md` 和 `docs/guide/code-walkthrough.md`，面向 Rust/Tauri 新手解释运行、依赖库、模块边界和手动验证标准。
+- 新增 `RecordingSession` 和 `RecorderManager`：可通过 Tauri command 启动/停止 `cpal` 输入 stream，并返回 `RecordedAudio` 的样本数、时长、采样率和声道信息。
+- 新增前端按钮：`开始录音采集`、`停止录音采集`、`刷新录音状态`。
+- 仍未完成：把录音结果重采样到 16 kHz、调用 whisper.cpp 做真实转写、把真实转写文本上屏、Windows Notepad/VS Code/浏览器输入框 E2E。
+- TDD RED：新增 `RecordingSession` 行为测试后，`cargo test --manifest-path src-tauri/Cargo.toml recording_session` 因 `RecordingSession` 未实现失败。
+- TDD GREEN：实现 `RecordingSession` 后，`cargo test --manifest-path src-tauri/Cargo.toml recording_session` 通过，2 个测试通过。
+- `python -m json.tool docs/harness/feature_list.json`：通过。
+- `bash init.sh`：通过。
+- `npm run typecheck`：通过。
+- `npm test -- --run`：通过，1 个测试文件、1 个测试通过。
+- `cargo test --manifest-path src-tauri/Cargo.toml`：通过，17 个 Rust 测试通过。
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`：通过。
+- `npm run build`：通过。
+- `git diff --check`：通过。
+- `npm run tauri -- build --debug`：首次因旧 `vox-type.exe` 进程占用失败；结束旧进程后重跑通过，生成 `src-tauri/target/debug/vox-type.exe`。
 
 ## 会话记录
 

@@ -114,9 +114,11 @@
         "2026-05-26: cargo fetch --manifest-path src-tauri/Cargo.toml 成功。",
         "2026-05-26: npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、npm run build、cargo check --manifest-path src-tauri/Cargo.toml 通过。",
         "2026-05-27: 新增托盘入口、Tauri client、默认输入设备探测、音频 mono 标准化、whisper.cpp CLI adapter、Windows 剪贴板上屏 adapter，并修正 Tauri identifier。",
-        "2026-05-27: npm run typecheck、python -m json.tool docs/harness/feature_list.json、bash init.sh、cargo fmt --all --manifest-path src-tauri/Cargo.toml、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、npm run tauri -- build --debug 均通过。"
+        "2026-05-27: npm run typecheck、python -m json.tool docs/harness/feature_list.json、bash init.sh、cargo fmt --all --manifest-path src-tauri/Cargo.toml、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、npm run tauri -- build --debug 均通过。",
+        "2026-05-27: 维护者手动验证麦克风探测、mock 闭环和剪贴板上屏请求；新增诊断日志、运行指南、代码导读和 start/stop 录音采集 command。",
+        "2026-05-27: TDD 验证 RecordingSession；python -m json.tool docs/harness/feature_list.json、bash init.sh、npm run typecheck、npm test -- --run、cargo test --manifest-path src-tauri/Cargo.toml、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、npm run build、git diff --check、npm run tauri -- build --debug 均通过。"
       ],
-      "notes": "最小 mock 闭环骨架已建立，并已接入部分系统能力边界；真实持续录音 stream、真实 whisper.cpp 模型闭环和 Windows 手动 E2E 仍未完成，因此不能标为 passing。"
+      "notes": "最小 mock 闭环骨架已建立，并已接入部分系统能力边界和真实录音采集；真实 whisper.cpp 模型闭环、录音后转写上屏和 Windows 手动 E2E 仍未完成，因此不能标为 passing。"
     }
   ]
 }

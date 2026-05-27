@@ -11,7 +11,9 @@ pub mod tray;
 use asr::{AsrEngine, MockAsrEngine};
 use config::AppConfig;
 use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
+use recorder::RecorderManager;
 use state::AppStatus;
+use tauri::State;
 
 #[tauri::command]
 fn get_config() -> AppConfig {
@@ -38,6 +40,27 @@ fn get_default_input_info() -> Result<recorder::RecorderInfo, error::VoxError> {
 }
 
 #[tauri::command]
+fn start_recording(
+    recorder: State<'_, RecorderManager>,
+) -> Result<recorder::RecorderRuntimeStatus, error::VoxError> {
+    recorder.start()
+}
+
+#[tauri::command]
+fn stop_recording(
+    recorder: State<'_, RecorderManager>,
+) -> Result<recorder::RecordedAudio, error::VoxError> {
+    recorder.stop()
+}
+
+#[tauri::command]
+fn get_recording_status(
+    recorder: State<'_, RecorderManager>,
+) -> Result<recorder::RecorderRuntimeStatus, error::VoxError> {
+    recorder.status()
+}
+
+#[tauri::command]
 fn insert_text_with_clipboard(text: String) -> Result<(), error::VoxError> {
     ClipboardInsertion.insert_text(&text)
 }
@@ -45,6 +68,7 @@ fn insert_text_with_clipboard(text: String) -> Result<(), error::VoxError> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(RecorderManager::default())
         .setup(|app| {
             tray::setup_tray(app.handle())?;
             Ok(())
@@ -54,6 +78,9 @@ pub fn run() {
             get_status,
             simulate_dictation,
             get_default_input_info,
+            start_recording,
+            stop_recording,
+            get_recording_status,
             insert_text_with_clipboard
         ])
         .run(tauri::generate_context!())
