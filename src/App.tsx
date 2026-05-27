@@ -3,8 +3,8 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { VoiceOverlay } from './VoiceOverlay';
 import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getRecordingStatus, getUserPreferences, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
+import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
+import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -44,6 +44,12 @@ const initialAsrConfigStatus: AsrConfigStatus = {
   message: '等待 Tauri 读取 ASR 配置。',
 };
 
+const initialHotkeyStatus: HotkeyRegistrationStatus = {
+  accelerator: 'Ctrl+Alt+Space',
+  registered: false,
+  message: '等待 Tauri 注册全局快捷键。',
+};
+
 export function App() {
   const [viewMode, setViewMode] = useState<'user' | 'diagnostic'>('user');
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
@@ -61,6 +67,7 @@ export function App() {
   });
   const [runtimeMessage, setRuntimeMessage] = useState('浏览器预览模式：系统能力需要在 Tauri 中验证');
   const [asrConfigStatus, setAsrConfigStatus] = useState<AsrConfigStatus>(initialAsrConfigStatus);
+  const [hotkeyStatus, setHotkeyStatus] = useState<HotkeyRegistrationStatus>(initialHotkeyStatus);
   const [whisperBinaryPath, setWhisperBinaryPath] = useState('');
   const [whisperModelPath, setWhisperModelPath] = useState('');
   const [asrLanguage, setAsrLanguage] = useState('zh');
@@ -138,6 +145,14 @@ export function App() {
       })
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取用户偏好失败', result: 'error', detail: formatError(error) });
+      });
+    void getHotkeyStatus()
+      .then((nextStatus) => {
+        setHotkeyStatus(nextStatus);
+        addDiagnostic({ title: nextStatus.registered ? '全局快捷键已注册' : '全局快捷键未就绪', result: nextStatus.registered ? 'success' : 'warning', detail: nextStatus.message });
+      })
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '读取全局快捷键状态失败', result: 'error', detail: formatError(error) });
       });
     void listInputDevices()
       .then((devices) => {
@@ -529,7 +544,7 @@ export function App() {
             {renderDeviceSelect(true)}
             <div className="setting-chip"><span>ASR</span><strong>{asrConfigStatus.ready ? '已就绪' : '未就绪'}</strong></div>
             <div className="setting-chip"><span>模型</span><strong>whisper.cpp</strong></div>
-            <div className="setting-chip"><span>语言</span><strong>中文优先，兼容英文</strong></div>
+            <div className="setting-chip"><span>快捷键</span><strong>{hotkeyStatus.registered ? hotkeyStatus.accelerator : '需处理'}</strong></div>
           </div>
 
           {!asrConfigStatus.ready ? <div className="setup-banner"><span>{asrConfigStatus.message}</span><button type="button" onClick={handleInstallManagedAsr} disabled={isInstallingAsr}>{isInstallingAsr ? '正在安装' : '一键安装 whisper.cpp'}</button></div> : null}
@@ -553,6 +568,7 @@ export function App() {
             <div><dt>目标语言</dt><dd>中文优先，兼容英文</dd></div>
             <div><dt>ASR 路线</dt><dd>{config.asrEngine}</dd></div>
             <div><dt>上屏策略</dt><dd>剪贴板粘贴</dd></div>
+            <div><dt>全局快捷键</dt><dd>{hotkeyStatus.message}</dd></div>
             <div><dt>麦克风</dt><dd>{recorderInfo ? `${recorderInfo.deviceName} / ${recorderInfo.sampleRate} Hz / ${recorderInfo.channels} 声道` : '等待 Tauri 读取'}</dd></div>
             <div><dt>录音流</dt><dd>{isRecording ? `录音中 / ${recordingStatus.sampleCount} 样本 / ${recordingStatus.durationMs} ms` : '空闲'}</dd></div>
           </dl>

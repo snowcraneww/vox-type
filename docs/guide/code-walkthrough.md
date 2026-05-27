@@ -120,6 +120,7 @@ export async function simulateDictation(): Promise<AppStatus> {
 | `start_recording` | `startRecording` | 打开输入设备并开始采集 |
 | `stop_recording` | `stopRecording` | 停止采集并生成 ASR 输入 |
 | `get_user_preferences` | `getUserPreferences` | 读取已保存的输入设备偏好 |
+| `get_hotkey_status` | `getHotkeyStatus` | 读取全局快捷键注册状态和失败原因 |
 | `transcribe_last_recording` | `transcribeLastRecording` | 用 whisper.cpp 转写最近录音 |
 | `transcribe_last_recording_and_insert` | `transcribeLastRecordingAndInsert` | Rust 侧最近录音转写并上屏 command |
 | `export_last_recording_wav` | `exportLastRecordingWav` | 导出最近录音的 16 kHz WAV |
@@ -144,6 +145,7 @@ Tauri 通过这段注册 command：
 - 使用 `tauri-plugin-global-shortcut` 注册 `Ctrl+Alt+Space`。
 - 把 OS 层 `Pressed` / `Released` 交给 `hotkey.rs` 的状态机。
 - 通过 `app.emit("voxtype-push-to-talk", payload)` 发给前端。
+- 把注册成功或失败写入 `HotkeyRegistrationStatus`，前端通过 `get_hotkey_status` 显示到主界面和诊断模式。
 
 这样 Rust 不在快捷键回调里做长耗时 ASR，避免全局快捷键线程被转写阻塞。
 
@@ -342,6 +344,8 @@ pub trait AsrEngine {
 这样做的原因是：OS 全局快捷键可能重复发送按下事件，如果没有状态机，可能会重复启动录音或重复转写。
 
 `hotkey.rs` 不直接碰麦克风，也不调用 whisper.cpp。它只生成 `PushToTalkPayload`，由 `lib.rs` 发给前端。
+
+它还定义 `HotkeyRegistrationStatus`，用于告诉前端全局快捷键是否注册成功。如果 `Ctrl+Alt+Space` 被其他软件占用，应用仍会启动，但主界面会显示快捷键 `需处理`，诊断模式会显示失败原因。
 
 ## `insertion/mod.rs`
 

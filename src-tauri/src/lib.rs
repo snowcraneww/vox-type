@@ -18,8 +18,11 @@ use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
 use preferences::UserPreferences;
 use recorder::RecorderManager;
 use state::AppStatus;
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_global_shortcut::ShortcutState;
+
+type HotkeyStatusState = Mutex<hotkey::HotkeyRegistrationStatus>;
 
 #[tauri::command]
 fn get_config() -> AppConfig {
@@ -91,6 +94,17 @@ fn get_recording_status(
 fn get_user_preferences(app: AppHandle) -> Result<UserPreferences, error::VoxError> {
     Ok(preferences::load_user_preferences(app_config_dir(&app)?))
 }
+
+#[tauri::command]
+fn get_hotkey_status(
+    hotkey_status: State<'_, HotkeyStatusState>,
+) -> Result<hotkey::HotkeyRegistrationStatus, error::VoxError> {
+    hotkey_status
+        .lock()
+        .map(|status| status.clone())
+        .map_err(|error| error::VoxError::Config(format!("读取全局快捷键状态失败：{error}")))
+}
+
 #[tauri::command]
 fn get_asr_config_status(app: AppHandle) -> Result<AsrConfigStatus, error::VoxError> {
     let config_dir = app_config_dir(&app)?;
@@ -206,9 +220,23 @@ fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::
 pub fn run() {
     tauri::Builder::default()
         .manage(RecorderManager::default())
+        .manage(Mutex::new(hotkey::HotkeyRegistrationStatus::failed(
+            hotkey::HotkeyBinding::default().accelerator,
+            "全局快捷键尚未初始化".to_string(),
+        )))
         .setup(|app| {
-            if let Err(error) = setup_push_to_talk_hotkey(app.handle()) {
-                eprintln!("failed to register push-to-talk hotkey: {error}");
+            let accelerator = hotkey::HotkeyBinding::default().accelerator;
+            let next_status = match setup_push_to_talk_hotkey(app.handle()) {
+                Ok(()) => hotkey::HotkeyRegistrationStatus::registered(accelerator),
+                Err(error) => {
+                    eprintln!("failed to register push-to-talk hotkey: {error}");
+                    hotkey::HotkeyRegistrationStatus::failed(accelerator, error.to_string())
+                }
+            };
+            if let Some(state) = app.try_state::<HotkeyStatusState>() {
+                if let Ok(mut status) = state.lock() {
+                    *status = next_status;
+                }
             }
             tray::setup_tray(app.handle())?;
             Ok(())
@@ -224,6 +252,7 @@ pub fn run() {
             stop_recording,
             get_recording_status,
             get_user_preferences,
+            get_hotkey_status,
             get_asr_config_status,
             save_asr_config,
             install_managed_asr,

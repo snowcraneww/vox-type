@@ -66,3 +66,9 @@ export interface AsrConfigStatus extends AsrConfig {
 export interface UserPreferences {
   selectedInputDeviceName: string | null;
 }
+
+export interface HotkeyRegistrationStatus {
+  accelerator: string;
+  registered: boolean;
+  message: string;
+}

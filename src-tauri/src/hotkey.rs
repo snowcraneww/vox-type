@@ -5,6 +5,32 @@ pub struct HotkeyBinding {
     pub accelerator: String,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HotkeyRegistrationStatus {
+    pub accelerator: String,
+    pub registered: bool,
+    pub message: String,
+}
+
+impl HotkeyRegistrationStatus {
+    pub fn registered(accelerator: String) -> Self {
+        Self {
+            message: format!("全局快捷键已注册：{accelerator}"),
+            accelerator,
+            registered: true,
+        }
+    }
+
+    pub fn failed(accelerator: String, error: String) -> Self {
+        Self {
+            accelerator,
+            registered: false,
+            message: format!("全局快捷键注册失败：{error}"),
+        }
+    }
+}
+
 impl Default for HotkeyBinding {
     fn default() -> Self {
         Self {
@@ -126,6 +152,24 @@ mod tests {
         assert_eq!(
             state.handle_event(PushToTalkEvent::Released),
             PushToTalkAction::Ignore
+        );
+    }
+
+    #[test]
+    fn registration_status_records_success_and_failure() {
+        let success = HotkeyRegistrationStatus::registered("Ctrl+Alt+Space".to_string());
+        assert!(success.registered);
+        assert_eq!(success.accelerator, "Ctrl+Alt+Space");
+        assert_eq!(success.message, "全局快捷键已注册：Ctrl+Alt+Space");
+
+        let failure = HotkeyRegistrationStatus::failed(
+            "Ctrl+Alt+Space".to_string(),
+            "shortcut already registered".to_string(),
+        );
+        assert!(!failure.registered);
+        assert_eq!(
+            failure.message,
+            "全局快捷键注册失败：shortcut already registered"
         );
     }
 }
