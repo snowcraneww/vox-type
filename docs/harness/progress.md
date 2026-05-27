@@ -429,3 +429,11 @@
 - 新增 SVG `clipPath`，把声波和转写点的 glow filter 裁剪在胶囊内部，避免光效溢出到胶囊外形成白边。
 - 转写点从 CSS transform 动画改为 SVG 原生 `animate`，直接改变 `cy`、`r`、`opacity`，上下弹跳和明暗变化更可靠。
 - 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm run typecheck` 通过；`npm run build` 通过；`git diff --check` 通过。
+
+### 2026-05-27 V2 透明安全边距与光感转写点
+
+- 维护者澄清：问题不是光效溢出，而是胶囊背后仍像有一个白色/红色边框背景；转写点不应上下大跳，而应像录音态一样通过光感变化表现流动。
+- overlay 窗口从 `120 x 32` 调整为 `136 x 44`，胶囊仍保持 `120 x 32` 视觉尺寸，但四周留透明安全边距，避免 WebView 边缘参与合成。
+- 胶囊和内容整体平移到安全边距内部；clipPath 同步更新。
+- 6 个转写点间距加大，动画从上下跳改为固定位置的半径/亮度流动，形成光从左到右扫过的感觉。
+- 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。

@@ -783,18 +783,18 @@ h1 { font-size: 30px; font-weight: 740; }
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  height: 32px;
+  height: 44px;
   overflow: visible;
   padding: 0;
   position: relative;
-  width: 120px;
+  width: 136px;
 }
 
 .wave-ripple-svg {
   display: block;
-  height: 32px;
+  height: 44px;
   overflow: visible;
-  width: 120px;
+  width: 136px;
 }
 
 .ripple-capsule {
