@@ -686,30 +686,30 @@ body.overlay-document::before {
 
 .tool-window {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.095), rgba(255,255,255,0.035)),
-    rgba(11, 14, 21, 0.84);
-  border-radius: 22px;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255,255,255,0.13);
-  width: min(100%, 820px);
+    linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.028)),
+    rgba(9, 12, 18, 0.86);
+  border-radius: 18px;
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,0.10);
+  width: min(100%, 760px);
 }
 
 .tool-header {
-  min-height: 64px;
-  padding: 16px 22px;
+  min-height: 54px;
+  padding: 12px 18px;
 }
 
 .voice-dashboard {
-  gap: 24px;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  padding: 34px 38px 22px;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  padding: 28px 32px 18px;
 }
 
-h1 { font-size: 44px; }
+h1 { font-size: 36px; }
 
 .voice-subtitle {
   color: rgba(235, 239, 247, 0.78);
-  font-size: 15px;
-  max-width: 420px;
+  font-size: 13px;
+  max-width: 380px;
 }
 
 .status-strip,
@@ -723,26 +723,26 @@ h1 { font-size: 44px; }
 
 .voice-overlay {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.105), rgba(255,255,255,0.045)),
-    rgba(8, 10, 16, 0.78);
-  border-radius: 22px;
-  min-height: 190px;
-  padding: 15px;
+    linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.032)),
+    rgba(8, 10, 16, 0.76);
+  border-radius: 18px;
+  min-height: 164px;
+  padding: 12px;
 }
 
 .voice-wave-stage {
-  height: 96px;
+  height: 78px;
 }
 
 .voice-overlay-copy strong {
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .transcript-card,
 .setup-banner,
 .quick-settings {
-  margin-left: 38px;
-  margin-right: 38px;
+  margin-left: 32px;
+  margin-right: 32px;
 }
 
 .overlay-root {
@@ -760,29 +760,28 @@ h1 { font-size: 44px; }
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  height: 46px;
+  height: 32px;
   overflow: visible;
   padding: 0;
   position: relative;
-  width: 176px;
+  width: 120px;
 }
 
 .wave-ripple-svg {
   display: block;
-  height: 46px;
+  height: 32px;
   overflow: visible;
-  width: 176px;
+  width: 120px;
 }
 
 .ripple-capsule {
-  fill: rgba(3, 5, 10, 0.86);
-  stroke: rgba(255, 255, 255, 0.10);
-  stroke-width: 1;
+  fill: rgba(2, 3, 7, 0.94);
+  stroke: none;
 }
 
 .ripple-shine {
   fill: url(#voice-capsule-shine);
-  opacity: 0.72;
+  opacity: 0.36;
 }
 
 .ripple-line {
@@ -825,8 +824,7 @@ h1 { font-size: 44px; }
 }
 
 .wave-ripple[data-mode="recording"] .ripple-capsule {
-  fill: rgba(3, 5, 10, 0.92);
-  stroke: rgba(126, 231, 255, 0.22);
+  fill: rgba(2, 3, 7, 0.96);
 }
 
 .wave-ripple[data-mode="recording"] .ripple-line-b {
@@ -842,12 +840,30 @@ h1 { font-size: 44px; }
 }
 
 .wave-ripple[data-mode="transcribing"] .ripple-line {
+  animation: ripple-breathe 1.5s ease-in-out infinite;
   opacity: 0.66;
+}
+
+.wave-ripple[data-mode="transcribing"] .ripple-line-b {
+  animation-delay: -220ms;
+}
+
+.wave-ripple[data-mode="transcribing"] .ripple-line-c {
+  animation-delay: -420ms;
+}
+
+.wave-ripple[data-mode="transcribing"] .ripple-line-d {
+  animation-delay: -620ms;
 }
 
 @keyframes ripple-flow {
   0% { transform: translate3d(-9px, 0, 0); }
   100% { transform: translate3d(9px, 0, 0); }
+}
+
+@keyframes ripple-breathe {
+  0%, 100% { opacity: 0.44; transform: scaleY(0.92); }
+  50% { opacity: 0.76; transform: scaleY(1.08); }
 }
 
 @media (prefers-reduced-motion: reduce) {

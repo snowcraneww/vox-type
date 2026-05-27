@@ -86,8 +86,8 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
               </feMerge>
             </filter>
           </defs>
-          <rect className="ripple-capsule" x="2" y="4" width="172" height="38" rx="19" />
-          <rect className="ripple-shine" x="3" y="5" width="170" height="36" rx="18" />
+          <rect className="ripple-capsule" x="0" y="0" width="176" height="46" rx="23" />
+          <rect className="ripple-shine" x="3" y="3" width="170" height="40" rx="20" />
           <g filter="url(#voice-ripple-glow)">
             <path className="ripple-line ripple-line-a" pathLength="100" d="M -8 23 C 0 12 9 34 18 23 S 36 12 45 23 S 63 34 72 23 S 90 12 99 23 S 117 34 126 23 S 144 12 153 23 S 171 34 184 23">
               {isRecording ? <animate attributeName="d" dur="820ms" repeatCount="indefinite" values="M -8 23 C 0 12 9 34 18 23 S 36 12 45 23 S 63 34 72 23 S 90 12 99 23 S 117 34 126 23 S 144 12 153 23 S 171 34 184 23; M -8 23 C 0 33 9 13 18 23 S 36 34 45 23 S 63 12 72 23 S 90 34 99 23 S 117 12 126 23 S 144 34 153 23 S 171 12 184 23; M -8 23 C 0 12 9 34 18 23 S 36 12 45 23 S 63 34 72 23 S 90 12 99 23 S 117 34 126 23 S 144 12 153 23 S 171 34 184 23" /> : null}

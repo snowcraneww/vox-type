@@ -29,5 +29,6 @@ describe('DictationOverlay', () => {
     expect(screen.getByRole('status', { name: '桌面语音输入状态：正在识别' })).toBeInTheDocument();
     expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'transcribing');
     expect(document.querySelectorAll('animate')).toHaveLength(0);
+    expect(document.querySelector('.wave-ripple[data-mode="transcribing"] .ripple-line')).toBeInTheDocument();
   });
 });

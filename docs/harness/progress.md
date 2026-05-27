@@ -387,3 +387,12 @@
 - 波形改为短周期多峰谷曲线，在胶囊内显示更多波峰波谷，线条更细。
 - 录音态才渲染 SVG `animate` 和流动渐变；识别态不渲染 `animate`，保持完整静态波纹，避免松开后断裂或继续流动。
 - 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run typecheck` 通过；`npm run build` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
+
+### 2026-05-27 V2 浮窗白壳与主界面精致化
+
+- 维护者反馈：黑色胶囊外仍像有白色外壳；胶囊仍偏大；波纹接近但略乱，希望更像霓虹流光；识别态完全不动会像卡住；主界面整体字体和组件仍偏粗大。
+- 去掉胶囊外描边，将胶囊直接铺满 overlay 视窗，避免抗锯齿边缘露出浅色外壳；高光降到更弱的暗色内部高光。
+- overlay 尺寸从 `176 x 46` 缩到 `120 x 32`，Rust 定位常量和测试同步更新。
+- 识别态改为低速呼吸动效，不再是完全静止；录音态仍保持快速流光与波形变化。
+- 主界面进一步压缩：窗口宽度、标题字号、正文字号、header 高度、主区间距、预览浮窗高度和卡片边距都下调，减少粗大感。
+- 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，2 个测试通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm run typecheck` 通过；`npm test -- --run` 通过，6 个测试文件、16 个测试通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
