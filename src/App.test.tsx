@@ -40,7 +40,8 @@ describe('App', () => {
   it('renders the user-facing voice input view by default', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'VoxType' })).toBeInTheDocument();
+    expect(screen.getByText('VoxType')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '语音直接变成文字' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '开始录音' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '诊断模式' })).toBeInTheDocument();
     expect(screen.getByRole('status', { name: '语音输入状态：已就绪' })).toBeInTheDocument();
@@ -54,7 +55,7 @@ describe('App', () => {
   it('records global shortcut events in diagnostics', async () => {
     render(<App />);
 
-    await screen.findByText('Ctrl+Alt+Space');
+    await screen.findByText(/Ctrl\+Alt\+Space/);
     pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
     fireEvent.click(screen.getByRole('button', { name: '诊断模式' }));
 
@@ -64,12 +65,28 @@ describe('App', () => {
   it('runs the shortcut closed loop and hides the desktop overlay after release', async () => {
     render(<App />);
 
-    await screen.findByText('Ctrl+Alt+Space');
+    await screen.findByText(/Ctrl\+Alt\+Space/);
     pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
 
     await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
 
     pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
+    expect(transcribeLastRecording).toHaveBeenCalledTimes(1);
+    expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本');
+    await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
+  });
+
+  it('runs the toggle shortcut closed loop on the second press', async () => {
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
 
     await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
     expect(transcribeLastRecording).toHaveBeenCalledTimes(1);

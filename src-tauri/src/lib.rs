@@ -203,30 +203,55 @@ fn hide_dictation_overlay(app: AppHandle) -> Result<(), error::VoxError> {
 fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     use std::sync::{Arc, Mutex};
 
-    let state = Arc::new(Mutex::new(hotkey::PushToTalkState::default()));
+    let push_to_talk_state = Arc::new(Mutex::new(hotkey::PushToTalkState::default()));
+    let toggle_state = Arc::new(Mutex::new(hotkey::ToggleDictationState::default()));
     let accelerator = hotkey::HotkeyBinding::default().accelerator;
-    let handler_state = Arc::clone(&state);
+    let toggle_accelerator = hotkey::ToggleHotkeyBinding::default().accelerator;
+    let push_to_talk_shortcut = accelerator.parse::<tauri_plugin_global_shortcut::Shortcut>()?;
+    let toggle_shortcut = toggle_accelerator.parse::<tauri_plugin_global_shortcut::Shortcut>()?;
+    let push_to_talk_shortcut_id = push_to_talk_shortcut.id();
+    let toggle_shortcut_id = toggle_shortcut.id();
+    let handler_push_to_talk_state = Arc::clone(&push_to_talk_state);
+    let handler_toggle_state = Arc::clone(&toggle_state);
 
     app.plugin(
         tauri_plugin_global_shortcut::Builder::new()
-            .with_shortcuts([accelerator.as_str()])?
+            .with_shortcuts([push_to_talk_shortcut, toggle_shortcut])?
             .with_handler(move |app, _shortcut, event| {
                 let hotkey_event = match event.state() {
                     ShortcutState::Pressed => hotkey::PushToTalkEvent::Pressed,
                     ShortcutState::Released => hotkey::PushToTalkEvent::Released,
                 };
-                let action = handler_state
-                    .lock()
-                    .map(|mut state| state.handle_event(hotkey_event))
-                    .unwrap_or(hotkey::PushToTalkAction::Ignore);
+                let shortcut_id = _shortcut.id();
+                let action = if shortcut_id == toggle_shortcut_id {
+                    match hotkey_event {
+                        hotkey::PushToTalkEvent::Pressed => handler_toggle_state
+                            .lock()
+                            .map(|mut state| state.handle_pressed())
+                            .unwrap_or(hotkey::PushToTalkAction::Ignore),
+                        hotkey::PushToTalkEvent::Released => handler_toggle_state
+                            .lock()
+                            .map(|state| state.handle_released())
+                            .unwrap_or(hotkey::PushToTalkAction::Ignore),
+                    }
+                } else if shortcut_id == push_to_talk_shortcut_id {
+                    handler_push_to_talk_state
+                        .lock()
+                        .map(|mut state| state.handle_event(hotkey_event))
+                        .unwrap_or(hotkey::PushToTalkAction::Ignore)
+                } else {
+                    hotkey::PushToTalkAction::Ignore
+                };
                 let payload = hotkey::payload_for_event(hotkey_event, action);
                 match action {
-                    hotkey::PushToTalkAction::StartRecording => {
+                    hotkey::PushToTalkAction::StartRecording
+                    | hotkey::PushToTalkAction::ToggleStartRecording => {
                         if let Err(error) = overlay::show_dictation_overlay(app) {
                             eprintln!("failed to show dictation overlay: {error}");
                         }
                     }
-                    hotkey::PushToTalkAction::StopAndTranscribe => {
+                    hotkey::PushToTalkAction::StopAndTranscribe
+                    | hotkey::PushToTalkAction::ToggleStopAndTranscribe => {
                         if let Err(error) = overlay::show_dictation_overlay(app) {
                             eprintln!("failed to keep dictation overlay visible: {error}");
                         }

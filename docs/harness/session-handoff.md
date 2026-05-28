@@ -11,6 +11,8 @@
 - `spec-001` 已标记为 `passing`。
 - `scaffold-001` 已完成 MVP 真实闭环验证，状态 `passing`。
 - 第一版 MVP 已完成 proof-of-life：本机真实闭环通过，跨机器安装包可安装并能运行到转写链路。
+- V2 日常输入体验已按维护者验收意见收尾：`Ctrl+Alt+Space` 按住说话、桌面浮窗、主界面闭环和诊断日志已可用；残余透明浮窗浅色边框记录为平台风险。
+- V3 当前进行中：界面精修和 `Ctrl+Alt+V` 切换录音模式。
 - 产品代码已有最小 Tauri/React/Rust mock 骨架。
 - 产品代码已有录音采集 proof-of-life：Tauri command 可启动/停止 `cpal` 输入 stream，并返回采样数和时长。
 - 维护者手动验证录音采集成功：`782863` 个 mono 样本、`17751 ms`、`44100 Hz`。
@@ -64,7 +66,7 @@
 
 - V2 设计文档：`docs/superpowers/specs/2026-05-27-v2-daily-dictation-design.md`。
 - V2 实施计划：`docs/superpowers/plans/2026-05-27-v2-daily-dictation.md`。
-- 当前 feature：`v2-001`，状态 `in_progress`。
+- 当前 feature：`v2-001`，状态 `passing`。
 - UI 方向：主界面改为深色径向背景和半透明工具面板，不再使用夸张仿苹果窗口装饰；语音状态由彩色流光频谱波纹表达。
 - 已接入：简体中文 prompt、输入设备持久化、`Ctrl+Alt+Space` 全局按住说话事件、按下开始录音、松开转写并上屏。
 - 已接入：全局快捷键注册状态展示。主界面快速设置会显示 `Ctrl+Alt+Space` 或 `需处理`，诊断模式 `全局快捷键` 会显示注册成功或失败原因。
@@ -74,9 +76,19 @@
 - 已接入：主窗口收到全局快捷键事件时记录 `收到全局快捷键按下` / `收到全局快捷键松开`，用于判断快捷键是否真的进入 VoxType。
 - 已补强：overlay command 找不到窗口或显示失败时返回明确错误；快捷键闭环完成或失败后前端会隐藏桌面浮窗。
 - 已修复：维护者反馈的“三条彩色线不动”问题，当前 `VoiceOverlay` 渲染 24 个动态频谱柱。
-- 当前人工验证状态：维护者反馈旧版本在 VS Code 输入框按住 `Ctrl+Alt+Space` 没有任何可见反应；本轮已补观测点，下一次需先测 `测试桌面浮窗`，再测真实快捷键闭环。
-- 计划审计：`docs/superpowers/plans/2026-05-27-v2-daily-dictation.md` 已按当前证据勾选；仍未通过的是 Windows 桌面真实手动验证 `Ctrl+Alt+Space` 全局按住说话。
+- 当前人工验证状态：维护者后续确认功能已实现，底部浮窗残余浅色边框暂不阻塞本版本。
+- 计划审计：`docs/superpowers/plans/2026-05-27-v2-daily-dictation.md` 已按当前证据收尾。
 - 重要边界：TSF、完整模型市场、云端 ASR 和 AI 改写不在 V2 默认范围内。
+
+## V3 当前设计
+
+- V3 设计文档：`docs/superpowers/specs/2026-05-28-v3-ui-and-toggle-dictation-design.md`。
+- V3 实施计划：`docs/superpowers/plans/2026-05-28-v3-ui-and-toggle-dictation.md`。
+- 当前 feature：`v3-001`，状态 `in_progress`。
+- UI 方向：主界面和诊断模式继续走深色精致工具风格，降低字号、间距、边框和卡片重量，不做仿 macOS 红黄绿窗口按钮。
+- 已接入：`Ctrl+Alt+V` 切换录音模式。第一次按下开始录音，第二次按下停止、转写并上屏。
+- 重要边界：当前 `Ctrl+Alt+V` 不是边说边出字；whisper.cpp 当前仍是停止后统一转写。真正实时流式 ASR 需要后续单独设计。
+- 平台风险：Tauri/WebView2 透明 overlay 在 Windows 上仍可能出现浅色边框或 ghost 背景，详见 `docs/harness/debugging-log.md`。
 
 ## 仍可优化或待增强
 
@@ -91,9 +103,9 @@
 
 ## 下一步最佳动作
 
-- 当前下一任务：手动验证 `v2-001` 第二版日常语音输入体验。
-- 为什么它是下一步：主要代码已接入，必须确认真实 Windows 桌面里全局快捷键、录音、转写和上屏是否连贯。
-- 建议优先级：先验证 `Ctrl+Alt+Space` 按住说话和动态波纹；通过后再做快捷键设置、下载进度、模型选择和音量/VAD。
+- 当前下一任务：完成 `v3-001` 的完整验证、隐私扫描和提交。
+- 为什么它是下一步：代码和文档已开始同步，需要用完整测试确认 Rust、前端和文档状态一致。
+- 建议优先级：先跑自动验证，再让维护者手动验证 `Ctrl+Alt+V` 切换录音和新 UI 观感。
 - 不要动：不要把 TSF 当作 MVP 默认路线；不要提交模型文件、音频文件或密钥。
 
 ## 命令

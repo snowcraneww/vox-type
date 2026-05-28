@@ -9,6 +9,49 @@
 - 涉及代码、命令、API、文件名和错误消息时保留原文。
 - 面向维护者的解释默认使用中文。
 
+## 2026-05-28 Tauri 透明浮窗仍有浅色边框
+
+### 现象
+
+维护者多次验证底部 `dictation-overlay` 浮窗时，黑色胶囊外侧仍能看到一层浅色或灰白色背景边缘。即使前端页面根节点、`html`、`body` 和 `#root` 都设置透明背景，Tauri 窗口也设置了 `transparent: true`、`decorations: false`、`alwaysOnTop: true`，浅色边缘仍可能存在。
+
+### 影响
+
+功能不受影响，但视觉上不像完全独立的精致悬浮胶囊，影响高级感。
+
+### 调研来源
+
+- Tauri issue `#12450`：`WebviewWindowBuilder::transparent(true)` 在 Windows child window 场景下仍可能显示黑色或不透明背景。
+- Tauri issue `#14764`：Windows 上 `transparent: true` 的窗口在拖动或焦点变化时可能出现 ghost titlebar background，报告者怀疑与 WebView2 默认背景层有关。
+- Tauri issue `#1564`：早期讨论过 webview background color 和白色背景闪烁问题。
+- Tauri v2 window API 文档说明窗口透明、窗口效果和 Windows WebView2 行为存在平台差异。
+
+### 根因判断
+
+当前更像 Tauri/Wry/WebView2 透明窗口在 Windows 上的底层渲染限制，而不是普通 CSS 边框。项目内已排查并处理过这些应用层因素：
+
+- overlay Tauri window 使用 `transparent: true`。
+- overlay Tauri window 使用 `decorations: false`。
+- overlay 页面根节点、`html`、`body`、`#root` 设置为透明。
+- overlay 胶囊外层容器取消背景、边框、阴影。
+- overlay 窗口尺寸已缩小到胶囊附近，避免大片背景露出。
+
+### 当前处理
+
+V2/V3 暂不继续把该问题作为阻塞项。当前策略是把窗口尽量缩小，并让胶囊自身边缘使用低透明白色描边，降低平台残余浅色边缘的违和感。
+
+### 后续方向
+
+如果继续攻关，需要单独做 Windows 原生实验：
+
+- 研究 `shadow(false)`、window background color、WebView2 controller default background color 是否能从 Rust/Tauri 层设置。
+- 评估不用 WebView 做 overlay，改用 Windows 原生轻量窗口绘制音频波形。
+- 评估是否等待 Tauri/Wry/WebView2 上游修复。
+
+### 验证
+
+当前已验证 overlay 功能可用、动画可显示、快捷键链路可触发。视觉残余边框属于已知风险。
+
 ## 2026-05-27 Mermaid 图无法渲染
 
 ### 现象

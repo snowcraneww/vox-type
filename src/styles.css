@@ -13,12 +13,12 @@
   --red: #ff453a;
   --pink: #ff2d92;
   --violet: #bf5af2;
-  --shadow: 0 34px 110px rgba(0, 0, 0, 0.52);
+  --shadow: 0 26px 80px rgba(0, 0, 0, 0.46);
   color: var(--ink);
   background: var(--bg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Microsoft YaHei", sans-serif;
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.42;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -58,16 +58,16 @@ select { font: inherit; }
 button {
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 10px;
+  border-radius: 9px;
   background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.055));
   color: var(--ink);
   cursor: pointer;
   display: inline-flex;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 680;
   justify-content: center;
-  min-height: 34px;
-  padding: 7px 12px;
+  min-height: 31px;
+  padding: 6px 10px;
   transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, background 150ms ease;
   white-space: nowrap;
 }
@@ -93,9 +93,9 @@ select {
   border-radius: 10px;
   background: rgba(5, 8, 14, 0.54);
   color: var(--ink);
-  min-height: 36px;
+  min-height: 32px;
   min-width: 0;
-  padding: 7px 10px;
+  padding: 6px 9px;
   width: 100%;
 }
 
@@ -276,14 +276,18 @@ h2 {
 }
 
 .transcript-card {
+  align-items: start;
   background: var(--panel-soft);
   border: 1px solid rgba(255,255,255,0.10);
   border-radius: 20px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: 18px;
 }
 
-.transcript-card > span,
+.transcript-card span,
 .setting-chip span,
 .field span,
 dt {
@@ -294,9 +298,9 @@ dt {
 
 .transcript-card p {
   color: #f2f5fa;
-  font-size: 16px;
-  margin: 8px 0 17px;
-  min-height: 50px;
+  font-size: 13px;
+  margin: 7px 0 0;
+  min-height: 22px;
 }
 
 .action-row,
@@ -348,24 +352,25 @@ dt {
 .diagnostic-shell { align-content: start; max-width: 1140px; }
 
 .hero,
-.panel { border-radius: 22px; }
+.panel { border-radius: 18px; }
 
 .hero {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  padding: 24px;
+  padding: 18px 20px;
 }
 
-.diagnostic-hero h1 { font-size: 32px; }
-.panel { padding: 20px; }
+.diagnostic-hero h1 { font-size: 26px; }
+.diagnostic-hero p:last-child { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+.panel { padding: 16px; }
 
 .panel-heading-row { align-items: center; display: flex; gap: 12px; justify-content: space-between; }
 
 .settings-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   margin: 0;
 }
 
@@ -373,8 +378,8 @@ dt {
 .diagnostic-list li {
   background: rgba(255,255,255,0.055);
   border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 10px;
 }
 
 dd { color: #f2f5fa; margin: 4px 0 0; }
@@ -692,7 +697,7 @@ body.overlay-document::before {
   border-color: rgba(255,255,255,0.075);
   border-radius: 16px;
   box-shadow: 0 18px 52px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255,255,255,0.07);
-  width: min(100%, 700px);
+  width: min(100%, 760px);
 }
 
 .tool-header {
@@ -704,12 +709,12 @@ body.overlay-document::before {
 .tool-header p { font-size: 11px; font-weight: 600; }
 
 .voice-dashboard {
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) 250px;
-  padding: 24px 28px 16px;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  padding: 26px 30px 16px;
 }
 
-h1 { font-size: 30px; font-weight: 740; }
+h1 { font-size: 28px; font-weight: 720; }
 
 .eyebrow { font-size: 9px; margin-bottom: 8px; }
 
@@ -739,7 +744,7 @@ h1 { font-size: 30px; font-weight: 740; }
     rgba(6, 8, 13, 0.80);
   border-color: rgba(255,255,255,0.075);
   border-radius: 14px;
-  min-height: 140px;
+  min-height: 128px;
   padding: 10px;
 }
 
@@ -762,11 +767,23 @@ h1 { font-size: 30px; font-weight: 740; }
   margin-right: 28px;
 }
 
-.transcript-card { border-radius: 14px; padding: 14px; }
-.transcript-card p { font-size: 13px; margin-bottom: 12px; min-height: 38px; }
-.quick-settings { gap: 8px; padding: 14px 0 22px; }
-.setting-chip { border-radius: 12px; min-height: 58px; padding: 9px 10px; }
+.transcript-card { border-radius: 14px; padding: 12px 14px; }
+.quick-settings { gap: 8px; grid-template-columns: minmax(160px, 1.6fr) repeat(3, minmax(96px, 1fr)); padding: 12px 0 20px; }
+.setting-chip { border-radius: 12px; min-height: 52px; padding: 8px 10px; }
 .setting-chip strong { font-size: 12px; }
+.compact-field select { min-height: 38px; }
+.record-orb { min-height: 40px; padding: 8px 14px; }
+.record-symbol { height: 10px; width: 10px; }
+.panel-heading-row h2,
+.panel h2 { font-size: 15px; margin-bottom: 10px; }
+.button-row { gap: 8px; }
+.diagnostic-scroll { max-height: 360px; }
+.diagnostic-list { gap: 8px; }
+.diagnostic-header strong { font-size: 12px; }
+.diagnostic-list p,
+.runtime-message,
+.panel p,
+dd { font-size: 12px; }
 
 .overlay-root {
   align-items: end;

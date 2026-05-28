@@ -25,6 +25,8 @@ const defaultConfig: AppConfig = {
   showStatusIndicator: true,
 };
 
+const toggleHotkey = 'Ctrl+Alt+V';
+
 const initialStatus: AppStatus = {
   phase: 'idle',
   message: '等待开始录音',
@@ -535,11 +537,11 @@ export function App() {
         result: 'info',
         detail: `事件 ${payload.state}，动作 ${payload.action}。如果你在目标输入框里按快捷键但这里没有日志，说明系统没有把快捷键事件交给 VoxType。`,
       });
-      if (payload.action === 'startRecording' && !isRecordingRef.current) {
+      if ((payload.action === 'startRecording' || payload.action === 'toggleStartRecording') && !isRecordingRef.current) {
         void handleStartRecording();
         return;
       }
-      if (payload.action === 'stopAndTranscribe' && isRecordingRef.current) {
+      if ((payload.action === 'stopAndTranscribe' || payload.action === 'toggleStopAndTranscribe') && isRecordingRef.current) {
         void handleStopTranscribeAndInsertNow();
       }
       })
@@ -604,16 +606,16 @@ export function App() {
           <header className="tool-header">
             <div>
               <span className="product-mark">VoxType</span>
-              <p>本地优先语音输入工具</p>
+              <p>本地优先语音输入</p>
             </div>
             <button className="ghost-button" type="button" onClick={() => setViewMode('diagnostic')}>诊断模式</button>
           </header>
 
           <div className="voice-dashboard">
             <div className="voice-copy">
-              <p className="eyebrow">LOCAL VOICE INPUT</p>
-              <h1 id="app-title">VoxType</h1>
-              <p className="voice-subtitle">按住 Ctrl+Alt+Space 说话，松开后自动转写并上屏到当前光标位置。</p>
+              <p className="eyebrow">DICTATION READY</p>
+              <h1 id="app-title">语音直接变成文字</h1>
+              <p className="voice-subtitle">按住 Ctrl+Alt+Space 说话，或按 Ctrl+Alt+V 开始/停止。停止后会转写并上屏到当前光标位置。</p>
               <div className="status-strip" data-phase={status.phase}><span>{phaseLabel}</span><strong>{status.message}</strong></div>
             </div>
             <div className="record-orb-wrap">
@@ -625,9 +627,11 @@ export function App() {
             </div>
           </div>
 
-          <div className="transcript-card">
-            <span>最近识别文本</span>
-            <p>{status.lastTranscript ?? '还没有识别文本。完成一次录音和转写后会显示在这里。'}</p>
+          <div className="transcript-card compact-section">
+            <div>
+              <span>最近文本</span>
+              <p>{status.lastTranscript ?? '还没有识别文本。完成一次录音和转写后会显示在这里。'}</p>
+            </div>
             <div className="action-row">
               <button type="button" onClick={handleTranscribeLastRecording}>转写最近录音</button>
               <button type="button" onClick={handleTranscribeAndInsert}>转写并上屏</button>
@@ -638,7 +642,7 @@ export function App() {
             {renderDeviceSelect(true)}
             <div className="setting-chip"><span>ASR</span><strong>{asrConfigStatus.ready ? '已就绪' : '未就绪'}</strong></div>
             <div className="setting-chip"><span>模型</span><strong>whisper.cpp</strong></div>
-            <div className="setting-chip"><span>快捷键</span><strong>{hotkeyStatus.registered ? hotkeyStatus.accelerator : '需处理'}</strong></div>
+            <div className="setting-chip"><span>快捷键</span><strong>{hotkeyStatus.registered ? `${hotkeyStatus.accelerator} / ${toggleHotkey}` : '需处理'}</strong></div>
           </div>
 
           {!asrConfigStatus.ready ? <div className="setup-banner"><span>{asrConfigStatus.message}</span><button type="button" onClick={handleInstallManagedAsr} disabled={isInstallingAsr}>{isInstallingAsr ? '正在安装' : '一键安装 whisper.cpp'}</button></div> : null}
@@ -651,7 +655,7 @@ export function App() {
     return (
       <main className="app-shell diagnostic-shell">
         <section className="hero diagnostic-hero" aria-labelledby="diagnostic-title">
-          <div><p className="eyebrow">DIAGNOSTICS</p><h1 id="diagnostic-title">诊断工作台</h1></div>
+          <div><p className="eyebrow">DIAGNOSTICS</p><h1 id="diagnostic-title">诊断工作台</h1><p>系统能力、ASR 配置、快捷键和上屏链路。</p></div>
           <button className="secondary-button" type="button" onClick={() => setViewMode('user')}>返回主界面</button>
         </section>
 

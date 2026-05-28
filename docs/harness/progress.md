@@ -3,14 +3,27 @@
 ## 当前已验证状态
 
 - 仓库根目录：`C:/grace_repos/open-source/vox-type`
-- 当前阶段：MVP proof-of-life 已完成，当前进入识别质量、输入设备体验和上屏可靠性增强阶段。
+- 当前阶段：MVP proof-of-life 和 V2 日常输入体验已完成，当前进入 V3 界面精修、切换录音模式和透明浮窗平台限制调研阶段。
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`v2-001`，第二版日常语音输入体验。
+- 当前最高优先级未完成项：`v3-001`，界面精修与切换录音模式。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
+
+## 2026-05-28 V3 界面精修与切换录音模式
+
+- 维护者确认 V2 功能已经实现，底部浮窗残余浅色边框暂不作为本版本阻塞项。
+- 将 `v2-001` 标记为 `passing`，新增 `v3-001` 作为当前任务。
+- 使用 `frontend-design`、`web-search`、`superpowers:test-driven-development`、`superpowers:writing-plans` 和 `superpowers:verification-before-completion` 约束本轮工作。
+- 写入 V3 设计文档：`docs/superpowers/specs/2026-05-28-v3-ui-and-toggle-dictation-design.md`。
+- 写入 V3 实施计划：`docs/superpowers/plans/2026-05-28-v3-ui-and-toggle-dictation.md`。
+- 新增第二种全局快捷键模式：`Ctrl+Alt+V` 第一次触发开始录音，第二次触发停止、转写并上屏。
+- 明确边界：当前不是实时流式 ASR，仍是停止后统一转写和上屏。
+- 主界面和诊断模式继续压缩字号、间距、圆角和按钮密度，减少测试台观感。
+- 调研 Tauri/WebView2 透明窗口浅色边框问题，记录到 `docs/harness/debugging-log.md`。当前判断更像 Windows WebView2/Tauri 透明窗口渲染限制，不作为 V3 阻塞项。
+- 局部验证：`cargo test --manifest-path src-tauri/Cargo.toml hotkey` 通过，7 个 hotkey 测试通过；`npm test -- --run src/App.test.tsx` 通过，5 个前端测试通过；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过。
 
 ## 2026-05-27 开源隐私清理
 

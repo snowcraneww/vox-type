@@ -4,7 +4,7 @@ import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, HotkeyRegistrati
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
-  action: 'startRecording' | 'stopAndTranscribe' | 'ignore';
+  action: 'startRecording' | 'stopAndTranscribe' | 'toggleStartRecording' | 'toggleStopAndTranscribe' | 'ignore';
 }
 
 export async function getConfig(): Promise<AppConfig> {

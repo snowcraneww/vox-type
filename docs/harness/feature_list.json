@@ -1,6 +1,6 @@
 {
     "project": "VoxType",
-    "last_updated": "2026-05-27",
+    "last_updated": "2026-05-28",
     "rules": {
         "single_active_feature": true,
         "passing_requires_evidence": true,
@@ -139,7 +139,7 @@
             "area": "implementation",
             "title": "V2 日常语音输入体验",
             "user_visible_behavior": "维护者可以通过深色主界面和彩色流光语音波纹理解当前语音输入状态；桌面模式下已接入 Ctrl+Alt+Space 全局按住说话，按下开始录音、松开转写并上屏。",
-            "status": "in_progress",
+            "status": "passing",
             "verification": [
                 "运行 npm test -- --run。",
                 "运行 npm run typecheck。",
@@ -171,9 +171,36 @@
                 "2026-05-27: npm test -- --run src/App.test.tsx src/DictationOverlay.test.tsx 通过，2 个测试文件、6 个测试通过；npm run typecheck 通过。",
                 "2026-05-27: 维护者验证确认测试桌面浮窗可显示，但日志出现 event.listen not allowed；新增 Tauri capability 授予 core:event:allow-listen/core:event:allow-unlisten，并修复 React StrictMode 下异步 listen 清理竞态。",
                 "2026-05-27: overlay 页面根节点透明化并缩小窗口到 340 x 86，去掉胶囊背后黑色方框感；底部状态条改得更小、更轻。",
-                "2026-05-27: 同步 Rust overlay 定位尺寸常量并新增 overlay_size_matches_tauri_window_config 回归测试；npm test -- --run、npm run typecheck、cargo test、cargo fmt --check、npm run build、cargo clippy、bash init.sh、git diff --check、npm run tauri -- build --debug 均通过。"
+                "2026-05-27: 同步 Rust overlay 定位尺寸常量并新增 overlay_size_matches_tauri_window_config 回归测试；npm test -- --run、npm run typecheck、cargo test、cargo fmt --check、npm run build、cargo clippy、bash init.sh、git diff --check、npm run tauri -- build --debug 均通过。",
+                "2026-05-28: 维护者确认功能已经实现，当前浮窗残余浅色边框暂不作为本版本阻塞；V2 作为可用日常输入体验收尾。"
             ],
-            "notes": "V2 已完成主要代码接入：深色主界面、动态彩色语音波纹、主按钮日常语音输入闭环、简体中文 prompt、输入设备持久化和可靠恢复、全局 Ctrl+Alt+Space 按住说话事件、可见并可刷新的快捷键注册状态、独立桌面浮窗和热键事件诊断日志。维护者已验证旧版本按快捷键没有可见反应；当前已补强可观测性，仍需要维护者重新手动验证桌面浮窗、热键事件、录音转写和目标软件上屏后，才能把 v2-001 标记为 passing。"
+            "notes": "V2 已完成主要代码接入：深色主界面、动态彩色语音波纹、主按钮日常语音输入闭环、简体中文 prompt、输入设备持久化和可靠恢复、全局 Ctrl+Alt+Space 按住说话事件、可见并可刷新的快捷键注册状态、独立桌面浮窗和热键事件诊断日志。维护者已确认功能实现，残余的 Windows/WebView2 透明浮窗浅色边框暂不阻塞 V2，后续作为平台渲染限制继续调研。"
+        },
+        {
+            "id": "v3-001",
+            "priority": 7,
+            "area": "implementation",
+            "title": "V3 界面精修与切换录音模式",
+            "user_visible_behavior": "维护者可以看到更精致紧凑的深色主界面和诊断工作台；除了 Ctrl+Alt+Space 按住说话，还可以用 Ctrl+Alt+V 按一次开始录音、再按一次停止转写并上屏。",
+            "status": "in_progress",
+            "verification": [
+                "运行 npm test -- --run。",
+                "运行 npm run typecheck。",
+                "运行 cargo test --manifest-path src-tauri/Cargo.toml。",
+                "运行 npm run build。",
+                "运行 cargo fmt --all --manifest-path src-tauri/Cargo.toml --check。",
+                "运行 git diff --check。",
+                "手动验证 Ctrl+Alt+V 第一次触发开始录音，第二次触发停止、转写并上屏。",
+                "手动验证主界面和诊断模式视觉密度比 V2 更轻、更精致。"
+            ],
+            "evidence": [
+                "2026-05-28: 写入 docs/superpowers/specs/2026-05-28-v3-ui-and-toggle-dictation-design.md 和 docs/superpowers/plans/2026-05-28-v3-ui-and-toggle-dictation.md。",
+                "2026-05-28: 使用 web-search 和 GitHub issue 调研 Tauri/WebView2 透明窗口浅色边框、ghost titlebar 和背景闪烁问题，记录为平台风险。",
+                "2026-05-28: 使用 TDD 新增 ToggleDictationState 和前端 toggle shortcut 闭环测试；cargo test --manifest-path src-tauri/Cargo.toml hotkey 通过，npm test -- --run src/App.test.tsx 通过。",
+                "2026-05-28: 修正快捷键分发为比较 Shortcut id，避免依赖 global-hotkey 的 Display 字符串格式。",
+                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、17 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，47 个 Rust 测试通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
+            ],
+            "notes": "当前 V3 实现的是停止后统一转写并上屏，不是实时流式 ASR。真正边说边出字需要后续引入流式或分块 ASR、增量文本 diff 和更可靠的上屏策略。"
         }
     ]
 }

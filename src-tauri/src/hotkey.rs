@@ -5,6 +5,11 @@ pub struct HotkeyBinding {
     pub accelerator: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToggleHotkeyBinding {
+    pub accelerator: String,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct HotkeyRegistrationStatus {
@@ -39,6 +44,14 @@ impl Default for HotkeyBinding {
     }
 }
 
+impl Default for ToggleHotkeyBinding {
+    fn default() -> Self {
+        Self {
+            accelerator: "Ctrl+Alt+V".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PushToTalkEvent {
     Pressed,
@@ -49,12 +62,19 @@ pub enum PushToTalkEvent {
 pub enum PushToTalkAction {
     StartRecording,
     StopAndTranscribe,
+    ToggleStartRecording,
+    ToggleStopAndTranscribe,
     Ignore,
 }
 
 #[derive(Debug, Default)]
 pub struct PushToTalkState {
     pressed: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct ToggleDictationState {
+    recording: bool,
 }
 
 impl PushToTalkState {
@@ -73,6 +93,22 @@ impl PushToTalkState {
     }
 }
 
+impl ToggleDictationState {
+    pub fn handle_pressed(&mut self) -> PushToTalkAction {
+        if self.recording {
+            self.recording = false;
+            PushToTalkAction::ToggleStopAndTranscribe
+        } else {
+            self.recording = true;
+            PushToTalkAction::ToggleStartRecording
+        }
+    }
+
+    pub fn handle_released(&self) -> PushToTalkAction {
+        PushToTalkAction::Ignore
+    }
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PushToTalkPayload {
@@ -85,6 +121,8 @@ impl PushToTalkAction {
         match self {
             PushToTalkAction::StartRecording => "startRecording",
             PushToTalkAction::StopAndTranscribe => "stopAndTranscribe",
+            PushToTalkAction::ToggleStartRecording => "toggleStartRecording",
+            PushToTalkAction::ToggleStopAndTranscribe => "toggleStopAndTranscribe",
             PushToTalkAction::Ignore => "ignore",
         }
     }
@@ -170,6 +208,35 @@ mod tests {
         assert_eq!(
             failure.message,
             "全局快捷键注册失败：shortcut already registered"
+        );
+    }
+
+    #[test]
+    fn toggle_hotkey_alternates_start_and_stop_on_presses() {
+        let mut state = ToggleDictationState::default();
+
+        assert_eq!(
+            state.handle_pressed(),
+            PushToTalkAction::ToggleStartRecording
+        );
+        assert_eq!(state.handle_released(), PushToTalkAction::Ignore);
+        assert_eq!(
+            state.handle_pressed(),
+            PushToTalkAction::ToggleStopAndTranscribe
+        );
+        assert_eq!(state.handle_released(), PushToTalkAction::Ignore);
+        assert_eq!(
+            state.handle_pressed(),
+            PushToTalkAction::ToggleStartRecording
+        );
+    }
+
+    #[test]
+    fn toggle_binding_uses_separate_default_shortcut() {
+        assert_eq!(ToggleHotkeyBinding::default().accelerator, "Ctrl+Alt+V");
+        assert_ne!(
+            ToggleHotkeyBinding::default().accelerator,
+            HotkeyBinding::default().accelerator
         );
     }
 }
