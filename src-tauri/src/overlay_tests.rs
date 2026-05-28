@@ -1,4 +1,4 @@
-use crate::overlay::{dictation_overlay_label, overlay_size, overlay_url};
+use crate::overlay::{dictation_overlay_label, overlay_size, overlay_url, OverlayBackendResult};
 
 #[test]
 fn overlay_uses_stable_label_and_route() {
@@ -31,9 +31,27 @@ fn overlay_window_disables_shadow_in_tauri_config() {
 }
 
 #[test]
-fn overlay_backend_status_reports_shadowless_webview() {
+fn overlay_backend_status_reports_native_windows_preference() {
     let status = crate::overlay::backend_status();
 
-    assert_eq!(status.backend, "webview-shadowless");
+    assert_eq!(status.backend, "native-win32");
     assert_eq!(status.last_error, None);
+}
+
+#[test]
+fn overlay_backend_result_reports_native_success() {
+    let status = crate::overlay::resolve_overlay_backend(OverlayBackendResult::Native);
+
+    assert_eq!(status.backend, "native-win32");
+    assert_eq!(status.last_error, None);
+}
+
+#[test]
+fn overlay_backend_result_reports_webview_fallback_reason() {
+    let status = crate::overlay::resolve_overlay_backend(OverlayBackendResult::FallbackWebview {
+        error: "native overlay failed".to_string(),
+    });
+
+    assert_eq!(status.backend, "fallback-webview");
+    assert_eq!(status.last_error, Some("native overlay failed".to_string()));
 }

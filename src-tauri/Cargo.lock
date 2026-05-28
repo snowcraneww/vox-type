@@ -4468,6 +4468,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tempfile",
  "thiserror 2.0.18",
+ "windows-sys 0.61.2",
  "zip",
 ]
 

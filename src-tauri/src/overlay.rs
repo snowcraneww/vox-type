@@ -1,5 +1,6 @@
 use crate::error::VoxError;
 use serde::Serialize;
+use std::sync::{Mutex, OnceLock};
 use tauri::{AppHandle, Manager, PhysicalPosition};
 
 pub const DICTATION_OVERLAY_LABEL: &str = "dictation-overlay";
@@ -7,6 +8,8 @@ pub const DICTATION_OVERLAY_URL: &str = "index.html?view=overlay";
 const OVERLAY_WIDTH: i32 = 120;
 const OVERLAY_HEIGHT: i32 = 32;
 const OVERLAY_MARGIN_BOTTOM: i32 = 92;
+
+static BACKEND_STATUS: OnceLock<Mutex<OverlayBackendStatus>> = OnceLock::new();
 
 pub fn dictation_overlay_label() -> &'static str {
     DICTATION_OVERLAY_LABEL
@@ -27,14 +30,60 @@ pub struct OverlayBackendStatus {
     pub last_error: Option<String>,
 }
 
-pub fn backend_status() -> OverlayBackendStatus {
-    OverlayBackendStatus {
-        backend: "webview-shadowless".to_string(),
-        last_error: None,
+pub enum OverlayBackendResult {
+    Native,
+    FallbackWebview { error: String },
+}
+
+pub fn resolve_overlay_backend(result: OverlayBackendResult) -> OverlayBackendStatus {
+    match result {
+        OverlayBackendResult::Native => OverlayBackendStatus {
+            backend: "native-win32".to_string(),
+            last_error: None,
+        },
+        OverlayBackendResult::FallbackWebview { error } => OverlayBackendStatus {
+            backend: "fallback-webview".to_string(),
+            last_error: Some(error),
+        },
     }
 }
 
+pub fn backend_status() -> OverlayBackendStatus {
+    current_backend_status()
+}
+
 pub fn show_dictation_overlay(app: &AppHandle) -> Result<(), VoxError> {
+    match crate::native_overlay::show_native_overlay() {
+        Ok(()) => {
+            set_backend_status(resolve_overlay_backend(OverlayBackendResult::Native));
+            if let Some(window) = app.get_webview_window(DICTATION_OVERLAY_LABEL) {
+                let _ = window.hide();
+            }
+            return Ok(());
+        }
+        Err(error) => {
+            set_backend_status(resolve_overlay_backend(
+                OverlayBackendResult::FallbackWebview {
+                    error: error.to_string(),
+                },
+            ));
+        }
+    }
+
+    show_webview_overlay(app)
+}
+
+pub fn hide_dictation_overlay(app: &AppHandle) -> Result<(), VoxError> {
+    let native_result = crate::native_overlay::hide_native_overlay();
+
+    if backend_status().backend == "native-win32" {
+        return native_result;
+    }
+
+    hide_webview_overlay(app)
+}
+
+fn show_webview_overlay(app: &AppHandle) -> Result<(), VoxError> {
     let window = app
         .get_webview_window(DICTATION_OVERLAY_LABEL)
         .ok_or_else(|| {
@@ -61,7 +110,7 @@ pub fn show_dictation_overlay(app: &AppHandle) -> Result<(), VoxError> {
     Ok(())
 }
 
-pub fn hide_dictation_overlay(app: &AppHandle) -> Result<(), VoxError> {
+fn hide_webview_overlay(app: &AppHandle) -> Result<(), VoxError> {
     let window = app
         .get_webview_window(DICTATION_OVERLAY_LABEL)
         .ok_or_else(|| {
@@ -70,4 +119,41 @@ pub fn hide_dictation_overlay(app: &AppHandle) -> Result<(), VoxError> {
     window
         .hide()
         .map_err(|error| VoxError::Config(format!("隐藏桌面浮窗失败：{error}")))
+}
+
+fn current_backend_status() -> OverlayBackendStatus {
+    status_cell()
+        .lock()
+        .map(|status| status.clone())
+        .unwrap_or_else(|error| OverlayBackendStatus {
+            backend: "fallback-webview".to_string(),
+            last_error: Some(format!("读取浮窗后端状态失败：{error}")),
+        })
+}
+
+fn set_backend_status(status: OverlayBackendStatus) {
+    if let Ok(mut current_status) = status_cell().lock() {
+        *current_status = status;
+    }
+}
+
+fn status_cell() -> &'static Mutex<OverlayBackendStatus> {
+    BACKEND_STATUS.get_or_init(|| {
+        Mutex::new(OverlayBackendStatus {
+            backend: preferred_backend_name().to_string(),
+            last_error: None,
+        })
+    })
+}
+
+fn preferred_backend_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "native-win32"
+    }
+
+    #[cfg(not(windows))]
+    {
+        "webview-shadowless"
+    }
 }

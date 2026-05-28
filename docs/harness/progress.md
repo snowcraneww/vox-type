@@ -513,3 +513,12 @@
 - 新增测试锁住 overlay 配置：`transparent: true`、`decorations: false`、`shadow: false`。
 - 自动验证：`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过，4 个 overlay 测试通过；`npm test -- --run src/App.test.tsx` 通过，6 个前端测试通过。
 - 人工验证尚未完成：需要维护者在 Tauri 桌面模式点击 `测试桌面浮窗`，确认黑色胶囊外侧是否还有白/灰矩形。若仍有，下一步进入 Windows 原生 overlay 原型。
+
+## 2026-05-28 V4 native-win32 原生浮窗原型
+
+- 因维护者此前多轮反馈 WebView 浮窗外层白/灰框仍存在，继续执行 V4 第二阶段：Windows-only 原生 layered overlay。
+- 新增 `native_overlay` Rust 模块，创建 `WS_POPUP` + `WS_EX_LAYERED` + `WS_EX_TOOLWINDOW` + `WS_EX_TOPMOST` + `WS_EX_NOACTIVATE` Win32 浮窗。
+- 原生浮窗使用 `SetWindowRgn` 裁剪成圆角胶囊，并用 GDI 绘制深色胶囊和小型彩色声波，目标是先绕开 WebView2 矩形宿主窗口。
+- `overlay::show_dictation_overlay` 现在优先使用 `native-win32`，失败时自动回退 `fallback-webview`，诊断模式会显示当前后端和失败原因。
+- 自动验证进展：`cargo test --manifest-path src-tauri/Cargo.toml overlay_backend` 通过，3 个相关测试通过。
+- 人工验证待办：启动 Tauri 桌面模式，进入诊断模式，确认 `桌面浮窗后端` 为 `native-win32`，并检查 `测试桌面浮窗` 是否不再出现外层白/灰矩形。

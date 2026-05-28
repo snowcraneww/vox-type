@@ -6,6 +6,7 @@ pub mod config;
 pub mod error;
 pub mod hotkey;
 pub mod insertion;
+pub mod native_overlay;
 pub mod overlay;
 #[cfg(test)]
 mod overlay_tests;

@@ -16,7 +16,7 @@ vi.mock('./tauriClient', async (importOriginal) => {
     getDefaultInputInfo: vi.fn().mockResolvedValue({ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }),
     getUserPreferences: vi.fn().mockResolvedValue({ selectedInputDeviceName: null }),
     getHotkeyStatus: vi.fn().mockResolvedValue({ accelerator: 'Ctrl+Alt+Space', registered: true, message: '全局快捷键已注册：Ctrl+Alt+Space' }),
-    getOverlayBackendStatus: vi.fn().mockResolvedValue({ backend: 'webview-shadowless', lastError: null }),
+    getOverlayBackendStatus: vi.fn().mockResolvedValue({ backend: 'native-win32', lastError: null }),
     listInputDevices: vi.fn().mockResolvedValue([{ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }]),
     startRecording: vi.fn().mockResolvedValue({ state: 'recording', sampleRate: 44100, channels: 1, sampleCount: 0, durationMs: 0 }),
     stopRecording: vi.fn().mockResolvedValue({ sampleRate: 44100, channels: 1, sampleCount: 32000, durationMs: 2000, asrSampleRate: 16000, asrSampleCount: 32000, asrDurationMs: 2000, peakAmplitude: 12000, rmsAmplitude: 1600 }),
@@ -147,7 +147,7 @@ describe('App', () => {
     expect(screen.getByText('测试剪贴板上屏')).toBeInTheDocument();
     expect(screen.getByText('刷新全局快捷键状态')).toBeInTheDocument();
     expect(screen.getByText('测试桌面浮窗')).toBeInTheDocument();
-    expect(await screen.findAllByText('webview-shadowless')).toHaveLength(2);
+    expect(await screen.findAllByText('native-win32')).toHaveLength(2);
     expect(screen.getByRole('heading', { name: '诊断日志' })).toBeInTheDocument();
   });
 });
