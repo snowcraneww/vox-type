@@ -45,6 +45,14 @@
 - 已记录详细问题、原因、方案和限制到 `docs/harness/debugging-log.md`。
 - 局部验证：`npm test -- --run src/App.test.tsx` 通过，6 个测试通过。
 
+## 2026-05-28 Ctrl+Alt+V 浮窗状态收束
+
+- 维护者反馈：实验分段实时输入可用，但 `Ctrl+Alt+V` 的桌面浮窗录音动效只闪一下，随后只剩黑色胶囊；停止时又出现六点转写动效。
+- 根因：切换快捷键释放时会发送 `ignore`，旧 overlay 收到后回到 `idle`；停止事件 `toggleStopAndTranscribe` 又被映射成 `transcribing`，与当前“录音中已经分段转写”的语义不匹配。
+- 修复：overlay 忽略 `ignore` 事件；`toggleStopAndTranscribe` 继续保持录音波形，等待主流程隐藏 overlay；保留 `Ctrl+Alt+Space` 的 `stopAndTranscribe -> transcribing` 行为。
+- 原生 Windows overlay 不纳入当前 V3 收束范围，作为下一个版本独立规划项处理。
+- 局部验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，1 个测试文件、5 个测试通过。
+
 ## 2026-05-27 开源隐私清理
 
 - 维护者指出 Git commit 元数据中泄露个人信息。

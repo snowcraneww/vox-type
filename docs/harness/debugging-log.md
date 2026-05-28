@@ -74,6 +74,45 @@ whisper.cpp 有 `examples/stream` / `whisper-stream` 示例，说明可以做近
 - `npm test -- --run src/App.test.tsx`：覆盖 `Ctrl+Alt+V` 录音中分段转写并上屏，以及有实时片段后停止时不再走整段兜底。
 - `cargo test --manifest-path src-tauri/Cargo.toml`：覆盖录音缓冲区按源样本游标读取增量片段。
 
+## 2026-05-28 Ctrl+Alt+V 浮窗动效只闪一下
+
+### 现象
+
+维护者验证实验分段实时输入时，`Ctrl+Alt+V` 第一次按下后底部浮窗只短暂闪过录音动效，随后只剩黑色胶囊背景；第二次按下停止时又出现六个彩色点的转写动效。
+
+### 影响
+
+实际分段上屏已经可用，但浮窗反馈会误导用户：录音中看起来像卡住或没有录音，停止时又像进入了一个长时间转写阶段。对于当前实验分段实时输入模式，这个视觉语义不对。
+
+### 根因
+
+`Ctrl+Alt+V` 是切换录音快捷键。第一次按下会发送 `toggleStartRecording`，释放按键时会发送 `ignore`。旧的 `DictationOverlay` 收到 `ignore` 后把 mode 算成 `idle`，所以录音动效只闪一下就停了。
+
+第二次按下会发送 `toggleStopAndTranscribe`。旧逻辑把它和 `stopAndTranscribe` 一样映射为 `transcribing`，所以浮窗进入六点转写态。但当前 `Ctrl+Alt+V` 已经是录音中分段转写，不再需要一个明显的“停止后长转写”动效。
+
+### 修复
+
+- overlay 监听到 `ignore` 事件时不更新当前 payload，避免释放按键把录音态打回 idle。
+- `toggleStopAndTranscribe` 在 overlay 中继续保持 `recording` 视觉态，等待主流程停止录音后隐藏 overlay。
+- 保留 `Ctrl+Alt+Space` 的 `stopAndTranscribe -> transcribing` 映射，因为按住说话模式仍然是松开后整段转写。
+
+### 验证
+
+新增/更新 `src/DictationOverlay.test.tsx`：
+
+- `toggleStartRecording` 显示录音波形。
+- `ignore` 释放事件不改变录音波形。
+- `toggleStopAndTranscribe` 不再显示六点转写态。
+- `stopAndTranscribe` 仍显示六点转写态，保证按住说话模式不被破坏。
+
+局部验证：
+
+```bash
+npm test -- --run src/DictationOverlay.test.tsx
+```
+
+结果：1 个测试文件、5 个测试通过。
+
 ## 2026-05-28 Tauri 透明浮窗仍有浅色边框
 
 ### 现象

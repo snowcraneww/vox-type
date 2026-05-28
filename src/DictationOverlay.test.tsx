@@ -1,7 +1,21 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { DictationOverlay } from './DictationOverlay';
 import type { PushToTalkPayload } from './tauriClient';
+
+let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
+
+vi.mock('./tauriClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./tauriClient')>();
+  return {
+    ...actual,
+    isTauriRuntime: () => true,
+    listenToPushToTalk: vi.fn().mockImplementation((handler: (payload: PushToTalkPayload) => void) => {
+      pushToTalkHandler = handler;
+      return Promise.resolve(() => { pushToTalkHandler = null; });
+    }),
+  };
+});
 
 function payload(overrides: Partial<PushToTalkPayload>): PushToTalkPayload {
   return {
@@ -23,7 +37,7 @@ describe('DictationOverlay', () => {
     expect(document.querySelectorAll('.mini-wave-bar')).toHaveLength(0);
   });
 
-  it('renders transcribing copy after release', () => {
+  it('renders transcribing dots after push-to-talk release', () => {
     render(<DictationOverlay initialPayload={payload({ state: 'released', action: 'stopAndTranscribe' })} />);
 
     expect(screen.getByRole('status', { name: '桌面语音输入状态：正在识别' })).toBeInTheDocument();
@@ -39,10 +53,22 @@ describe('DictationOverlay', () => {
     expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
   });
 
-  it('treats toggle stop as transcribing', () => {
+  it('keeps toggle stop in recording mode because live chunks already transcribe during recording', () => {
     render(<DictationOverlay initialPayload={payload({ state: 'pressed', action: 'toggleStopAndTranscribe' })} />);
 
-    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在识别' })).toBeInTheDocument();
-    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'transcribing');
+    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在录音' })).toBeInTheDocument();
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
+    expect(document.querySelectorAll('.transcribing-dot')).toHaveLength(0);
+  });
+
+  it('ignores key release events that do not change dictation state', async () => {
+    render(<DictationOverlay initialPayload={payload({ state: 'pressed', action: 'toggleStartRecording' })} />);
+
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
+
+    await waitFor(() => expect(pushToTalkHandler).not.toBeNull());
+    pushToTalkHandler?.(payload({ state: 'released', action: 'ignore' }));
+
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
   });
 });

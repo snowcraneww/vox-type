@@ -12,7 +12,10 @@ function overlayMode(payload: PushToTalkPayload | null) {
   if (payload.action === 'startRecording' || payload.action === 'toggleStartRecording') {
     return 'recording';
   }
-  if (payload.action === 'stopAndTranscribe' || payload.action === 'toggleStopAndTranscribe') {
+  if (payload.action === 'toggleStopAndTranscribe') {
+    return 'recording';
+  }
+  if (payload.action === 'stopAndTranscribe') {
     return 'transcribing';
   }
   return 'idle';
@@ -41,6 +44,9 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
     let disposed = false;
     let unlisten: (() => void) | null = null;
     void listenToPushToTalk((nextPayload) => {
+      if (nextPayload.action === 'ignore') {
+        return;
+      }
       setPayload(nextPayload);
     }).then((nextUnlisten) => {
       if (disposed) {
