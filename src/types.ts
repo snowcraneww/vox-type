@@ -47,6 +47,13 @@ export interface Transcript {
   engine: string;
 }
 
+export interface LiveTranscriptionChunk {
+  transcript: Transcript;
+  fromSampleIndex: number;
+  toSampleIndex: number;
+  asrSampleCount: number;
+}
+
 export interface AsrConfig {
   whisperBinaryPath: string | null;
   whisperModelPath: string | null;

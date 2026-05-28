@@ -9,6 +9,71 @@
 - 涉及代码、命令、API、文件名和错误消息时保留原文。
 - 面向维护者的解释默认使用中文。
 
+## 2026-05-28 Windows WebView2/Tauri 透明浮窗残留白边调研补充
+
+### 问题
+
+维护者希望底部语音浮窗只显示黑色胶囊和波形，不显示胶囊外面的浅色或灰白色窗口底层。项目内已经把 overlay 页面根节点、`html`、`body`、`#root` 和胶囊外层容器都设为透明，并且 Tauri overlay 窗口使用无边框透明窗口，但 Windows 上仍可能看到浅色边缘。
+
+### 调研结论
+
+这不是 VoxType 单独遇到的问题。公开资料里常见到 Windows + WebView2 + Tauri 透明窗口出现白底、白边、resize 后才透明、ghost titlebar background 等现象。可参考：
+
+- Tauri issue `#4881`：Windows 上 `transparent: true` 仍可能先出现白底，需要 resize/crop 后才消失。
+- StackOverflow `Tauri transparent window only works when resized`：社区 workaround 包括先使用 `decorations: false`，再通过 JS API 调整窗口状态。
+- Tauri v2 `Window` / `WebviewWindow` API：提供 `setBackgroundColor`、`setShadow`、`setDecorations`、`setSize` 等接口，但这些接口在 Windows/WebView2 下有平台差异。
+- Tauri issue `#11654`：有人通过在 `tauri.conf.json` 里设置 `shadow: false` 修复窗口边框显示问题。
+- Tauri issue `#12450`：`transparent(true)` 在 Windows child window 场景下仍可能不按预期透明。
+
+### 为什么纯 CSS 很难彻底解决
+
+CSS 只能控制 WebView 里页面内容的背景和边框。当前看到的浅色层更像 WebView2 或宿主窗口的默认合成背景、阴影、非客户区残留或透明合成时机问题。也就是说，即使页面内部是透明的，外层 Windows 窗口或 WebView controller 仍可能先绘制一层背景。
+
+### 别人通常怎么处理
+
+- 继续使用 WebView overlay，但把窗口缩到尽量小，减少残留背景面积。
+- 关闭窗口装饰和阴影：`decorations: false`、`shadow: false`。
+- 在显示后强制 resize/repaint，规避“resize 后才透明”的 WebView2 现象。
+- 使用深色背景兜底，让残留背景和黑色胶囊视觉上接近。
+- 对要求极高的悬浮窗，放弃 WebView 渲染，改用原生 Win32/Direct2D/WinUI 轻量窗口绘制波形。
+
+### 当前项目判断
+
+VoxType 短期继续采用 Tauri WebView overlay，并使用小尺寸深色兜底。若后续要做到完全无白边、无浅色底、点击穿透和像系统输入法一样的精致浮窗，建议单独开一个 Windows native overlay 技术 spike，不再把这个问题当作普通 CSS 问题处理。
+
+## 2026-05-28 Ctrl+Alt+V 实验分段实时输入
+
+### 问题
+
+维护者希望 `Ctrl+Alt+V` 模式下按一次开始录音、再按一次停止，并且录音过程中尽量“边说边在光标处显示文字”。
+
+### 调研结论
+
+whisper.cpp 有 `examples/stream` / `whisper-stream` 示例，说明可以做近实时麦克风转写；但官方示例也描述为 naive realtime inference，本质是不断采集短音频片段再推理。更成熟的真正流式体验通常还需要 partial/final 文本合并、上下文窗口、VAD、去重和延迟控制。当前 VoxType 使用的是 `whisper-cli.exe` 整段命令行转写 adapter，不是 `whisper-stream`，所以不能直接声称是真流式 ASR。
+
+### 当前实现
+
+本轮实现的是实验分段实时输入：
+
+- Rust `RecordingSession` 新增 `asr_samples_from(from_sample_index)`，可以读取正在录音缓冲区的新增片段。
+- Rust `RecorderManager` 新增 `active_asr_samples_from`，返回新增片段和当前源样本游标。
+- Tauri command 新增 `transcribe_active_recording_chunk`，把正在录音中的新增片段重采样为 16 kHz 后交给 whisper.cpp 转写。
+- 前端 `Ctrl+Alt+V` 开始录音后，每隔约 4 秒请求一次新增片段转写；如果返回文本，就用现有剪贴板上屏策略粘贴到当前焦点应用。
+- 再按一次 `Ctrl+Alt+V` 会停止定时器、尝试处理最后一段并停止录音；如果期间没有任何实时片段成功上屏，会兜底走整段转写。
+
+### 限制和风险
+
+- 这不是完整流式 ASR，仍然是“定时切片 -> whisper-cli.exe -> 粘贴”。
+- 每段都单独识别，可能因为上下文不足导致漏字、重复或标点不稳定。
+- whisper.cpp 推理耗时如果超过 4 秒，前端会跳过重叠请求，避免并发推理，但实时感会下降。
+- 每次上屏仍使用剪贴板粘贴，可能影响用户剪贴板；后续更可靠路线是 SendInput 文本输入或 TSF。
+- 当前没有增量文本 diff 和替换机制，因此不会像成熟输入法那样先显示临时 partial 再修正 final。
+
+### 验证
+
+- `npm test -- --run src/App.test.tsx`：覆盖 `Ctrl+Alt+V` 录音中分段转写并上屏，以及有实时片段后停止时不再走整段兜底。
+- `cargo test --manifest-path src-tauri/Cargo.toml`：覆盖录音缓冲区按源样本游标读取增量片段。
+
 ## 2026-05-28 Tauri 透明浮窗仍有浅色边框
 
 ### 现象

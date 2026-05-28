@@ -91,6 +91,25 @@ impl RecordingSession {
     pub fn sample_count(&self) -> usize {
         self.buffer.samples.len()
     }
+
+    pub fn asr_samples_from(&self, from_sample_index: usize) -> Result<Vec<i16>, VoxError> {
+        if from_sample_index > self.buffer.samples.len() {
+            return Err(VoxError::Recorder(format!(
+                "录音片段起点超出当前样本数：{from_sample_index} > {}",
+                self.buffer.samples.len()
+            )));
+        }
+        let source_samples = &self.buffer.samples[from_sample_index..];
+        Ok(audio::resample_mono_i16(
+            source_samples,
+            self.buffer.sample_rate,
+            audio::TARGET_SAMPLE_RATE,
+        ))
+    }
+
+    pub fn source_sample_count(&self) -> usize {
+        self.buffer.samples.len()
+    }
 }
 
 fn peak_amplitude(samples: &[i16]) -> i16 {
@@ -287,6 +306,28 @@ impl RecorderManager {
         last_recording
             .clone()
             .ok_or_else(|| VoxError::Recorder("还没有可导出的录音".to_string()))
+    }
+
+    pub fn active_asr_samples_from(
+        &self,
+        from_sample_index: usize,
+    ) -> Result<(Vec<i16>, usize), VoxError> {
+        let active = self
+            .active
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音状态锁已损坏".to_string()))?;
+        let active = active
+            .as_ref()
+            .ok_or_else(|| VoxError::Recorder("没有正在进行的录音".to_string()))?;
+        let session = active
+            .session
+            .lock()
+            .map_err(|_| VoxError::Recorder("录音缓冲区锁已损坏".to_string()))?;
+        let end_sample_index = session.source_sample_count();
+        Ok((
+            session.asr_samples_from(from_sample_index)?,
+            end_sample_index,
+        ))
     }
 
     pub fn set_input_device(&self, device_name: Option<String>) -> Result<RecorderInfo, VoxError> {
@@ -524,6 +565,27 @@ mod tests {
 
         assert_eq!(result.peak_amplitude, 4000);
         assert!(result.rms_amplitude > 2800);
+    }
+
+    #[test]
+    fn recording_session_returns_asr_delta_from_source_index() {
+        let mut session = RecordingSession::new(16_000, 1);
+        session.push_interleaved_i16(&[0, 100, 200, 300]).unwrap();
+
+        let delta = session.asr_samples_from(2).unwrap();
+
+        assert_eq!(delta, vec![200, 300]);
+        assert_eq!(session.source_sample_count(), 4);
+    }
+
+    #[test]
+    fn recording_session_rejects_delta_start_past_current_samples() {
+        let mut session = RecordingSession::new(16_000, 1);
+        session.push_interleaved_i16(&[0, 100]).unwrap();
+
+        let error = session.asr_samples_from(3).unwrap_err();
+
+        assert!(error.to_string().contains("录音片段起点超出当前样本数"));
     }
 
     #[test]

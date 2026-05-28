@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, HotkeyRegistrationStatus, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -53,6 +53,10 @@ export async function simulateDictation(): Promise<AppStatus> {
 
 export async function transcribeLastRecording(): Promise<Transcript> {
   return invoke<Transcript>('transcribe_last_recording');
+}
+
+export async function transcribeActiveRecordingChunk(fromSampleIndex: number): Promise<LiveTranscriptionChunk> {
+  return invoke<LiveTranscriptionChunk>('transcribe_active_recording_chunk', { fromSampleIndex });
 }
 
 export async function transcribeLastRecordingAndInsert(): Promise<Transcript> {

@@ -3,7 +3,7 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { VoiceOverlay } from './VoiceOverlay';
 import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording } from './tauriClient';
 import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
@@ -16,6 +16,7 @@ interface DiagnosticEntry {
 
 const MAX_DIAGNOSTIC_ENTRIES = 100;
 const INSERT_DELAY_MS = 3000;
+const LIVE_TRANSCRIPTION_INTERVAL_MS = 4000;
 
 const defaultConfig: AppConfig = {
   hotkey: 'Ctrl+Alt+Space',
@@ -77,6 +78,10 @@ export function App() {
   const didLoadRuntime = useRef(false);
   const nextDiagnosticIdRef = useRef(2);
   const isRecordingRef = useRef(false);
+  const liveTimerRef = useRef<number | null>(null);
+  const liveCursorRef = useRef(0);
+  const liveInFlightRef = useRef(false);
+  const liveInsertedTextRef = useRef(false);
   const diagnosticsEndRef = useRef<HTMLDivElement | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([
     {
@@ -352,17 +357,96 @@ export function App() {
   async function handleStartRecording() {
     if (!isTauriRuntime()) {
       addDiagnostic({ title: '录音未启动', result: 'warning', detail: '浏览器预览模式不能访问系统麦克风录音流。' });
-      return;
+      return false;
     }
     try {
       const nextStatus = await startRecording();
       setRecordingStatus(nextStatus);
       setStatus({ phase: 'recording', message: '正在录音，说完后点击停止录音', lastTranscript: null });
       addDiagnostic({ title: '录音已启动', result: 'success', detail: `采样率 ${nextStatus.sampleRate ?? '未知'} Hz，输入声道 ${nextStatus.channels ?? '未知'}。` });
+      return true;
     } catch (error) {
       const detail = formatError(error);
       setStatus({ phase: 'failed', message: `启动录音失败：${detail}`, lastTranscript: null });
       addDiagnostic({ title: '启动录音失败', result: 'error', detail });
+      return false;
+    }
+  }
+
+  function stopLiveTranscriptionTimer() {
+    if (liveTimerRef.current !== null) {
+      window.clearInterval(liveTimerRef.current);
+      liveTimerRef.current = null;
+    }
+  }
+
+  async function processLiveTranscriptionChunk({ quietShortChunk = false } = {}) {
+    if (!isTauriRuntime() || liveInFlightRef.current) {
+      return;
+    }
+    liveInFlightRef.current = true;
+    try {
+      const chunk = await transcribeActiveRecordingChunk(liveCursorRef.current);
+      liveCursorRef.current = chunk.toSampleIndex;
+      const text = chunk.transcript.text.trim();
+      if (!text) {
+        return;
+      }
+      setStatus({ phase: 'recording', message: '实验实时输入中，继续说话即可分段上屏', lastTranscript: text });
+      await insertTextWithClipboard(text);
+      liveInsertedTextRef.current = true;
+      addDiagnostic({ title: '实验实时片段已上屏', result: 'success', detail: `${chunk.transcript.engine} 返回 ${chunk.asrSampleCount} 个 ASR 样本的片段：${text}` });
+    } catch (error) {
+      const detail = formatError(error);
+      if (quietShortChunk && detail.includes('录音片段太短')) {
+        return;
+      }
+      addDiagnostic({ title: '实验实时片段转写失败', result: 'warning', detail });
+    } finally {
+      liveInFlightRef.current = false;
+    }
+  }
+
+  async function handleStartLiveToggleRecording() {
+    const started = await handleStartRecording();
+    if (!started) {
+      return;
+    }
+    liveCursorRef.current = 0;
+    liveInsertedTextRef.current = false;
+    stopLiveTranscriptionTimer();
+    setStatus({ phase: 'recording', message: '实验实时输入中：会每隔几秒分段转写并上屏', lastTranscript: null });
+    addDiagnostic({ title: '实验实时输入已启动', result: 'info', detail: '当前不是 whisper.cpp 真流式 partial，而是录音中定时切片、转写新增片段并上屏。' });
+    liveTimerRef.current = window.setInterval(() => {
+      void processLiveTranscriptionChunk({ quietShortChunk: true });
+    }, LIVE_TRANSCRIPTION_INTERVAL_MS);
+  }
+
+  async function handleStopLiveToggleRecording() {
+    stopLiveTranscriptionTimer();
+    try {
+      await processLiveTranscriptionChunk({ quietShortChunk: true });
+      const audio = await stopRecording();
+      setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
+      if (!liveInsertedTextRef.current) {
+        setStatus({ phase: 'transcribing', message: '实时片段未产生文本，正在用整段录音兜底转写', lastTranscript: null });
+        const transcript = await transcribeLastRecording();
+        await insertTextWithClipboard(transcript.text);
+        setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: transcript.text });
+        addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
+      } else {
+        setStatus({ phase: 'succeeded', message: '实验实时输入已停止', lastTranscript: null });
+        addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: `采集到 ${audio.sampleCount} 个 mono 样本，已停止录音流。` });
+      }
+    } catch (error) {
+      const detail = formatError(error);
+      setRecordingStatus((current) => ({ ...current, state: 'idle' }));
+      setStatus({ phase: 'failed', message: `实验实时输入失败：${detail}`, lastTranscript: null });
+      addDiagnostic({ title: '实验实时输入失败', result: 'error', detail });
+    } finally {
+      await hideDictationOverlay().catch((error: unknown) => {
+        addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(error) });
+      });
     }
   }
 
@@ -537,11 +621,19 @@ export function App() {
         result: 'info',
         detail: `事件 ${payload.state}，动作 ${payload.action}。如果你在目标输入框里按快捷键但这里没有日志，说明系统没有把快捷键事件交给 VoxType。`,
       });
-      if ((payload.action === 'startRecording' || payload.action === 'toggleStartRecording') && !isRecordingRef.current) {
+      if (payload.action === 'toggleStartRecording' && !isRecordingRef.current) {
+        void handleStartLiveToggleRecording();
+        return;
+      }
+      if (payload.action === 'startRecording' && !isRecordingRef.current) {
         void handleStartRecording();
         return;
       }
-      if ((payload.action === 'stopAndTranscribe' || payload.action === 'toggleStopAndTranscribe') && isRecordingRef.current) {
+      if (payload.action === 'toggleStopAndTranscribe' && isRecordingRef.current) {
+        void handleStopLiveToggleRecording();
+        return;
+      }
+      if (payload.action === 'stopAndTranscribe' && isRecordingRef.current) {
         void handleStopTranscribeAndInsertNow();
       }
       })

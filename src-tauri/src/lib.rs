@@ -20,12 +20,22 @@ use config::AppConfig;
 use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
 use preferences::UserPreferences;
 use recorder::RecorderManager;
+use serde::Serialize;
 use state::AppStatus;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_global_shortcut::ShortcutState;
 
 type HotkeyStatusState = Mutex<hotkey::HotkeyRegistrationStatus>;
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveTranscriptionChunk {
+    pub transcript: Transcript,
+    pub from_sample_index: usize,
+    pub to_sample_index: usize,
+    pub asr_sample_count: usize,
+}
 
 #[tauri::command]
 fn get_config() -> AppConfig {
@@ -148,6 +158,41 @@ fn transcribe_last_recording(
         language: config.language,
     };
     engine.transcribe(&samples)
+}
+
+#[tauri::command]
+fn transcribe_active_recording_chunk(
+    app: AppHandle,
+    recorder: State<'_, RecorderManager>,
+    from_sample_index: usize,
+) -> Result<LiveTranscriptionChunk, error::VoxError> {
+    let config = asr_config::load_asr_config(app_config_dir(&app)?);
+    let status = asr_config::status_from_config(config.clone(), "runtime".to_string());
+    if !status.ready {
+        return Err(error::VoxError::Config(status.message));
+    }
+    let (samples, to_sample_index) = recorder.active_asr_samples_from(from_sample_index)?;
+    if samples.len() < audio::TARGET_SAMPLE_RATE as usize {
+        return Err(error::VoxError::Recorder(
+            "录音片段太短，暂不转写".to_string(),
+        ));
+    }
+    let engine = WhisperCppEngine {
+        binary_path: config
+            .whisper_binary_path
+            .expect("ready config has binary path"),
+        model_path: config
+            .whisper_model_path
+            .expect("ready config has model path"),
+        language: config.language,
+    };
+    let transcript = engine.transcribe(&samples)?;
+    Ok(LiveTranscriptionChunk {
+        transcript,
+        from_sample_index,
+        to_sample_index,
+        asr_sample_count: samples.len(),
+    })
 }
 
 #[tauri::command]
@@ -307,6 +352,7 @@ pub fn run() {
             save_asr_config,
             install_managed_asr,
             transcribe_last_recording,
+            transcribe_active_recording_chunk,
             transcribe_last_recording_and_insert,
             export_last_recording_wav,
             insert_text_with_clipboard,
@@ -329,5 +375,22 @@ mod tests {
             status.last_transcript.as_deref(),
             Some("这是 VoxType 的模拟转写结果。")
         );
+    }
+
+    #[test]
+    fn live_transcription_chunk_records_sample_range() {
+        let chunk = LiveTranscriptionChunk {
+            transcript: Transcript {
+                text: "你好".to_string(),
+                engine: "mock".to_string(),
+            },
+            from_sample_index: 10,
+            to_sample_index: 42,
+            asr_sample_count: 32,
+        };
+
+        assert_eq!(chunk.from_sample_index, 10);
+        assert_eq!(chunk.to_sample_index, 42);
+        assert_eq!(chunk.transcript.text, "你好");
     }
 }

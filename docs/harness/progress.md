@@ -33,6 +33,18 @@
 - 修复：补齐 overlay 对 toggle action 的状态映射；overlay 背景改为黑色兜底；主窗口录音状态视觉改为黑色胶囊声波，贴近桌面浮窗风格。
 - 局部验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过；`npm test -- --run src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx src/App.test.tsx` 通过，3 个测试文件、13 个测试通过；`npm run typecheck` 通过。
 
+## 2026-05-28 实验分段实时输入与透明浮窗调研
+
+- 维护者追问 Windows WebView2/Tauri 透明浮窗浅色边缘是否有理论解决办法，以及别人如何解决。
+- 使用 `web-search` 调研 Tauri/WebView2 透明窗口公开问题：Tauri issue `#4881`、StackOverflow `Tauri transparent window only works when resized`、Tauri v2 window API、Tauri issue `#11654`、Tauri issue `#12450` 均显示 Windows 透明窗口存在平台差异或 workaround。
+- 当前判断：这更像 WebView2/Tauri/Windows 宿主窗口合成层限制，不是普通 CSS 边框。短期策略是小尺寸深色兜底；若要彻底无白边，后续建议做 Win32/Direct2D/WinUI native overlay spike。
+- 使用 `web-search` 调研 whisper.cpp 实时转写：`examples/stream` / `whisper-stream` 可以做 naive realtime inference，但当前项目的 adapter 是 `whisper-cli.exe` 整段命令行转写，不是真流式 ASR。
+- 本轮实现实验分段实时输入：`Ctrl+Alt+V` 开始录音后，前端每约 4 秒请求一次正在录音缓冲区的新增片段，Rust 将新增片段重采样为 16 kHz 后交给 whisper.cpp 转写，返回文本后立即通过剪贴板策略上屏。
+- Rust 新增 `RecordingSession::asr_samples_from`、`RecorderManager::active_asr_samples_from` 和 Tauri command `transcribe_active_recording_chunk`。
+- 前端新增 `transcribeActiveRecordingChunk` client、`LiveTranscriptionChunk` 类型和 `Ctrl+Alt+V` 分段上屏逻辑；若没有任何分段文本成功上屏，停止时会用整段转写兜底。
+- 已记录详细问题、原因、方案和限制到 `docs/harness/debugging-log.md`。
+- 局部验证：`npm test -- --run src/App.test.tsx` 通过，6 个测试通过。
+
 ## 2026-05-27 开源隐私清理
 
 - 维护者指出 Git commit 元数据中泄露个人信息。

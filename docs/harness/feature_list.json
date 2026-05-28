@@ -181,7 +181,7 @@
             "priority": 7,
             "area": "implementation",
             "title": "V3 界面精修与切换录音模式",
-            "user_visible_behavior": "维护者可以看到更精致紧凑的深色主界面和诊断工作台；除了 Ctrl+Alt+Space 按住说话，还可以用 Ctrl+Alt+V 按一次开始录音、再按一次停止转写并上屏。",
+            "user_visible_behavior": "维护者可以看到更精致紧凑的深色主界面和诊断工作台；除了 Ctrl+Alt+Space 按住说话，还可以用 Ctrl+Alt+V 按一次开始录音、录音中实验性分段转写并上屏、再按一次停止。",
             "status": "in_progress",
             "verification": [
                 "运行 npm test -- --run。",
@@ -198,9 +198,10 @@
                 "2026-05-28: 使用 web-search 和 GitHub issue 调研 Tauri/WebView2 透明窗口浅色边框、ghost titlebar 和背景闪烁问题，记录为平台风险。",
                 "2026-05-28: 使用 TDD 新增 ToggleDictationState 和前端 toggle shortcut 闭环测试；cargo test --manifest-path src-tauri/Cargo.toml hotkey 通过，npm test -- --run src/App.test.tsx 通过。",
                 "2026-05-28: 修正快捷键分发为比较 Shortcut id，避免依赖 global-hotkey 的 Display 字符串格式。",
-                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、17 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，47 个 Rust 测试通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
+                "2026-05-28: 调研 Windows WebView2/Tauri 透明窗口白边问题和 whisper.cpp realtime/stream 示例；实现 Ctrl+Alt+V 实验分段实时输入，录音中定时转写新增片段并通过剪贴板上屏。",
+                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、20 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，50 个 Rust 测试通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
             ],
-            "notes": "当前 V3 实现的是停止后统一转写并上屏，不是实时流式 ASR。真正边说边出字需要后续引入流式或分块 ASR、增量文本 diff 和更可靠的上屏策略。"
+            "notes": "当前 V3 已加入实验分段实时输入：Ctrl+Alt+V 录音中会定时切片、调用 whisper-cli.exe 转写新增片段并上屏。它还不是真正流式 ASR，没有 partial/final 文本合并、增量 diff、VAD 和 TSF 上屏；后续仍需继续引入更成熟的流式或分块 ASR 与更可靠的上屏策略。"
         }
     ]
 }

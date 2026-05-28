@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { hideDictationOverlay, insertTextWithClipboard, startRecording, stopRecording, transcribeLastRecording } from './tauriClient';
+import { hideDictationOverlay, insertTextWithClipboard, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
@@ -20,6 +20,7 @@ vi.mock('./tauriClient', async (importOriginal) => {
     startRecording: vi.fn().mockResolvedValue({ state: 'recording', sampleRate: 44100, channels: 1, sampleCount: 0, durationMs: 0 }),
     stopRecording: vi.fn().mockResolvedValue({ sampleRate: 44100, channels: 1, sampleCount: 32000, durationMs: 2000, asrSampleRate: 16000, asrSampleCount: 32000, asrDurationMs: 2000, peakAmplitude: 12000, rmsAmplitude: 1600 }),
     transcribeLastRecording: vi.fn().mockResolvedValue({ engine: 'whisper.cpp', text: '测试文本' }),
+    transcribeActiveRecordingChunk: vi.fn().mockResolvedValue({ transcript: { engine: 'whisper.cpp', text: '实时片段' }, fromSampleIndex: 0, toSampleIndex: 44100, asrSampleCount: 16000 }),
     insertTextWithClipboard: vi.fn().mockResolvedValue(undefined),
     hideDictationOverlay: vi.fn().mockResolvedValue(undefined),
     listenToPushToTalk: vi.fn().mockImplementation((handler: (payload: PushToTalkPayload) => void) => {
@@ -34,6 +35,7 @@ describe('App', () => {
     vi.mocked(startRecording).mockClear();
     vi.mocked(stopRecording).mockClear();
     vi.mocked(transcribeLastRecording).mockClear();
+    vi.mocked(transcribeActiveRecordingChunk).mockClear();
     vi.mocked(insertTextWithClipboard).mockClear();
     vi.mocked(hideDictationOverlay).mockClear();
   });
@@ -89,9 +91,34 @@ describe('App', () => {
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
 
     await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
-    expect(transcribeLastRecording).toHaveBeenCalledTimes(1);
-    expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本');
+    expect(transcribeActiveRecordingChunk).toHaveBeenCalledWith(0);
+    expect(transcribeLastRecording).not.toHaveBeenCalled();
+    expect(insertTextWithClipboard).toHaveBeenCalledWith('实时片段');
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
+  });
+
+  it('streams an active recording chunk while toggle dictation is recording', async () => {
+    render(<App />);
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+        await Promise.resolve();
+      });
+      expect(startRecording).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4200);
+        await Promise.resolve();
+      });
+
+      expect(transcribeActiveRecordingChunk).toHaveBeenCalledWith(0);
+      expect(insertTextWithClipboard).toHaveBeenCalledWith('实时片段');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('opens the diagnostic workbench on request', () => {

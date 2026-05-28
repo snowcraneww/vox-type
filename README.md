@@ -2,14 +2,14 @@
 
 VoxType 是一个早期开源项目，目标是探索本地优先、隐私友好的语音输入法体验。
 
-当前仓库已完成 harness 初始化、产品发现、第一轮开源调研、MVP 技术方向确认和第一版 MVP proof-of-life。产品代码已有 Tauri 2 + React/TypeScript + Rust 桌面应用骨架，已接入录音采集、whisper.cpp 一键安装/转写、诊断日志、输入设备选择与持久化、全局按住说话、全局切换录音、剪贴板上屏和 Windows 安装包；`docs/plans/原始需求.md` 是原始需求草稿，不代表最终技术方案。
+当前仓库已完成 harness 初始化、产品发现、第一轮开源调研、MVP 技术方向确认和第一版 MVP proof-of-life。产品代码已有 Tauri 2 + React/TypeScript + Rust 桌面应用骨架，已接入录音采集、whisper.cpp 一键安装/转写、实验分段实时输入、诊断日志、输入设备选择与持久化、全局按住说话、全局切换录音、剪贴板上屏和 Windows 安装包；`docs/plans/原始需求.md` 是原始需求草稿，不代表最终技术方案。
 
 ## 目标方向
 
 VoxType 计划优先验证这些能力：
 
 - 按住说话、松开转写并输入到当前光标位置。
-- 按一次开始录音、再按一次停止并输入到当前光标位置。
+- 按一次开始录音、再按一次停止并输入到当前光标位置；当前 `Ctrl+Alt+V` 模式已支持实验分段实时输入，但还不是真正的流式 ASR。
 - 本地语音识别优先，尽量减少网络依赖。
 - 面向 Windows 先做可用 MVP，再评估 macOS/Linux。
 - 开源协作友好：需求、设计、验证和进度都沉淀在仓库内。
@@ -40,7 +40,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-当前应用提供深色 V3 主界面、彩色流光语音波纹、诊断模式、输入设备选择和持久化、全局 `Ctrl+Alt+Space` 按住说话、全局 `Ctrl+Alt+V` 切换录音、真实录音采集、whisper.cpp 一键安装、最近录音转写、剪贴板上屏、诊断日志、诊断 WAV 导出和 Windows 安装包。识别质量仍取决于输入设备、录音质量和模型选择。
+当前应用提供深色 V3 主界面、彩色流光语音波纹、诊断模式、输入设备选择和持久化、全局 `Ctrl+Alt+Space` 按住说话、全局 `Ctrl+Alt+V` 切换录音、实验分段实时输入、真实录音采集、whisper.cpp 一键安装、最近录音转写、剪贴板上屏、诊断日志、诊断 WAV 导出和 Windows 安装包。识别质量仍取决于输入设备、录音质量和模型选择。
 
 ## 重要文档
 
