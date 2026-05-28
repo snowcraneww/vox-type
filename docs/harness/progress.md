@@ -3,14 +3,25 @@
 ## 当前已验证状态
 
 - 仓库根目录：`C:/grace_repos/open-source/vox-type`
-- 当前阶段：MVP proof-of-life 和 V2 日常输入体验已完成，当前进入 V3 界面精修、切换录音模式和透明浮窗平台限制调研阶段。
+- 当前阶段：MVP proof-of-life、V2 日常输入体验和 V3 切换录音模式已完成，当前进入 V4 原生桌面浮窗去除外层白灰框与视觉恢复阶段。
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`v3-001`，界面精修与切换录音模式。
+- 当前最高优先级未完成项：`v4-001`，原生桌面浮窗去除外层白灰框与视觉恢复。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
+
+## 2026-05-28 V4 原生浮窗视觉恢复
+
+- 维护者手动验证 `native-win32` 浮窗后确认：诊断模式无报错，浮窗外层白/灰矩形框已经消失。
+- 维护者反馈：原生 GDI 版本虽然解决外框，但视觉比之前 WebView/SVG 版本粗糙，希望恢复彩色频谱柱录音态和六点转写态。
+- 本轮没有修改 `asr`、`audio`、`recorder`、`whisper.cpp` adapter 或剪贴板上屏链路；识别准确率理论上不应由本轮 overlay 改动引起。
+- 原生浮窗继续使用 Win32 `WS_POPUP`、`WS_EX_LAYERED`、`WS_EX_NOACTIVATE`、`CreateRoundRectRgn` 和 `SetWindowRgn`，这是去除外层白/灰矩形的关键。
+- 为避免测试二进制继续引入额外 Win32 入口点，移除项目对 `windows-sys` 的显式依赖，改为在 `native_overlay.rs` 内声明最小 Win32 FFI。
+- 原生绘制恢复为 20 根彩色频谱柱录音态和 6 个彩色点转写态，背景/描边统一为深黑，减少可见边缘。
+- 自动验证：`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`npm test -- --run` 通过，6 个测试文件、21 个测试通过；`npm run typecheck` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`npm run build` 通过。
+- 已知限制：`cargo test --manifest-path src-tauri/Cargo.toml overlay` 当前在测试 exe 启动阶段失败，错误为 `STATUS_ENTRYPOINT_NOT_FOUND`；PE 导入表显示测试二进制仍导入 `user32.dll!SetWindowDisplayAffinity`，属于当前 Windows 测试环境/依赖链入口点问题，不是 overlay 断言失败。
 
 ## 2026-05-28 V3 界面精修与切换录音模式
 

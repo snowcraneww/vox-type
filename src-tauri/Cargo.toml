@@ -28,12 +28,6 @@ zip = "6.0"
 [target.'cfg(windows)'.dependencies]
 arboard = "3.6"
 enigo = "0.6"
-windows-sys = { version = "0.61", features = [
-  "Win32_Foundation",
-  "Win32_Graphics_Gdi",
-  "Win32_System_LibraryLoader",
-  "Win32_UI_WindowsAndMessaging",
-] }
 
 [dev-dependencies]
 tempfile = "3.23"

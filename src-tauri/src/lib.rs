@@ -338,7 +338,7 @@ fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::
                     }
                     hotkey::PushToTalkAction::StopAndTranscribe
                     | hotkey::PushToTalkAction::ToggleStopAndTranscribe => {
-                        if let Err(error) = overlay::show_dictation_overlay(app) {
+                        if let Err(error) = overlay::show_transcribing_overlay(app) {
                             eprintln!("failed to keep dictation overlay visible: {error}");
                         }
                     }

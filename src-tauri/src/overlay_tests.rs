@@ -47,6 +47,18 @@ fn overlay_backend_result_reports_native_success() {
 }
 
 #[test]
+fn transcribing_overlay_command_is_available() {
+    let command: fn(&tauri::AppHandle) -> Result<(), crate::error::VoxError> =
+        crate::overlay::show_transcribing_overlay;
+
+    assert!(!std::ptr::fn_addr_eq(
+        command,
+        crate::overlay::show_dictation_overlay
+            as fn(&tauri::AppHandle) -> Result<(), crate::error::VoxError>
+    ));
+}
+
+#[test]
 fn overlay_backend_result_reports_webview_fallback_reason() {
     let status = crate::overlay::resolve_overlay_backend(OverlayBackendResult::FallbackWebview {
         error: "native overlay failed".to_string(),

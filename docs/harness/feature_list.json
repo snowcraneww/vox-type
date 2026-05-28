@@ -234,9 +234,12 @@
                 "2026-05-28: V4 第一阶段 webview-shadowless 已实现：dictation-overlay 设置 shadow: false，诊断模式显示桌面浮窗后端 webview-shadowless，并新增 overlay 配置/后端状态测试。",
                 "2026-05-28: 第一阶段自动验证通过：npm test -- --run 通过，6 个测试文件、21 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，54 个 Rust 测试通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings 通过；npm run build 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。",
                 "2026-05-28: V4 第二阶段 native-win32 原型已接入：新增 Windows 原生 layered popup 浮窗，优先使用 native-win32，失败时回退 fallback-webview；诊断模式显示当前 overlay backend。",
-                "2026-05-28: TDD 验证通过：cargo test --manifest-path src-tauri/Cargo.toml overlay_backend 通过，3 个后端决策测试通过。"
+                "2026-05-28: TDD 验证通过：cargo test --manifest-path src-tauri/Cargo.toml overlay_backend 通过，3 个后端决策测试通过。",
+                "2026-05-28: 维护者手动验证 native-win32 浮窗外层白/灰矩形框已经消失；本轮继续恢复原生绘制的录音态 20 根彩色频谱柱和转写态 6 个彩色点。",
+                "2026-05-28: 自动验证通过：cargo check --manifest-path src-tauri/Cargo.toml --lib、npm test -- --run、npm run typecheck、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、cargo fmt --all --manifest-path src-tauri/Cargo.toml --check、npm run build 均通过。",
+                "2026-05-28: 已知限制：cargo test --manifest-path src-tauri/Cargo.toml overlay 当前因测试 exe 启动阶段 STATUS_ENTRYPOINT_NOT_FOUND 失败，PE 导入表显示 user32.dll!SetWindowDisplayAffinity；该问题已记录到 docs/harness/debugging-log.md。"
             ],
-            "notes": "V4 已从 webview-shadowless 进入 native-win32 原生浮窗原型。当前自动测试覆盖后端状态和回退决策；仍需维护者人工确认 native-win32 桌面浮窗外侧是否已经没有白/灰矩形，以及录音、转写、上屏链路是否不受影响。"
+            "notes": "V4 已从 webview-shadowless 进入 native-win32 原生浮窗原型。维护者已确认外层白/灰矩形框消失；当前继续恢复原生绘制视觉质量。录音、转写、上屏链路未被本轮 overlay 改动修改，仍需维护者手动确认视觉恢复后的最终效果。"
         }
     ]
 }

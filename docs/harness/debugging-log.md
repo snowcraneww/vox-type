@@ -9,6 +9,51 @@
 - 涉及代码、命令、API、文件名和错误消息时保留原文。
 - 面向维护者的解释默认使用中文。
 
+## 2026-05-28 native-win32 浮窗去框成功但视觉降级
+
+### 现象
+
+维护者验证 `native-win32` 原生浮窗后确认：诊断模式没有报错，点击浮窗后只显示黑色胶囊，原先 WebView/Tauri 外层白色或灰色矩形框已经消失。但新浮窗的 GDI 绘制比之前 WebView/SVG 版本粗糙，分辨率感较差，缺少之前彩色频谱柱和六点转写态的视觉记忆。
+
+维护者同时反馈识别准确率似乎没有以前高。
+
+### 影响
+
+- 外层白/灰框问题已经被原生窗口路线绕开，这是 V4 的核心目标。
+- 视觉质量仍未达到之前 WebView/SVG 版本，需要在原生绘制层继续恢复。
+- 准确率反馈需要和 overlay 改动拆开看，避免把 UI 改动误判成 ASR 质量改动。
+
+### 根因
+
+外层白/灰框来自 WebView2/Tauri 透明窗口宿主层，而不是页面 CSS。`native-win32` 成功的关键是不用 WebView 承载透明背景，而是创建独立 Win32 popup window，并用 `CreateRoundRectRgn` + `SetWindowRgn` 把窗口本身裁剪成胶囊。这样窗口矩形区域本身不再存在，自然不会露出 WebView 宿主白底。
+
+视觉降级的根因是渲染栈从浏览器 SVG/CSS 动画切到了 Win32 GDI。GDI 的圆角、柔光、抗锯齿和渐变能力都比 SVG/CSS 弱；当前只能用多层深色/彩色 `RoundRect` 近似之前的频谱柱和光感。若要达到 WebView/SVG 级别的细腻度，后续应评估 GDI+、Direct2D 或 WinUI/Composition overlay。
+
+准确率方面，本轮 overlay 改动没有修改录音采集、重采样、whisper.cpp 参数、模型路径、ASR prompt 或上屏策略。因此如果继续出现准确率变化，优先排查输入音频、模型、语言参数和 `last-asr-input.wav`，而不是 overlay 绘制。
+
+### 修复
+
+- 保留 `native-win32` 作为优先 overlay backend，保留 WebView overlay 作为 fallback。
+- 原生浮窗继续使用 `WS_POPUP`、`WS_EX_LAYERED`、`WS_EX_TOOLWINDOW`、`WS_EX_TOPMOST`、`WS_EX_NOACTIVATE`。
+- 原生浮窗使用 `CreateRoundRectRgn` + `SetWindowRgn` 裁剪窗口形状，避免 WebView 外层矩形。
+- 录音态从低保真线条恢复为 20 根彩色频谱柱，并加入暗色柔光近似旧 SVG 的流光感。
+- 转写态恢复为 6 个彩色点，并保留暗色频谱底纹，避免看起来像黑胶囊卡住。
+- 背景和描边统一为深黑，减少边缘可见感。
+- 删除 `windows-sys` 显式依赖，改为在 `native_overlay.rs` 声明项目实际使用的最小 Win32 FFI，降低测试二进制导入额外系统入口点的概率。
+
+### 验证
+
+- `cargo check --manifest-path src-tauri/Cargo.toml --lib`：通过。
+- `npm test -- --run`：通过，6 个测试文件、21 个测试通过。
+- `npm run typecheck`：通过。
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`：通过。
+- `cargo fmt --all --manifest-path src-tauri/Cargo.toml --check`：通过。
+- `npm run build`：通过。
+
+### 已知限制
+
+`cargo test --manifest-path src-tauri/Cargo.toml overlay` 当前在 Windows 测试 exe 启动阶段失败，错误为 `STATUS_ENTRYPOINT_NOT_FOUND`。PE 导入表确认测试二进制仍包含 `user32.dll!SetWindowDisplayAffinity`。这发生在测试 harness 启动前，不是某个 overlay 单元测试断言失败。后续需要单独处理 Windows 测试环境或 Tauri/窗口依赖链导入问题。
+
 ## 2026-05-28 Windows WebView2/Tauri 透明浮窗残留白边调研补充
 
 ### 问题

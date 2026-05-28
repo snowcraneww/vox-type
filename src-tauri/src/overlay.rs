@@ -53,7 +53,21 @@ pub fn backend_status() -> OverlayBackendStatus {
 }
 
 pub fn show_dictation_overlay(app: &AppHandle) -> Result<(), VoxError> {
-    match crate::native_overlay::show_native_overlay() {
+    show_overlay_with_native_result(app, crate::native_overlay::show_native_overlay())
+}
+
+pub fn show_transcribing_overlay(app: &AppHandle) -> Result<(), VoxError> {
+    show_overlay_with_native_result(
+        app,
+        crate::native_overlay::show_native_transcribing_overlay(),
+    )
+}
+
+fn show_overlay_with_native_result(
+    app: &AppHandle,
+    native_result: Result<(), VoxError>,
+) -> Result<(), VoxError> {
+    match native_result {
         Ok(()) => {
             set_backend_status(resolve_overlay_backend(OverlayBackendResult::Native));
             if let Some(window) = app.get_webview_window(DICTATION_OVERLAY_LABEL) {
