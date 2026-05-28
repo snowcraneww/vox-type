@@ -669,7 +669,7 @@ body:has(.user-shell) {
 
 body:has(.overlay-root),
 body.overlay-document {
-  background: transparent;
+  background: #000;
   min-height: 100vh;
   overflow: hidden;
 }
@@ -680,7 +680,7 @@ html:has(.overlay-root) #root,
 html.overlay-document,
 html.overlay-document body,
 html.overlay-document #root {
-  background: transparent;
+  background: #000;
 }
 
 html:has(.overlay-root)::before,
@@ -739,19 +739,39 @@ h1 { font-size: 28px; font-weight: 720; }
 }
 
 .voice-overlay {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.052), rgba(255,255,255,0.020)),
-    rgba(6, 8, 13, 0.80);
-  border-color: rgba(255,255,255,0.075);
-  border-radius: 14px;
-  min-height: 128px;
-  padding: 10px;
+  background: #020204;
+  border-color: rgba(255,255,255,0.12);
+  border-radius: 999px;
+  box-shadow: 0 18px 54px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.10);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 1fr);
+  min-height: 92px;
+  padding: 14px 16px;
 }
 
 .voice-wave-stage {
-  border-radius: 14px;
-  height: 64px;
+  background: #000;
+  border-color: rgba(255,255,255,0.16);
+  border-radius: 999px;
+  height: 58px;
+  min-width: 150px;
 }
+
+.voice-wave-bars {
+  gap: 3px;
+  grid-template-columns: repeat(20, 1fr);
+  inset: 13px 16px;
+}
+
+.voice-wave-bar {
+  background: linear-gradient(180deg, #7ee7ff 0%, #34c759 26%, #ffd60a 48%, #ff2d92 72%, #bf5af2 100%);
+  box-shadow: 0 0 14px rgba(90,200,250,0.34), 0 0 20px rgba(255,45,146,0.14);
+  min-height: 8px;
+}
+
+.voice-wave-ribbon { height: 16px; opacity: 0.58; }
+.voice-glow-core { height: 52px; width: 52px; }
 
 .voice-overlay-copy strong {
   font-size: 13px;

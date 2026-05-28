@@ -25,6 +25,14 @@
 - 调研 Tauri/WebView2 透明窗口浅色边框问题，记录到 `docs/harness/debugging-log.md`。当前判断更像 Windows WebView2/Tauri 透明窗口渲染限制，不作为 V3 阻塞项。
 - 局部验证：`cargo test --manifest-path src-tauri/Cargo.toml hotkey` 通过，7 个 hotkey 测试通过；`npm test -- --run src/App.test.tsx` 通过，5 个前端测试通过；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过。
 
+## 2026-05-28 Ctrl+Alt+V 浮窗动效修复
+
+- 维护者反馈：`Ctrl+Alt+V` 切换录音模式下，桌面浮窗会出现但没有录音动效，也没有边说边在目标窗口显示文字。
+- 根因 1：`DictationOverlay` 没有把 `toggleStartRecording` / `toggleStopAndTranscribe` 映射到 recording/transcribing 状态。
+- 根因 2：当前 ASR 仍是停止后整段调用 whisper.cpp，不是流式 ASR，因此不能实时上屏。
+- 修复：补齐 overlay 对 toggle action 的状态映射；overlay 背景改为黑色兜底；主窗口录音状态视觉改为黑色胶囊声波，贴近桌面浮窗风格。
+- 局部验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过；`npm test -- --run src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx src/App.test.tsx` 通过，3 个测试文件、13 个测试通过；`npm run typecheck` 通过。
+
 ## 2026-05-27 开源隐私清理
 
 - 维护者指出 Git commit 元数据中泄露个人信息。

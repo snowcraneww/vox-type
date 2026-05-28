@@ -31,4 +31,18 @@ describe('DictationOverlay', () => {
     expect(document.querySelectorAll('.transcribing-dot')).toHaveLength(6);
     expect(document.querySelectorAll('.ripple-line')).toHaveLength(0);
   });
+
+  it('treats toggle start as active recording', () => {
+    render(<DictationOverlay initialPayload={payload({ state: 'pressed', action: 'toggleStartRecording' })} />);
+
+    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在录音' })).toBeInTheDocument();
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
+  });
+
+  it('treats toggle stop as transcribing', () => {
+    render(<DictationOverlay initialPayload={payload({ state: 'pressed', action: 'toggleStopAndTranscribe' })} />);
+
+    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在识别' })).toBeInTheDocument();
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'transcribing');
+  });
 });

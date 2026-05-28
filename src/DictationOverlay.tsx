@@ -9,10 +9,10 @@ function overlayMode(payload: PushToTalkPayload | null) {
   if (!payload) {
     return 'idle';
   }
-  if (payload.action === 'startRecording') {
+  if (payload.action === 'startRecording' || payload.action === 'toggleStartRecording') {
     return 'recording';
   }
-  if (payload.action === 'stopAndTranscribe') {
+  if (payload.action === 'stopAndTranscribe' || payload.action === 'toggleStopAndTranscribe') {
     return 'transcribing';
   }
   return 'idle';

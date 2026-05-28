@@ -6,7 +6,7 @@ interface VoiceOverlayProps {
 
 export function VoiceOverlay({ model }: VoiceOverlayProps) {
   const levelStyle = { '--voice-level': model.level.toFixed(2) } as React.CSSProperties;
-  const waveBars = Array.from({ length: 24 }, (_, index) => index);
+  const waveBars = Array.from({ length: 20 }, (_, index) => index);
 
   return (
     <aside className="voice-overlay" data-mode={model.mode} role="status" aria-label={`语音输入状态：${model.title}`} style={levelStyle}>
