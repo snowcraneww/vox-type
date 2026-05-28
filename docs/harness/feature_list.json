@@ -182,7 +182,7 @@
             "area": "implementation",
             "title": "V3 界面精修与切换录音模式",
             "user_visible_behavior": "维护者可以看到更精致紧凑的深色主界面和诊断工作台；除了 Ctrl+Alt+Space 按住说话，还可以用 Ctrl+Alt+V 按一次开始录音、录音中实验性分段转写并上屏、再按一次停止。",
-            "status": "in_progress",
+            "status": "passing",
             "verification": [
                 "运行 npm test -- --run。",
                 "运行 npm run typecheck。",
@@ -191,7 +191,8 @@
                 "运行 cargo fmt --all --manifest-path src-tauri/Cargo.toml --check。",
                 "运行 git diff --check。",
                 "手动验证 Ctrl+Alt+V 第一次触发开始录音，第二次触发停止、转写并上屏。",
-                "手动验证主界面和诊断模式视觉密度比 V2 更轻、更精致。"
+                "手动验证主界面和诊断模式视觉密度比 V2 更轻、更精致。",
+                "手动验证 Ctrl+Alt+V 停止时最后短句会补转写并上屏。"
             ],
             "evidence": [
                 "2026-05-28: 写入 docs/superpowers/specs/2026-05-28-v3-ui-and-toggle-dictation-design.md 和 docs/superpowers/plans/2026-05-28-v3-ui-and-toggle-dictation.md。",
@@ -201,9 +202,37 @@
                 "2026-05-28: 调研 Windows WebView2/Tauri 透明窗口白边问题和 whisper.cpp realtime/stream 示例；实现 Ctrl+Alt+V 实验分段实时输入，录音中定时转写新增片段并通过剪贴板上屏。",
                 "2026-05-28: 修复 Ctrl+Alt+V 浮窗动效只闪一下的问题：overlay 忽略 ignore 释放事件，toggleStopAndTranscribe 不再进入六点转写态；原生 Windows overlay 作为下一版本独立规划。",
                 "2026-05-28: 修复 Ctrl+Alt+V 停止时最后短句可能丢失的问题：停止后从完整最近录音按实时游标转写尾段，避免不足 1 秒 active chunk 被静默跳过。",
-                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、21 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，52 个 Rust 测试通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
+                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、21 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，52 个 Rust 测试通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。",
+                "2026-05-28: 维护者手动验证 Ctrl+Alt+V 尾段修复通过，确认该功能可以先收尾并进入下一版本规划。"
             ],
-            "notes": "当前 V3 已加入实验分段实时输入：Ctrl+Alt+V 录音中会定时切片、调用 whisper-cli.exe 转写新增片段并上屏。它还不是真正流式 ASR，没有 partial/final 文本合并、增量 diff、VAD 和 TSF 上屏；后续仍需继续引入更成熟的流式或分块 ASR 与更可靠的上屏策略。"
+            "notes": "V3 已完成：Ctrl+Alt+V 录音中会定时切片、调用 whisper-cli.exe 转写新增片段并上屏；停止后会按实时游标补转写尾段，避免最后短句丢失。它还不是真正流式 ASR，没有 partial/final 文本合并、增量 diff、VAD 和 TSF 上屏；后续仍需继续引入更成熟的流式或分块 ASR 与更可靠的上屏策略。"
+        },
+        {
+            "id": "v4-001",
+            "priority": 8,
+            "area": "implementation",
+            "title": "V4 原生桌面浮窗去除外层白灰框",
+            "user_visible_behavior": "维护者按 Ctrl+Alt+Space 或 Ctrl+Alt+V 时，屏幕底部只看到小型黑色胶囊和五彩声波，不再看到 Tauri/WebView2 外层白色、灰色或浅色矩形边框。",
+            "status": "in_progress",
+            "verification": [
+                "运行 npm test -- --run。",
+                "运行 npm run typecheck。",
+                "运行 cargo test --manifest-path src-tauri/Cargo.toml。",
+                "运行 cargo fmt --all --manifest-path src-tauri/Cargo.toml --check。",
+                "运行 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings。",
+                "运行 npm run build。",
+                "运行 python -m json.tool docs/harness/feature_list.json。",
+                "运行 git diff --check。",
+                "手动验证诊断模式能显示当前 overlay backend。",
+                "手动验证测试桌面浮窗、Ctrl+Alt+Space 和 Ctrl+Alt+V 的底部浮窗外侧没有白/灰矩形边框。",
+                "手动验证 overlay 改动不影响录音、转写和上屏。"
+            ],
+            "evidence": [
+                "2026-05-28: 使用 web-search 调研 Tauri v2、WebView2 和 Windows 原生透明 overlay；记录到 TMP/research/native-overlay-spike.md。",
+                "2026-05-28: 写入 docs/superpowers/specs/2026-05-28-v4-native-overlay-design.md，明确 V4 只解决桌面浮窗外层白/灰框。",
+                "2026-05-28: 写入 docs/superpowers/plans/2026-05-28-v4-native-overlay.md，计划先验证 Tauri shadowless WebView overlay，再按需实现 Windows-only 原生 layered overlay。"
+            ],
+            "notes": "V4 采用可回退 spike：先尝试低风险的 Tauri shadowless 配置和窗口刷新；如果维护者仍看到白/灰框，再实现 Windows-only 原生 layered overlay。原生 overlay 失败时必须回退 WebView overlay，不影响输入功能。"
         }
     ]
 }

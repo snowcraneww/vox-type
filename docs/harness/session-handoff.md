@@ -12,7 +12,8 @@
 - `scaffold-001` 已完成 MVP 真实闭环验证，状态 `passing`。
 - 第一版 MVP 已完成 proof-of-life：本机真实闭环通过，跨机器安装包可安装并能运行到转写链路。
 - V2 日常输入体验已按维护者验收意见收尾：`Ctrl+Alt+Space` 按住说话、桌面浮窗、主界面闭环和诊断日志已可用；残余透明浮窗浅色边框记录为平台风险。
-- V3 当前进行中：界面精修和 `Ctrl+Alt+V` 切换录音模式。
+- V3 已完成并由维护者验证核心功能：界面精修、`Ctrl+Alt+V` 切换录音、实验分段上屏和停止尾段补转写均可用。
+- V4 已完成调研和计划，下一步只解决桌面浮窗外层白/灰框问题。
 - 产品代码已有最小 Tauri/React/Rust mock 骨架。
 - 产品代码已有录音采集 proof-of-life：Tauri command 可启动/停止 `cpal` 输入 stream，并返回采样数和时长。
 - 维护者手动验证录音采集成功：`782863` 个 mono 样本、`17751 ms`、`44100 Hz`。
@@ -84,11 +85,20 @@
 
 - V3 设计文档：`docs/superpowers/specs/2026-05-28-v3-ui-and-toggle-dictation-design.md`。
 - V3 实施计划：`docs/superpowers/plans/2026-05-28-v3-ui-and-toggle-dictation.md`。
-- 当前 feature：`v3-001`，状态 `in_progress`。
+- 当前 feature：`v3-001`，状态 `passing`。
 - UI 方向：主界面和诊断模式继续走深色精致工具风格，降低字号、间距、边框和卡片重量，不做仿 macOS 红黄绿窗口按钮。
-- 已接入：`Ctrl+Alt+V` 切换录音模式。第一次按下开始录音，第二次按下停止、转写并上屏。
+- 已接入：`Ctrl+Alt+V` 切换录音模式。第一次按下开始录音，录音中实验分段转写并上屏，第二次按下停止并补转写尾段。
 - 重要边界：当前 `Ctrl+Alt+V` 不是边说边出字；whisper.cpp 当前仍是停止后统一转写。真正实时流式 ASR 需要后续单独设计。
-- 平台风险：Tauri/WebView2 透明 overlay 在 Windows 上仍可能出现浅色边框或 ghost 背景，详见 `docs/harness/debugging-log.md`。
+- 平台风险：Tauri/WebView2 透明 overlay 在 Windows 上仍可能出现浅色边框或 ghost 背景，已经作为 V4 独立任务处理。
+
+## V4 当前设计
+
+- V4 设计文档：`docs/superpowers/specs/2026-05-28-v4-native-overlay-design.md`。
+- V4 实施计划：`docs/superpowers/plans/2026-05-28-v4-native-overlay.md`。
+- 当前 feature：`v4-001`，状态 `in_progress`。
+- 唯一目标：消除桌面语音浮窗黑色胶囊外侧的 Tauri/WebView2 白色、灰色或浅色矩形边框。
+- 推荐路径：先给 `dictation-overlay` 验证 `shadow: false` 和 WebView overlay 刷新补丁；如果仍不达标，再实现 Windows-only 原生 layered overlay。
+- 回退要求：原生 overlay 失败时必须自动回退 WebView overlay，不影响录音、转写和上屏。
 
 ## 仍可优化或待增强
 
@@ -103,9 +113,9 @@
 
 ## 下一步最佳动作
 
-- 当前下一任务：完成 `v3-001` 的完整验证、隐私扫描和提交。
-- 为什么它是下一步：代码和文档已开始同步，需要用完整测试确认 Rust、前端和文档状态一致。
-- 建议优先级：先跑自动验证，再让维护者手动验证 `Ctrl+Alt+V` 切换录音和新 UI 观感。
+- 当前下一任务：按 `docs/superpowers/plans/2026-05-28-v4-native-overlay.md` 执行 Task 1，先验证 Tauri `shadow: false` 是否能去掉外层白/灰框。
+- 为什么它是下一步：维护者已经确认 V3 核心功能可用，剩余最明显问题是 overlay 平台渲染边框。
+- 建议优先级：先做低风险 WebView shadowless 补丁并让维护者人工验收；不通过再进入 Windows 原生 overlay。
 - 不要动：不要把 TSF 当作 MVP 默认路线；不要提交模型文件、音频文件或密钥。
 
 ## 命令

@@ -494,3 +494,13 @@
 - 胶囊从无边框改为单层 `rgba(255,255,255,0.28)` 准白描边，避免同时出现“背后灰框”和“胶囊边框”两层。
 - 6 个转写点保持固定位置的光感流动，不恢复上下跳动。
 - 验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过；`npm run build` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
+
+## 2026-05-28 V3 维护者验收与 V4 原生浮窗规划
+
+- 维护者手动验证：`Ctrl+Alt+V` 实验分段输入的尾段修复通过，停止时最后短句不再丢失。
+- V3 状态收尾：界面精修、`Ctrl+Alt+V` 切换录音、录音中分段转写上屏、尾段补转写均已完成自动验证和维护者核心功能验证。
+- 新问题范围：下一版本只解决桌面浮窗黑色胶囊外侧残余白/灰矩形边框，不同时扩展 ASR、上屏、主界面或流式识别。
+- 调研记录：`TMP/research/native-overlay-spike.md`。
+- 设计文档：`docs/superpowers/specs/2026-05-28-v4-native-overlay-design.md`。
+- 实施计划：`docs/superpowers/plans/2026-05-28-v4-native-overlay.md`。
+- 推荐路径：先试 Tauri `shadow: false` 与 WebView overlay 低风险补丁；如果维护者仍能看到外层白/灰框，再实现 Windows-only 原生 layered overlay，并保留 WebView fallback。

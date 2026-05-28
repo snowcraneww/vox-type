@@ -65,3 +65,22 @@
 - FluidVoice: https://github.com/altic-dev/FluidVoice
 
 当前结论：Rust + Tauri 2 + React/TS 是推荐主线；MVP 优先验证按住说话、松开本地转写、上屏到当前光标。完整 TSF IME、会议转写和 AI agent 工作流后置。
+
+## Windows 原生桌面浮窗调研
+
+### 会话 2026-05-28
+
+- 问题：当前 Tauri/WebView2 `dictation-overlay` 已经配置透明和无边框，但维护者在 Windows 桌面仍能看到黑色胶囊外侧的白色或灰色矩形边框。
+- 中间调研资料：`TMP/research/native-overlay-spike.md`。
+- 正式设计文档：`docs/superpowers/specs/2026-05-28-v4-native-overlay-design.md`。
+- 实施计划：`docs/superpowers/plans/2026-05-28-v4-native-overlay.md`。
+
+关键来源：
+
+- Tauri issue `#11654`：Windows 透明窗口边框异常，有用户通过 `shadow: false` 解决。
+- Tauri v2 config / WebviewWindow API：确认存在 `shadow`、`setShadow`、`setBackgroundColor` 等配置或 API，但平台行为有差异。
+- Tauri issue `#12450`：`WebviewWindowBuilder::transparent(true)` 在 Windows child window 场景下可能不按预期透明。
+- StackOverflow `Tauri transparent window only works when resized`：透明窗口可能 resize 后才正常，说明合成时机可能影响结果。
+- Rust 用户论坛：Windows 透明 overlay 常见路线是 `WS_EX_LAYERED` 和 per-pixel alpha；点击穿透可评估 `WS_EX_TRANSPARENT`。
+
+当前结论：下一版只解决 overlay 外层白/灰框。先做低风险 Tauri `shadow: false` 和窗口刷新验证；如果维护者仍能看到白/灰框，再做 Windows-only 原生 layered overlay 原型，并保留 WebView overlay fallback。
