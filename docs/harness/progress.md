@@ -3,16 +3,21 @@
 ## 当前已验证状态
 
 - 仓库根目录：当前 Git 工作树根目录
-- 当前阶段：MVP proof-of-life、V2 日常输入体验和 V3 切换录音模式已完成，当前进入 V4 原生桌面浮窗去除外层白灰框与视觉恢复阶段。
+- 当前阶段：MVP proof-of-life、V2 日常输入体验、V3 切换录音模式和 V4 原生无外框浮窗已完成；当前进入 V5 主窗体产品化重设计阶段。
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`v4-001`，原生桌面浮窗去除外层白灰框与视觉恢复。
+- 当前最高优先级未完成项：`v5-001`，主窗体产品化重设计。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
 ## 2026-05-28 V4 原生浮窗视觉恢复
+
+- V4 收尾：维护者确认原生浮窗外层白/灰矩形框已经消失，当前浮窗视觉先保持现状；V4 标记为 `passing`，下一阶段不继续盲调浮窗和主界面样式。
+- 提交：`7012093 feat: refine native overlay and main shell`，使用项目级身份 `VoxType <maintainers@voxtype.dev>`。
+- 提交前隐私检查：当前跟踪改动未命中本机用户名、个人邮箱、用户目录、旧 GitHub noreply 或本机仓库路径；`AGENTS.md` 和 `progress.md` 中的本机绝对路径已泛化。
+- 提交前验证：`npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx` 通过，2 个测试文件、11 个测试；`npm run typecheck` 通过；`npm run build` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`git diff --check` 通过。
 
 - 主窗体二次调整：解决上一版“缩成一团”的问题，放宽用户主界面宽度和右侧声谱胶囊，同时精简文字和按钮文案，保留功能不变。
 
@@ -34,6 +39,16 @@
 - 原生绘制恢复为 20 根彩色频谱柱录音态和 6 个彩色点转写态，背景/描边统一为深黑，减少可见边缘。
 - 自动验证：`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`npm test -- --run` 通过，6 个测试文件、21 个测试通过；`npm run typecheck` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`npm run build` 通过。
 - 已知限制：`cargo test --manifest-path src-tauri/Cargo.toml overlay` 当前在测试 exe 启动阶段失败，错误为 `STATUS_ENTRYPOINT_NOT_FOUND`；PE 导入表显示测试二进制仍导入 `user32.dll!SetWindowDisplayAffinity`，属于当前 Windows 测试环境/依赖链入口点问题，不是 overlay 断言失败。
+
+## 2026-05-28 V5 主窗体产品化重设计
+
+- 维护者反馈：当前主窗体的根本问题不是单个声波柱或配色，而是功能没有站在用户角度规划，测试目标和日常入口混在一起，不像成熟产品。
+- 本轮决策：先提交 V4，再进入 V5；V5 只重设主窗体产品功能和信息架构，底部原生浮窗保持当前效果，两种快捷键模式都保留。
+- 使用技能：`superpowers:brainstorming` 用于重新定义产品意图，`plan-ceo-review` 用于审视主窗体职责，`design-consultation` 用于设计系统方向，`verification-before-completion` 用于收尾验证约束。
+- 写入设计文档：`docs/superpowers/specs/2026-05-28-v5-main-window-product-redesign.md`。
+- 写入实施计划：`docs/superpowers/plans/2026-05-28-v5-main-window-product-redesign.md`。
+- V5 产品定位：主窗体是“语音输入控制中心”，不是录音动效舞台；它负责可用状态、输入模式、最近结果、设置入口和诊断入口。
+- V5 范围：主界面信息架构、组件拆分、视觉层级、诊断边界和最近文本动作；不改 ASR、录音、剪贴板上屏、原生浮窗核心链路。
 
 ## 2026-05-28 V3 界面精修与切换录音模式
 

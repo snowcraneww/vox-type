@@ -213,7 +213,7 @@
             "area": "implementation",
             "title": "V4 原生桌面浮窗去除外层白灰框",
             "user_visible_behavior": "维护者按 Ctrl+Alt+Space 或 Ctrl+Alt+V 时，屏幕底部只看到小型黑色胶囊和五彩声波，不再看到 Tauri/WebView2 外层白色、灰色或浅色矩形边框。",
-            "status": "in_progress",
+            "status": "passing",
             "verification": [
                 "运行 npm test -- --run。",
                 "运行 npm run typecheck。",
@@ -237,9 +237,40 @@
                 "2026-05-28: TDD 验证通过：cargo test --manifest-path src-tauri/Cargo.toml overlay_backend 通过，3 个后端决策测试通过。",
                 "2026-05-28: 维护者手动验证 native-win32 浮窗外层白/灰矩形框已经消失；本轮继续恢复原生绘制的录音态 20 根彩色频谱柱和转写态 6 个彩色点。",
                 "2026-05-28: 自动验证通过：cargo check --manifest-path src-tauri/Cargo.toml --lib、npm test -- --run、npm run typecheck、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、cargo fmt --all --manifest-path src-tauri/Cargo.toml --check、npm run build 均通过。",
-                "2026-05-28: 已知限制：cargo test --manifest-path src-tauri/Cargo.toml overlay 当前因测试 exe 启动阶段 STATUS_ENTRYPOINT_NOT_FOUND 失败，PE 导入表显示 user32.dll!SetWindowDisplayAffinity；该问题已记录到 docs/harness/debugging-log.md。"
+                "2026-05-28: 已知限制：cargo test --manifest-path src-tauri/Cargo.toml overlay 当前因测试 exe 启动阶段 STATUS_ENTRYPOINT_NOT_FOUND 失败，PE 导入表显示 user32.dll!SetWindowDisplayAffinity；该问题已记录到 docs/harness/debugging-log.md。",
+                "2026-05-28: 维护者确认原生浮窗外层白灰框已消失；当前浮窗视觉先保持现状，V4 收尾。",
+                "2026-05-28: 提交 7012093 feat: refine native overlay and main shell，包含 native-win32 每像素 alpha 浮窗、Ctrl+Alt+V 停止体验修复、文档和主界面阶段性尝试。",
+                "2026-05-28: 提交前验证通过：npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx、npm run typecheck、npm run build、cargo check --manifest-path src-tauri/Cargo.toml --lib、cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings、cargo fmt --all --manifest-path src-tauri/Cargo.toml --check、git diff --check。"
             ],
-            "notes": "V4 已从 webview-shadowless 进入 native-win32 原生浮窗原型。维护者已确认外层白/灰矩形框消失；当前继续恢复原生绘制视觉质量。录音、转写、上屏链路未被本轮 overlay 改动修改，仍需维护者手动确认视觉恢复后的最终效果。"
+            "notes": "V4 已完成原生桌面浮窗去除外层白灰框并恢复基础视觉；维护者已确认关键问题解决。当前主窗体仍不像成熟产品，另开 V5 专门做主窗体产品化重设计。"
+        },
+        {
+            "id": "v5-001",
+            "priority": 9,
+            "area": "implementation",
+            "title": "V5 主窗体产品化重设计",
+            "user_visible_behavior": "维护者打开 VoxType 主窗体时看到的是清晰的语音输入控制中心：能确认系统是否可用、选择两种输入模式、查看最近文本，并从二级入口进入设置和诊断，而不是测试按钮堆叠。",
+            "status": "in_progress",
+            "verification": [
+                "运行 npm test -- --run。",
+                "运行 npm run typecheck。",
+                "运行 npm run build。",
+                "运行 cargo check --manifest-path src-tauri/Cargo.toml --lib。",
+                "运行 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings。",
+                "运行 cargo fmt --all --manifest-path src-tauri/Cargo.toml --check。",
+                "运行 python -m json.tool docs/harness/feature_list.json。",
+                "运行 git diff --check。",
+                "手动验证主界面不再像测试工作台。",
+                "手动验证 Ctrl+Alt+Space 和 Ctrl+Alt+V 两种快捷键模式不回退。",
+                "手动验证诊断模式仍保留日志、ASR、录音和浮窗测试能力。"
+            ],
+            "evidence": [
+                "2026-05-28: 维护者明确要求停止盲调 UI，先从用户视角重新规划主窗体功能；浮窗保持现状，两种快捷键模式保留。",
+                "2026-05-28: 使用 superpowers:brainstorming、plan-ceo-review、design-consultation 和 verification-before-completion 约束本轮规划与收尾。",
+                "2026-05-28: 写入 docs/superpowers/specs/2026-05-28-v5-main-window-product-redesign.md。",
+                "2026-05-28: 写入 docs/superpowers/plans/2026-05-28-v5-main-window-product-redesign.md。"
+            ],
+            "notes": "V5 范围只做主窗体信息架构、组件拆分、视觉层级和诊断边界重设；不改 ASR、录音、剪贴板上屏和原生浮窗核心链路。"
         }
     ]
 }
