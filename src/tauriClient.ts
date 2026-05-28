@@ -59,6 +59,10 @@ export async function transcribeActiveRecordingChunk(fromSampleIndex: number): P
   return invoke<LiveTranscriptionChunk>('transcribe_active_recording_chunk', { fromSampleIndex });
 }
 
+export async function transcribeLastRecordingChunk(fromSampleIndex: number): Promise<LiveTranscriptionChunk> {
+  return invoke<LiveTranscriptionChunk>('transcribe_last_recording_chunk', { fromSampleIndex });
+}
+
 export async function transcribeLastRecordingAndInsert(): Promise<Transcript> {
   return invoke<Transcript>('transcribe_last_recording_and_insert');
 }

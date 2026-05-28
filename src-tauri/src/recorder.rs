@@ -37,6 +37,25 @@ pub struct RecordedAudio {
     pub asr_duration_ms: u64,
 }
 
+impl RecordedAudio {
+    pub fn asr_samples_from_source_index(
+        &self,
+        from_sample_index: usize,
+    ) -> Result<Vec<i16>, VoxError> {
+        if from_sample_index > self.samples.len() {
+            return Err(VoxError::Recorder(format!(
+                "录音片段起点超出最近录音样本数：{from_sample_index} > {}",
+                self.samples.len()
+            )));
+        }
+        Ok(audio::resample_mono_i16(
+            &self.samples[from_sample_index..],
+            self.sample_rate,
+            audio::TARGET_SAMPLE_RATE,
+        ))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct RecordingSession {
     buffer: RecordingBuffer,
@@ -308,6 +327,18 @@ impl RecorderManager {
             .ok_or_else(|| VoxError::Recorder("还没有可导出的录音".to_string()))
     }
 
+    pub fn last_asr_samples_from(
+        &self,
+        from_sample_index: usize,
+    ) -> Result<(Vec<i16>, usize), VoxError> {
+        let recording = self.last_recording()?;
+        let end_sample_index = recording.samples.len();
+        Ok((
+            recording.asr_samples_from_source_index(from_sample_index)?,
+            end_sample_index,
+        ))
+    }
+
     pub fn active_asr_samples_from(
         &self,
         from_sample_index: usize,
@@ -565,6 +596,28 @@ mod tests {
 
         assert_eq!(result.peak_amplitude, 4000);
         assert!(result.rms_amplitude > 2800);
+    }
+
+    #[test]
+    fn recorded_audio_returns_tail_asr_samples_from_source_index() {
+        let mut session = RecordingSession::new(16_000, 1);
+        session.push_interleaved_i16(&[0, 100, 200, 300]).unwrap();
+        let result = session.stop().unwrap();
+
+        let tail = result.asr_samples_from_source_index(2).unwrap();
+
+        assert_eq!(tail, vec![200, 300]);
+    }
+
+    #[test]
+    fn recorded_audio_rejects_tail_start_past_sample_count() {
+        let mut session = RecordingSession::new(16_000, 1);
+        session.push_interleaved_i16(&[0, 100]).unwrap();
+        let result = session.stop().unwrap();
+
+        let error = result.asr_samples_from_source_index(3).unwrap_err();
+
+        assert!(error.to_string().contains("录音片段起点超出最近录音样本数"));
     }
 
     #[test]

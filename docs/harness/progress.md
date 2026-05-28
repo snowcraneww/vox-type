@@ -53,6 +53,14 @@
 - 原生 Windows overlay 不纳入当前 V3 收束范围，作为下一个版本独立规划项处理。
 - 局部验证：`npm test -- --run src/DictationOverlay.test.tsx` 通过，1 个测试文件、5 个测试通过。
 
+## 2026-05-28 Ctrl+Alt+V 尾段上屏修复
+
+- 维护者反馈：实验分段实时输入可用但有延迟，第二次按 `Ctrl+Alt+V` 停止时，最后一小段短句可能没有上屏。
+- 根因：停止前最后一次 active chunk 如果不足约 1 秒，会被 `quietShortChunk` 静默忽略；因为前面已有分段文本成功上屏，所以整段兜底不会触发，导致尾句丢失。
+- 修复：停止后从完整的最近录音里按 `liveCursorRef` 取尾段并调用 whisper.cpp 转写，避免重复前面已上屏片段，同时补上最后短句。
+- 新增 Rust command：`transcribe_last_recording_chunk`。
+- 新增测试：前端覆盖已有实时片段后停止时继续上屏尾段；Rust 覆盖停止后的 `RecordedAudio` 按源样本游标取尾段 ASR 样本。
+
 ## 2026-05-27 开源隐私清理
 
 - 维护者指出 Git commit 元数据中泄露个人信息。

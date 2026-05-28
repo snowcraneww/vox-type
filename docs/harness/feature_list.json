@@ -200,7 +200,8 @@
                 "2026-05-28: 修正快捷键分发为比较 Shortcut id，避免依赖 global-hotkey 的 Display 字符串格式。",
                 "2026-05-28: 调研 Windows WebView2/Tauri 透明窗口白边问题和 whisper.cpp realtime/stream 示例；实现 Ctrl+Alt+V 实验分段实时输入，录音中定时转写新增片段并通过剪贴板上屏。",
                 "2026-05-28: 修复 Ctrl+Alt+V 浮窗动效只闪一下的问题：overlay 忽略 ignore 释放事件，toggleStopAndTranscribe 不再进入六点转写态；原生 Windows overlay 作为下一版本独立规划。",
-                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、21 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，50 个 Rust 测试通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
+                "2026-05-28: 修复 Ctrl+Alt+V 停止时最后短句可能丢失的问题：停止后从完整最近录音按实时游标转写尾段，避免不足 1 秒 active chunk 被静默跳过。",
+                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、21 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，52 个 Rust 测试通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
             ],
             "notes": "当前 V3 已加入实验分段实时输入：Ctrl+Alt+V 录音中会定时切片、调用 whisper-cli.exe 转写新增片段并上屏。它还不是真正流式 ASR，没有 partial/final 文本合并、增量 diff、VAD 和 TSF 上屏；后续仍需继续引入更成熟的流式或分块 ASR 与更可靠的上屏策略。"
         }

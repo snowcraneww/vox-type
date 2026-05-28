@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { hideDictationOverlay, insertTextWithClipboard, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording } from './tauriClient';
+import { hideDictationOverlay, insertTextWithClipboard, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
@@ -21,6 +21,7 @@ vi.mock('./tauriClient', async (importOriginal) => {
     stopRecording: vi.fn().mockResolvedValue({ sampleRate: 44100, channels: 1, sampleCount: 32000, durationMs: 2000, asrSampleRate: 16000, asrSampleCount: 32000, asrDurationMs: 2000, peakAmplitude: 12000, rmsAmplitude: 1600 }),
     transcribeLastRecording: vi.fn().mockResolvedValue({ engine: 'whisper.cpp', text: '测试文本' }),
     transcribeActiveRecordingChunk: vi.fn().mockResolvedValue({ transcript: { engine: 'whisper.cpp', text: '实时片段' }, fromSampleIndex: 0, toSampleIndex: 44100, asrSampleCount: 16000 }),
+    transcribeLastRecordingChunk: vi.fn().mockResolvedValue({ transcript: { engine: 'whisper.cpp', text: '尾段' }, fromSampleIndex: 44100, toSampleIndex: 52000, asrSampleCount: 2866 }),
     insertTextWithClipboard: vi.fn().mockResolvedValue(undefined),
     hideDictationOverlay: vi.fn().mockResolvedValue(undefined),
     listenToPushToTalk: vi.fn().mockImplementation((handler: (payload: PushToTalkPayload) => void) => {
@@ -36,6 +37,7 @@ describe('App', () => {
     vi.mocked(stopRecording).mockClear();
     vi.mocked(transcribeLastRecording).mockClear();
     vi.mocked(transcribeActiveRecordingChunk).mockClear();
+    vi.mocked(transcribeLastRecordingChunk).mockClear();
     vi.mocked(insertTextWithClipboard).mockClear();
     vi.mocked(hideDictationOverlay).mockClear();
   });
@@ -91,9 +93,10 @@ describe('App', () => {
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
 
     await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
-    expect(transcribeActiveRecordingChunk).toHaveBeenCalledWith(0);
+    expect(transcribeActiveRecordingChunk).not.toHaveBeenCalled();
+    expect(transcribeLastRecordingChunk).toHaveBeenCalledWith(0);
     expect(transcribeLastRecording).not.toHaveBeenCalled();
-    expect(insertTextWithClipboard).toHaveBeenCalledWith('实时片段');
+    expect(insertTextWithClipboard).toHaveBeenCalledWith('尾段');
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
   });
 
@@ -116,6 +119,15 @@ describe('App', () => {
 
       expect(transcribeActiveRecordingChunk).toHaveBeenCalledWith(0);
       expect(insertTextWithClipboard).toHaveBeenCalledWith('实时片段');
+
+      await act(async () => {
+        pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
+        await Promise.resolve();
+      });
+
+      expect(stopRecording).toHaveBeenCalledTimes(1);
+      expect(transcribeLastRecordingChunk).toHaveBeenCalledWith(44100);
+      expect(insertTextWithClipboard).toHaveBeenCalledWith('尾段');
     } finally {
       vi.useRealTimers();
     }

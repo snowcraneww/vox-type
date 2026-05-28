@@ -196,6 +196,41 @@ fn transcribe_active_recording_chunk(
 }
 
 #[tauri::command]
+fn transcribe_last_recording_chunk(
+    app: AppHandle,
+    recorder: State<'_, RecorderManager>,
+    from_sample_index: usize,
+) -> Result<LiveTranscriptionChunk, error::VoxError> {
+    let config = asr_config::load_asr_config(app_config_dir(&app)?);
+    let status = asr_config::status_from_config(config.clone(), "runtime".to_string());
+    if !status.ready {
+        return Err(error::VoxError::Config(status.message));
+    }
+    let (samples, to_sample_index) = recorder.last_asr_samples_from(from_sample_index)?;
+    if samples.is_empty() {
+        return Err(error::VoxError::Recorder(
+            "录音尾段没有新增 ASR 样本".to_string(),
+        ));
+    }
+    let engine = WhisperCppEngine {
+        binary_path: config
+            .whisper_binary_path
+            .expect("ready config has binary path"),
+        model_path: config
+            .whisper_model_path
+            .expect("ready config has model path"),
+        language: config.language,
+    };
+    let transcript = engine.transcribe(&samples)?;
+    Ok(LiveTranscriptionChunk {
+        transcript,
+        from_sample_index,
+        to_sample_index,
+        asr_sample_count: samples.len(),
+    })
+}
+
+#[tauri::command]
 fn transcribe_last_recording_and_insert(
     app: AppHandle,
     recorder: State<'_, RecorderManager>,
@@ -353,6 +388,7 @@ pub fn run() {
             install_managed_asr,
             transcribe_last_recording,
             transcribe_active_recording_chunk,
+            transcribe_last_recording_chunk,
             transcribe_last_recording_and_insert,
             export_last_recording_wav,
             insert_text_with_clipboard,

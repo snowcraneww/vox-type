@@ -113,6 +113,31 @@ npm test -- --run src/DictationOverlay.test.tsx
 
 结果：1 个测试文件、5 个测试通过。
 
+## 2026-05-28 Ctrl+Alt+V 停止时最后短句可能丢失
+
+### 现象
+
+维护者验证实验分段实时输入时，录音过程中分段上屏可用，但第二次按 `Ctrl+Alt+V` 停止后，最后一小段短句没有出现在目标输入框里。
+
+### 根因
+
+旧停止流程是在 `stopRecording()` 之前调用 `transcribeActiveRecordingChunk(liveCursorRef.current)` 尝试处理最后新增片段。这个 command 为了避免过短片段频繁调用 whisper.cpp，少于约 1 秒 ASR 样本时会返回 `录音片段太短，暂不转写`。停止流程传入了 `quietShortChunk: true`，所以这个错误被静默忽略。
+
+如果录音过程中已经有前面片段成功上屏，`liveInsertedTextRef.current` 为 `true`，停止后不会再走整段兜底转写。因此最后不足 1 秒但有语义的尾句就可能被丢掉。
+
+### 修复
+
+- Rust `RecordedAudio` 新增 `asr_samples_from_source_index`，可以在录音停止后从完整的最近录音里按源样本游标取尾段。
+- Rust `RecorderManager` 新增 `last_asr_samples_from`。
+- Tauri 新增 `transcribe_last_recording_chunk` command：停止录音后转写从上次实时游标到完整录音结尾的尾段。
+- 前端 `Ctrl+Alt+V` 停止流程改为先 `stopRecording()` 固化完整录音，再调用 `transcribeLastRecordingChunk(liveCursorRef.current)` 补尾段。
+- 前端保留“没有任何分段成功上屏时整段兜底”的行为。
+
+### 验证
+
+- `src/App.test.tsx` 覆盖：已有实时片段上屏后，停止时会用 `toSampleIndex` 作为游标转写尾段，并继续上屏尾段文本。
+- `src-tauri/src/recorder.rs` 覆盖：停止后的 `RecordedAudio` 可以按源样本游标取尾段 ASR 样本，并拒绝越界游标。
+
 ## 2026-05-28 Tauri 透明浮窗仍有浅色边框
 
 ### 现象

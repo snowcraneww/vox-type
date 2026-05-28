@@ -3,7 +3,7 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { VoiceOverlay } from './VoiceOverlay';
 import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
@@ -407,6 +407,26 @@ export function App() {
     }
   }
 
+  async function processFinalLiveTranscriptionChunk() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    try {
+      const chunk = await transcribeLastRecordingChunk(liveCursorRef.current);
+      liveCursorRef.current = chunk.toSampleIndex;
+      const text = chunk.transcript.text.trim();
+      if (!text) {
+        return;
+      }
+      await insertTextWithClipboard(text);
+      liveInsertedTextRef.current = true;
+      setStatus({ phase: 'succeeded', message: '实验实时输入尾段已上屏', lastTranscript: text });
+      addDiagnostic({ title: '实验实时尾段已上屏', result: 'success', detail: `${chunk.transcript.engine} 返回 ${chunk.asrSampleCount} 个 ASR 样本的尾段：${text}` });
+    } catch (error) {
+      addDiagnostic({ title: '实验实时尾段转写失败', result: 'warning', detail: formatError(error) });
+    }
+  }
+
   async function handleStartLiveToggleRecording() {
     const started = await handleStartRecording();
     if (!started) {
@@ -425,9 +445,9 @@ export function App() {
   async function handleStopLiveToggleRecording() {
     stopLiveTranscriptionTimer();
     try {
-      await processLiveTranscriptionChunk({ quietShortChunk: true });
       const audio = await stopRecording();
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
+      await processFinalLiveTranscriptionChunk();
       if (!liveInsertedTextRef.current) {
         setStatus({ phase: 'transcribing', message: '实时片段未产生文本，正在用整段录音兜底转写', lastTranscript: null });
         const transcript = await transcribeLastRecording();
