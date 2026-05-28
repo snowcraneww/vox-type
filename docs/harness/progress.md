@@ -42,6 +42,12 @@
 
 ## 2026-05-28 V5 主窗体产品化重设计
 
+- V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
+- 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。
+- 最近结果新增主界面动作：复制、重新上屏、清空；诊断模式继续保留 ASR 配置、录音测试、真实转写、真实闭环、浮窗测试和日志复制。
+- 局部验证：`npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx src/DictationOverlay.test.tsx` 通过，3 个测试文件、17 个测试通过；`npm run typecheck` 通过；`npm run build` 通过。
+- 自动验证：`npm test -- --run` 通过，6 个测试文件、23 个测试通过；`npm run typecheck` 通过；`npm run build` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过。
+- 当前状态：V5 自动验证通过，等待维护者手动验证主界面观感、两种快捷键模式和诊断模式能力后再标记为 `passing`。
 - 维护者反馈：当前主窗体的根本问题不是单个声波柱或配色，而是功能没有站在用户角度规划，测试目标和日常入口混在一起，不像成熟产品。
 - 本轮决策：先提交 V4，再进入 V5；V5 只重设主窗体产品功能和信息架构，底部原生浮窗保持当前效果，两种快捷键模式都保留。
 - 使用技能：`superpowers:brainstorming` 用于重新定义产品意图，`plan-ceo-review` 用于审视主窗体职责，`design-consultation` 用于设计系统方向，`verification-before-completion` 用于收尾验证约束。

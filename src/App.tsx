@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { DiagnosticView } from './DiagnosticView';
 import { formatDiagnosticsForCopy } from './diagnostics';
-import { VoiceOverlay } from './VoiceOverlay';
-import { createVoiceOverlayModel } from './voiceOverlayModel';
+import { MainWindow } from './MainWindow';
 import { formatError } from './errorFormat';
 import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
@@ -212,8 +212,6 @@ export function App() {
 
   const isRecording = recordingStatus.state === 'recording';
   isRecordingRef.current = isRecording;
-  const overlayLevel = isRecording ? 0.72 : status.phase === 'transcribing' || status.phase === 'inserting' ? 0.38 : 0.18;
-  const voiceOverlayModel = useMemo(() => createVoiceOverlayModel(status, overlayLevel), [status, overlayLevel]);
 
   const phaseLabel = useMemo(() => {
     const labels: Record<AppStatus['phase'], string> = {
@@ -265,6 +263,28 @@ export function App() {
       setStatus({ phase: 'failed', message: `剪贴板上屏失败：${detail}`, lastTranscript: null });
       addDiagnostic({ title: '剪贴板上屏失败', result: 'error', detail });
     }
+  }
+
+  async function handleCopyLastTranscript() {
+    const text = status.lastTranscript?.trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      addDiagnostic({ title: '最近文本已复制', result: 'success', detail: `文本：${text}` });
+    } catch (error) {
+      addDiagnostic({ title: '复制最近文本失败', result: 'error', detail: formatError(error) });
+    }
+  }
+
+  async function handleReinsertLastTranscript() {
+    const text = status.lastTranscript?.trim();
+    if (!text) return;
+    await handleClipboardInsert();
+  }
+
+  function handleClearLastTranscript() {
+    setStatus((current) => ({ ...current, lastTranscript: null }));
+    addDiagnostic({ title: '最近文本已清空', result: 'info', detail: '主界面的最近识别文本已清空。' });
   }
 
   async function handleCopyDiagnostics() {
@@ -732,104 +752,63 @@ export function App() {
   }
 
   function renderUserView() {
-    const readinessLabel = asrConfigStatus.ready
-      ? '本地识别已就绪'
-      : '需要在诊断模式配置 ASR';
-    const mainOverlayModel = {
-      ...voiceOverlayModel,
-      mode: status.phase === 'failed' ? voiceOverlayModel.mode : 'recording',
-      level: Math.max(voiceOverlayModel.level, 0.42),
-    };
-
     return (
-      <main className="app-shell user-shell">
-        <section className="minimal-console" aria-labelledby="app-title">
-          <header className="minimal-topbar">
-            <div className="brand-block">
-              <span className="product-mark">VoxType</span>
-              <h1 id="app-title">语音输入</h1>
-            </div>
-            <button className="ghost-button" type="button" onClick={() => setViewMode('diagnostic')}>诊断</button>
-          </header>
-
-          <section className="minimal-stage" aria-label="语音输入">
-            <VoiceOverlay model={mainOverlayModel} />
-            <div className="minimal-meta" aria-live="polite">
-              <span>{phaseLabel}</span>
-              <strong>{status.message}</strong>
-              {status.lastTranscript ? <p>{status.lastTranscript}</p> : null}
-            </div>
-            <button className="minimal-record-button" data-phase={status.phase} type="button" onClick={() => void handlePrimaryRecordingAction()}>
-              <span className="record-glyph" aria-hidden="true"><i /><i /><i /></span>
-              <span>{isRecording ? '停止' : '开始'}</span>
-            </button>
-          </section>
-
-          <footer className="minimal-footer">
-            <span>{readinessLabel}</span>
-            <span>Ctrl+Alt+Space / Ctrl+Alt+V</span>
-          </footer>
-        </section>
-      </main>
+      <MainWindow
+        status={status}
+        phaseLabel={phaseLabel}
+        asrConfigStatus={asrConfigStatus}
+        hotkeyStatus={hotkeyStatus}
+        recorderInfo={recorderInfo}
+        isRecording={isRecording}
+        onPrimaryRecordingAction={() => void handlePrimaryRecordingAction()}
+        onOpenDiagnostic={() => setViewMode('diagnostic')}
+        onCopyTranscript={() => void handleCopyLastTranscript()}
+        onReinsertTranscript={() => void handleReinsertLastTranscript()}
+        onClearTranscript={handleClearLastTranscript}
+      />
     );
   }
 
   function renderDiagnosticView() {
     return (
-      <main className="app-shell diagnostic-shell">
-        <section className="hero diagnostic-hero" aria-labelledby="diagnostic-title">
-          <div><p className="eyebrow">DIAGNOSTICS</p><h1 id="diagnostic-title">诊断工作台</h1><p>系统能力、ASR 配置、快捷键和上屏链路。</p></div>
-          <button className="secondary-button" type="button" onClick={() => setViewMode('user')}>返回主界面</button>
-        </section>
-
-        <section className="panel" aria-labelledby="settings-title">
-          <h2 id="settings-title">运行状态</h2>
-          <dl className="settings-grid">
-            <div><dt>快捷键</dt><dd>{config.hotkey}</dd></div>
-            <div><dt>目标语言</dt><dd>中文优先，兼容英文</dd></div>
-            <div><dt>ASR 路线</dt><dd>{config.asrEngine}</dd></div>
-            <div><dt>上屏策略</dt><dd>剪贴板粘贴</dd></div>
-            <div><dt>全局快捷键</dt><dd>{hotkeyStatus.message}</dd></div>
-            <div><dt>桌面浮窗后端</dt><dd>{overlayBackendStatus.lastError ? `${overlayBackendStatus.backend} / ${overlayBackendStatus.lastError}` : overlayBackendStatus.backend}</dd></div>
-            <div><dt>麦克风</dt><dd>{recorderInfo ? `${recorderInfo.deviceName} / ${recorderInfo.sampleRate} Hz / ${recorderInfo.channels} 声道` : '等待 Tauri 读取'}</dd></div>
-            <div><dt>录音流</dt><dd>{isRecording ? `录音中 / ${recordingStatus.sampleCount} 样本 / ${recordingStatus.durationMs} ms` : '空闲'}</dd></div>
-          </dl>
-          <div className="button-row"><button type="button" onClick={handleRefreshHotkeyStatus}>刷新全局快捷键状态</button><button type="button" onClick={handleShowOverlayTest}>测试桌面浮窗</button><button type="button" onClick={handleHideOverlayTest}>隐藏桌面浮窗</button></div>
-          <div className="config-form single-row-form">{renderDeviceSelect()}</div>
-        </section>
-
-        <section className="panel" aria-labelledby="asr-config-title">
-          <div className="panel-heading-row"><h2 id="asr-config-title">ASR 配置</h2><span className="status-pill" data-phase={asrConfigStatus.ready ? 'succeeded' : 'failed'}>{asrConfigStatus.ready ? '已就绪' : '未就绪'}</span></div>
-          <p className="runtime-message">{asrConfigStatus.message}</p>
-          <div className="config-form">
-            <label className="field"><span>whisper.cpp 可执行文件</span><input value={whisperBinaryPath} onChange={(event) => setWhisperBinaryPath(event.target.value)} placeholder="例如 C:\\tools\\whisper.cpp\\whisper-cli.exe" /></label>
-            <label className="field"><span>Whisper 模型文件</span><input value={whisperModelPath} onChange={(event) => setWhisperModelPath(event.target.value)} placeholder="例如 C:\\models\\ggml-small.bin" /></label>
-            <label className="field"><span>识别语言</span><input value={asrLanguage} onChange={(event) => setAsrLanguage(event.target.value)} placeholder="zh" /></label>
-          </div>
-          <div className="button-row"><button type="button" onClick={handleInstallManagedAsr} disabled={isInstallingAsr}>{isInstallingAsr ? '正在安装 whisper.cpp' : '一键安装 whisper.cpp'}</button><button type="button" onClick={handleSaveAsrConfig}>保存 ASR 配置</button><button type="button" onClick={handleRefreshAsrConfig}>检测 ASR 配置</button></div>
-        </section>
-
-        <section className="panel" aria-labelledby="status-title">
-          <h2 id="status-title">测试操作</h2>
-          <p className="runtime-message">{runtimeMessage}</p>
-          <p>{status.message}</p>
-          {status.lastTranscript ? <blockquote>{status.lastTranscript}</blockquote> : null}
-          <div className="button-row">
-            <button type="button" onClick={handleStartRecording} disabled={isRecording}>开始录音采集</button>
-            <button type="button" onClick={handleStopRecording} disabled={!isRecording}>停止录音采集</button>
-            <button type="button" onClick={handleRefreshRecordingStatus}>刷新录音状态</button>
-            <button type="button" onClick={handleExportLastRecordingWav}>导出最近录音 WAV</button>
-            <button type="button" onClick={handleTranscribeLastRecording}>转写最近录音</button>
-            <button type="button" onClick={handleTranscribeAndInsert}>转写并上屏最近录音</button>
-            <button type="button" onClick={handleSimulateDictation}>模拟一次语音输入闭环</button>
-            <button type="button" onClick={handleClipboardInsert}>测试剪贴板上屏</button>
-          </div>
-        </section>
-
-        {renderDiagnosticsPanel()}
-      </main>
+      <DiagnosticView
+        config={config}
+        status={status}
+        runtimeMessage={runtimeMessage}
+        recorderInfo={recorderInfo}
+        recordingStatus={recordingStatus}
+        isRecording={isRecording}
+        hotkeyStatus={hotkeyStatus}
+        overlayBackendStatus={overlayBackendStatus}
+        asrConfigStatus={asrConfigStatus}
+        whisperBinaryPath={whisperBinaryPath}
+        whisperModelPath={whisperModelPath}
+        asrLanguage={asrLanguage}
+        isInstallingAsr={isInstallingAsr}
+        deviceSelect={renderDeviceSelect()}
+        diagnosticsPanel={renderDiagnosticsPanel()}
+        onBack={() => setViewMode('user')}
+        onRefreshHotkeyStatus={() => void handleRefreshHotkeyStatus()}
+        onShowOverlayTest={() => void handleShowOverlayTest()}
+        onHideOverlayTest={() => void handleHideOverlayTest()}
+        onWhisperBinaryPathChange={setWhisperBinaryPath}
+        onWhisperModelPathChange={setWhisperModelPath}
+        onAsrLanguageChange={setAsrLanguage}
+        onInstallManagedAsr={() => void handleInstallManagedAsr()}
+        onSaveAsrConfig={() => void handleSaveAsrConfig()}
+        onRefreshAsrConfig={() => void handleRefreshAsrConfig()}
+        onStartRecording={() => void handleStartRecording()}
+        onStopRecording={() => void handleStopRecording()}
+        onRefreshRecordingStatus={() => void handleRefreshRecordingStatus()}
+        onExportLastRecordingWav={() => void handleExportLastRecordingWav()}
+        onTranscribeLastRecording={() => void handleTranscribeLastRecording()}
+        onTranscribeAndInsert={() => void handleTranscribeAndInsert()}
+        onSimulateDictation={() => void handleSimulateDictation()}
+        onClipboardInsert={() => void handleClipboardInsert()}
+      />
     );
   }
+
 
   return viewMode === 'user' ? renderUserView() : renderDiagnosticView();
 }

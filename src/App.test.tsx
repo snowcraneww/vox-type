@@ -43,15 +43,25 @@ describe('App', () => {
     vi.mocked(hideDictationOverlay).mockClear();
     vi.mocked(getOverlayBackendStatus).mockClear();
   });
-  it('renders the user-facing voice input view by default', () => {
+  it('renders the V5 control center by default', async () => {
     render(<App />);
 
     expect(screen.getByText('VoxType')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '语音输入' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '开始' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '语音输入控制中心' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '输入模式' })).toBeInTheDocument();
+    expect(screen.getByText('按住说话')).toBeInTheDocument();
+    expect(screen.getByText('连续输入')).toBeInTheDocument();
+    expect(screen.getByText('Ctrl+Alt+Space')).toBeInTheDocument();
+    expect(screen.getByText('Ctrl+Alt+V')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '准备状态' })).toBeInTheDocument();
+    expect(screen.getByText('麦克风')).toBeInTheDocument();
+    expect(screen.getByText('本地识别')).toBeInTheDocument();
+    expect(screen.getByText('快捷键')).toBeInTheDocument();
+    expect(screen.getByText('上屏')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '最近结果' })).toBeInTheDocument();
+    expect(screen.getByText('还没有识别文本')).toBeInTheDocument();
+    expect(await screen.findByText('Test Microphone')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '诊断' })).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: '语音输入状态：已就绪' })).toBeInTheDocument();
-    expect(screen.getByText('需要在诊断模式配置 ASR')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '安装 whisper.cpp' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '诊断工作台' })).not.toBeInTheDocument();
     expect(document.querySelector('.traffic-lights')).not.toBeInTheDocument();
@@ -82,6 +92,23 @@ describe('App', () => {
     expect(transcribeLastRecording).toHaveBeenCalledTimes(1);
     expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本');
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
+  });
+
+  it('lets the user reinsert and clear the latest transcript from the control center', async () => {
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    await screen.findByText('测试文本');
+    fireEvent.click(screen.getByRole('button', { name: '重新上屏' }));
+    expect(insertTextWithClipboard).toHaveBeenLastCalledWith('测试文本');
+
+    fireEvent.click(screen.getByRole('button', { name: '清空' }));
+    expect(screen.getByText('还没有识别文本')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新上屏' })).toBeDisabled();
   });
 
   it('runs the toggle shortcut closed loop on the second press', async () => {
