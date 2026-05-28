@@ -280,6 +280,11 @@ fn hide_dictation_overlay(app: AppHandle) -> Result<(), error::VoxError> {
     overlay::hide_dictation_overlay(&app)
 }
 
+#[tauri::command]
+fn get_overlay_backend_status() -> overlay::OverlayBackendStatus {
+    overlay::backend_status()
+}
+
 fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     use std::sync::{Arc, Mutex};
 
@@ -393,7 +398,8 @@ pub fn run() {
             export_last_recording_wav,
             insert_text_with_clipboard,
             show_dictation_overlay,
-            hide_dictation_overlay
+            hide_dictation_overlay,
+            get_overlay_backend_status
         ])
         .run(tauri::generate_context!())
         .expect("failed to run VoxType");

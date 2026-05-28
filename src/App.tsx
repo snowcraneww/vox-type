@@ -3,7 +3,8 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { VoiceOverlay } from './VoiceOverlay';
 import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import type { OverlayBackendStatus } from './tauriClient';
 import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticEntry {
@@ -53,6 +54,11 @@ const initialHotkeyStatus: HotkeyRegistrationStatus = {
   message: '等待 Tauri 注册全局快捷键。',
 };
 
+const initialOverlayBackendStatus: OverlayBackendStatus = {
+  backend: 'webview',
+  lastError: null,
+};
+
 export function App() {
   const [viewMode, setViewMode] = useState<'user' | 'diagnostic'>('user');
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
@@ -71,6 +77,7 @@ export function App() {
   const [runtimeMessage, setRuntimeMessage] = useState('浏览器预览模式：系统能力需要在 Tauri 中验证');
   const [asrConfigStatus, setAsrConfigStatus] = useState<AsrConfigStatus>(initialAsrConfigStatus);
   const [hotkeyStatus, setHotkeyStatus] = useState<HotkeyRegistrationStatus>(initialHotkeyStatus);
+  const [overlayBackendStatus, setOverlayBackendStatus] = useState<OverlayBackendStatus>(initialOverlayBackendStatus);
   const [whisperBinaryPath, setWhisperBinaryPath] = useState('');
   const [whisperModelPath, setWhisperModelPath] = useState('');
   const [asrLanguage, setAsrLanguage] = useState('zh');
@@ -161,6 +168,14 @@ export function App() {
       })
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取全局快捷键状态失败', result: 'error', detail: formatError(error) });
+      });
+    void getOverlayBackendStatus()
+      .then((nextStatus) => {
+        setOverlayBackendStatus(nextStatus);
+        addDiagnostic({ title: '桌面浮窗后端已读取', result: nextStatus.lastError ? 'warning' : 'info', detail: nextStatus.lastError ? `${nextStatus.backend}：${nextStatus.lastError}` : nextStatus.backend });
+      })
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '读取桌面浮窗后端失败', result: 'error', detail: formatError(error) });
       });
     void listInputDevices()
       .then((devices) => {
@@ -779,6 +794,7 @@ export function App() {
             <div><dt>ASR 路线</dt><dd>{config.asrEngine}</dd></div>
             <div><dt>上屏策略</dt><dd>剪贴板粘贴</dd></div>
             <div><dt>全局快捷键</dt><dd>{hotkeyStatus.message}</dd></div>
+            <div><dt>桌面浮窗后端</dt><dd>{overlayBackendStatus.lastError ? `${overlayBackendStatus.backend} / ${overlayBackendStatus.lastError}` : overlayBackendStatus.backend}</dd></div>
             <div><dt>麦克风</dt><dd>{recorderInfo ? `${recorderInfo.deviceName} / ${recorderInfo.sampleRate} Hz / ${recorderInfo.channels} 声道` : '等待 Tauri 读取'}</dd></div>
             <div><dt>录音流</dt><dd>{isRecording ? `录音中 / ${recordingStatus.sampleCount} 样本 / ${recordingStatus.durationMs} ms` : '空闲'}</dd></div>
           </dl>

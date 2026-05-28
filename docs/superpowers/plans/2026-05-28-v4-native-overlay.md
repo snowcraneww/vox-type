@@ -407,17 +407,9 @@ Expected: all commands exit 0.
 
 - [ ] **Step 2: Run privacy scan**
 
-```bash
-git grep -n -I -F "v-piqian" -- . || true
-git grep -n -I -F "snowcraneww" -- . || true
-git grep -n -I -F "272970550" -- . || true
-git grep -n -I -F "C:/Users" -- . || true
-git grep -n -I -F "C:\\Users" -- . || true
-git grep -n -I -F "TAVILY_API_KEY=" -- . || true
-git grep -n -I -F "BAIDU_API_KEY=" -- . || true
-```
+Use the project privacy scan checklist from `AGENTS.md` and `docs/harness/working-agreement.md`.
 
-Expected: no tracked-file matches.
+Expected: no tracked-file matches for secret assignments, maintainer names, account names, email addresses, phone numbers, local usernames, absolute home-directory paths, or secret values. Do not write private strings into this plan while documenting the scan.
 
 - [ ] **Step 3: Manual acceptance request**
 

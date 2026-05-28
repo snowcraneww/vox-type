@@ -230,9 +230,11 @@
             "evidence": [
                 "2026-05-28: 使用 web-search 调研 Tauri v2、WebView2 和 Windows 原生透明 overlay；记录到 TMP/research/native-overlay-spike.md。",
                 "2026-05-28: 写入 docs/superpowers/specs/2026-05-28-v4-native-overlay-design.md，明确 V4 只解决桌面浮窗外层白/灰框。",
-                "2026-05-28: 写入 docs/superpowers/plans/2026-05-28-v4-native-overlay.md，计划先验证 Tauri shadowless WebView overlay，再按需实现 Windows-only 原生 layered overlay。"
+                "2026-05-28: 写入 docs/superpowers/plans/2026-05-28-v4-native-overlay.md，计划先验证 Tauri shadowless WebView overlay，再按需实现 Windows-only 原生 layered overlay。",
+                "2026-05-28: V4 第一阶段 webview-shadowless 已实现：dictation-overlay 设置 shadow: false，诊断模式显示桌面浮窗后端 webview-shadowless，并新增 overlay 配置/后端状态测试。",
+                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、21 个测试通过；npm run typecheck 通过；cargo test --manifest-path src-tauri/Cargo.toml 通过，54 个 Rust 测试通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings 通过；npm run build 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
             ],
-            "notes": "V4 采用可回退 spike：先尝试低风险的 Tauri shadowless 配置和窗口刷新；如果维护者仍看到白/灰框，再实现 Windows-only 原生 layered overlay。原生 overlay 失败时必须回退 WebView overlay，不影响输入功能。"
+            "notes": "V4 第一阶段已实现低风险 webview-shadowless 方案，等待维护者人工确认白/灰框是否消失。若仍有白/灰框，再按计划进入 Windows-only 原生 layered overlay；若已消失，则不需要引入原生 overlay。"
         }
     ]
 }

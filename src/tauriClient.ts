@@ -7,6 +7,11 @@ export interface PushToTalkPayload {
   action: 'startRecording' | 'stopAndTranscribe' | 'toggleStartRecording' | 'toggleStopAndTranscribe' | 'ignore';
 }
 
+export interface OverlayBackendStatus {
+  backend: string;
+  lastError: string | null;
+}
+
 export async function getConfig(): Promise<AppConfig> {
   return invoke<AppConfig>('get_config');
 }
@@ -93,6 +98,10 @@ export async function showDictationOverlay(): Promise<void> {
 
 export async function hideDictationOverlay(): Promise<void> {
   return invoke('hide_dictation_overlay');
+}
+
+export async function getOverlayBackendStatus(): Promise<OverlayBackendStatus> {
+  return invoke<OverlayBackendStatus>('get_overlay_backend_status');
 }
 
 export async function listenToPushToTalk(handler: (payload: PushToTalkPayload) => void): Promise<() => void> {

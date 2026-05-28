@@ -1,4 +1,5 @@
 use crate::error::VoxError;
+use serde::Serialize;
 use tauri::{AppHandle, Manager, PhysicalPosition};
 
 pub const DICTATION_OVERLAY_LABEL: &str = "dictation-overlay";
@@ -17,6 +18,20 @@ pub fn overlay_url() -> &'static str {
 
 pub fn overlay_size() -> (i32, i32) {
     (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct OverlayBackendStatus {
+    pub backend: String,
+    pub last_error: Option<String>,
+}
+
+pub fn backend_status() -> OverlayBackendStatus {
+    OverlayBackendStatus {
+        backend: "webview-shadowless".to_string(),
+        last_error: None,
+    }
 }
 
 pub fn show_dictation_overlay(app: &AppHandle) -> Result<(), VoxError> {

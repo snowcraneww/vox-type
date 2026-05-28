@@ -504,3 +504,12 @@
 - 设计文档：`docs/superpowers/specs/2026-05-28-v4-native-overlay-design.md`。
 - 实施计划：`docs/superpowers/plans/2026-05-28-v4-native-overlay.md`。
 - 推荐路径：先试 Tauri `shadow: false` 与 WebView overlay 低风险补丁；如果维护者仍能看到外层白/灰框，再实现 Windows-only 原生 layered overlay，并保留 WebView fallback。
+
+## 2026-05-28 V4 webview-shadowless 第一阶段
+
+- 按 V4 计划先执行低风险 Tauri WebView 补丁，而不是直接引入 Win32 原生窗口。
+- `dictation-overlay` Tauri 窗口新增 `shadow: false`，用于关闭 Windows 上可能参与合成的窗口阴影。
+- 新增 overlay backend 状态 command，诊断模式显示 `桌面浮窗后端`，当前值为 `webview-shadowless`。
+- 新增测试锁住 overlay 配置：`transparent: true`、`decorations: false`、`shadow: false`。
+- 自动验证：`cargo test --manifest-path src-tauri/Cargo.toml overlay` 通过，4 个 overlay 测试通过；`npm test -- --run src/App.test.tsx` 通过，6 个前端测试通过。
+- 人工验证尚未完成：需要维护者在 Tauri 桌面模式点击 `测试桌面浮窗`，确认黑色胶囊外侧是否还有白/灰矩形。若仍有，下一步进入 Windows 原生 overlay 原型。
