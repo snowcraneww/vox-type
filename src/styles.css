@@ -905,3 +905,707 @@ dd { font-size: 12px; }
 @media (prefers-reduced-motion: reduce) {
   .soundwave-bar { animation: none; }
 }
+
+
+/* V4 visual alignment: make the main window match the native overlay language. */
+body:has(.user-shell) {
+  background:
+    radial-gradient(circle at 50% -16%, rgba(255, 255, 255, 0.08), transparent 28%),
+    radial-gradient(circle at 18% 18%, rgba(90, 200, 250, 0.10), transparent 22%),
+    radial-gradient(circle at 84% 26%, rgba(255, 45, 146, 0.08), transparent 24%),
+    linear-gradient(150deg, #020203 0%, #06080d 52%, #020203 100%);
+}
+
+body:has(.user-shell)::before {
+  background:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 50% 26%, black, transparent 68%);
+  opacity: 0.22;
+}
+
+.user-shell {
+  padding: 18px;
+}
+
+.user-shell .tool-window {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.014)),
+    rgba(2, 3, 6, 0.94);
+  border: 1px solid rgba(255,255,255,0.065);
+  border-radius: 24px;
+  box-shadow: 0 24px 86px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow: hidden;
+  width: min(100%, 780px);
+}
+
+.user-shell .tool-header {
+  border-bottom-color: rgba(255,255,255,0.055);
+  min-height: 54px;
+  padding: 12px 18px;
+}
+
+.user-shell .product-mark {
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.user-shell .tool-header p {
+  color: rgba(235,239,247,0.54);
+  font-size: 11px;
+}
+
+.user-shell .ghost-button,
+.user-shell .secondary-button {
+  background: rgba(255,255,255,0.045);
+  border-color: rgba(255,255,255,0.07);
+  border-radius: 999px;
+  color: rgba(235,239,247,0.72);
+  min-height: 30px;
+  padding: 5px 11px;
+}
+
+.user-shell .voice-dashboard {
+  align-items: center;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+  padding: 28px 32px 18px;
+}
+
+.user-shell .eyebrow {
+  color: rgba(126,231,255,0.76);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  margin-bottom: 9px;
+}
+
+.user-shell h1 {
+  color: rgba(255,255,255,0.96);
+  font-size: 31px;
+  font-weight: 740;
+  line-height: 1.05;
+}
+
+.user-shell .voice-subtitle {
+  color: rgba(235,239,247,0.66);
+  font-size: 12px;
+  line-height: 1.58;
+  margin: 11px 0 16px;
+  max-width: 390px;
+}
+
+.user-shell .status-strip {
+  background: rgba(0,0,0,0.42);
+  border: 1px solid rgba(255,255,255,0.065);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.055), 0 10px 30px rgba(0,0,0,0.24);
+  gap: 3px;
+  max-width: 460px;
+  padding: 10px 14px;
+}
+
+.user-shell .status-strip span {
+  color: rgba(126,231,255,0.82);
+  font-size: 10px;
+}
+
+.user-shell .status-strip strong {
+  color: rgba(247,248,251,0.88);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.user-shell .record-orb-wrap {
+  gap: 12px;
+}
+
+.user-shell .voice-overlay {
+  background: #000;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 20px 70px rgba(0,0,0,0.62), inset 0 1px 0 rgba(255,255,255,0.05);
+  grid-template-columns: minmax(128px, 0.95fr) minmax(0, 1fr);
+  min-height: 86px;
+  padding: 13px 16px;
+}
+
+.user-shell .voice-overlay::before {
+  background:
+    radial-gradient(circle at 24% 50%, rgba(90,200,250,0.18), transparent 34%),
+    radial-gradient(circle at 76% 44%, rgba(255,45,146,0.14), transparent 32%);
+  opacity: 0.74;
+}
+
+.user-shell .voice-wave-stage {
+  background: #000;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.035);
+  height: 52px;
+  min-width: 132px;
+}
+
+.user-shell .voice-wave-stage::before {
+  background:
+    radial-gradient(circle at 48% 50%, rgba(255,255,255,0.16), transparent 36%),
+    linear-gradient(90deg, transparent, rgba(126,231,255,0.08), rgba(255,45,146,0.07), transparent);
+  filter: blur(7px);
+  inset: 7px;
+}
+
+.user-shell .voice-wave-bars {
+  gap: 3px;
+  grid-template-columns: repeat(20, 1fr);
+  inset: 12px 15px;
+}
+
+.user-shell .voice-wave-bar {
+  animation-duration: 2.9s;
+  background: linear-gradient(180deg, #7ee7ff 0%, #5ac8fa 22%, #34c759 42%, #ffd60a 58%, #ff2d92 78%, #bf5af2 100%);
+  box-shadow: 0 0 10px rgba(126,231,255,0.25), 0 0 16px rgba(255,45,146,0.12);
+  min-height: 7px;
+  opacity: 0.72;
+}
+
+.user-shell .voice-overlay[data-mode="recording"] .voice-wave-bar {
+  animation-duration: 980ms;
+  opacity: 0.94;
+}
+
+.user-shell .voice-wave-ribbon {
+  animation-direction: alternate;
+  animation-duration: 3.8s;
+  background: linear-gradient(90deg, transparent, rgba(90,200,250,0.52), rgba(52,199,89,0.36), rgba(255,214,10,0.38), rgba(255,45,146,0.50), transparent);
+  filter: blur(4px);
+  height: 14px;
+  opacity: 0.46;
+}
+
+.user-shell .ribbon-b {
+  animation-duration: 5.6s;
+  opacity: 0.28;
+}
+
+.user-shell .voice-glow-core {
+  background: radial-gradient(circle, rgba(255,255,255,0.38), rgba(126,231,255,0.20) 42%, transparent 72%);
+  height: 48px;
+  opacity: 0.58;
+  width: 48px;
+}
+
+.user-shell .voice-overlay-copy {
+  gap: 3px;
+}
+
+.user-shell .voice-overlay-copy strong {
+  color: rgba(255,255,255,0.93);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.user-shell .voice-overlay-copy span,
+.user-shell .voice-overlay-copy em {
+  color: rgba(235,239,247,0.62);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.user-shell .voice-overlay-copy p {
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.user-shell .record-orb {
+  background: #000;
+  border: 1px solid rgba(255,255,255,0.075);
+  border-radius: 999px;
+  box-shadow: 0 14px 38px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.055);
+  color: rgba(247,248,251,0.86);
+  min-height: 38px;
+  padding: 8px 15px;
+}
+
+.user-shell .record-orb[data-phase="recording"] {
+  background: linear-gradient(90deg, rgba(90,200,250,0.20), rgba(255,45,146,0.22)), #000;
+  border-color: rgba(126,231,255,0.24);
+  box-shadow: 0 16px 42px rgba(90,200,250,0.16), 0 0 28px rgba(255,45,146,0.12);
+}
+
+.user-shell .record-symbol {
+  background: #ff2d92;
+  box-shadow: 0 0 12px rgba(255,45,146,0.55);
+  height: 8px;
+  width: 8px;
+}
+
+.user-shell .transcript-card,
+.user-shell .quick-settings,
+.user-shell .setup-banner {
+  margin-left: 32px;
+  margin-right: 32px;
+}
+
+.user-shell .transcript-card,
+.user-shell .setting-chip,
+.user-shell .setup-banner {
+  background: rgba(0,0,0,0.34);
+  border-color: rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+}
+
+.user-shell .transcript-card {
+  border-radius: 18px;
+  padding: 13px 15px;
+}
+
+.user-shell .transcript-card span,
+.user-shell .setting-chip span,
+.user-shell .field span {
+  color: rgba(235,239,247,0.50);
+  font-size: 10.5px;
+}
+
+.user-shell .transcript-card p {
+  color: rgba(247,248,251,0.82);
+  font-size: 12px;
+}
+
+.user-shell .quick-settings {
+  gap: 8px;
+  grid-template-columns: minmax(170px, 1.7fr) repeat(3, minmax(96px, 1fr));
+  padding: 13px 0 22px;
+}
+
+.user-shell .setting-chip {
+  border-radius: 999px;
+  min-height: 46px;
+  padding: 8px 12px;
+}
+
+.user-shell .setting-chip strong {
+  color: rgba(255,255,255,0.88);
+  font-size: 11.5px;
+}
+
+.user-shell input,
+.user-shell select {
+  background: rgba(0,0,0,0.36);
+  border-color: rgba(255,255,255,0.065);
+  border-radius: 999px;
+  color: rgba(247,248,251,0.86);
+  min-height: 34px;
+}
+
+.user-shell .action-row button:first-child,
+.user-shell .button-row button:first-child,
+.user-shell .setup-banner button {
+  background: linear-gradient(90deg, #7ee7ff, #5ac8fa 36%, #ff2d92 100%);
+  border: 0;
+  color: #020407;
+}
+
+@media (max-width: 760px) {
+  .user-shell .tool-window { border-radius: 20px; }
+  .user-shell .voice-dashboard { grid-template-columns: 1fr; padding: 24px 20px 16px; }
+  .user-shell h1 { font-size: 26px; }
+  .user-shell .transcript-card,
+  .user-shell .quick-settings,
+  .user-shell .setup-banner { margin-left: 20px; margin-right: 20px; }
+  .user-shell .quick-settings { grid-template-columns: 1fr; }
+}
+
+
+/* V4.1 main window refinement: spacious, minimal, and closer to the native capsule. */
+.user-shell .tool-window {
+  border-radius: 28px;
+  width: min(100%, 920px);
+}
+
+.user-shell .tool-header {
+  padding: 14px 22px;
+}
+
+.user-shell .voice-dashboard {
+  align-items: stretch;
+  gap: 22px;
+  grid-template-columns: minmax(240px, 0.78fr) minmax(360px, 1.22fr);
+  padding: 34px 38px 22px;
+}
+
+.user-shell .voice-copy {
+  align-content: center;
+  display: grid;
+}
+
+.user-shell h1 {
+  font-size: 42px;
+  font-weight: 760;
+}
+
+.user-shell .voice-subtitle {
+  color: rgba(235,239,247,0.58);
+  font-size: 12px;
+  margin: 10px 0 18px;
+  max-width: 330px;
+}
+
+.user-shell .status-strip {
+  border-radius: 18px;
+  max-width: 340px;
+  padding: 11px 13px;
+}
+
+.user-shell .record-orb-wrap {
+  align-content: center;
+  justify-items: stretch;
+}
+
+.user-shell .voice-overlay {
+  border-radius: 28px;
+  gap: 14px;
+  grid-template-columns: 1fr;
+  min-height: 178px;
+  padding: 20px;
+}
+
+.user-shell .voice-wave-stage {
+  height: 82px;
+  min-width: 0;
+}
+
+.user-shell .voice-wave-bars {
+  inset: 18px 24px;
+}
+
+.user-shell .voice-wave-bar {
+  border-radius: 999px;
+  min-height: 10px;
+}
+
+.user-shell .voice-overlay-copy {
+  justify-items: center;
+  text-align: center;
+}
+
+.user-shell .voice-overlay-copy strong {
+  font-size: 14px;
+}
+
+.user-shell .voice-overlay-copy span,
+.user-shell .voice-overlay-copy em {
+  max-width: 320px;
+}
+
+.user-shell .record-orb {
+  justify-self: center;
+  margin-top: 2px;
+  min-width: 128px;
+}
+
+.user-shell .transcript-card {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 2px;
+}
+
+.user-shell .quick-settings {
+  grid-template-columns: minmax(210px, 1.5fr) repeat(3, minmax(108px, 1fr));
+}
+
+@media (max-width: 760px) {
+  .user-shell .voice-dashboard {
+    grid-template-columns: 1fr;
+    padding: 28px 22px 18px;
+  }
+
+  .user-shell h1 { font-size: 34px; }
+  .user-shell .status-strip { max-width: none; }
+  .user-shell .voice-overlay { min-height: 158px; }
+  .user-shell .voice-wave-stage { height: 72px; }
+}
+
+
+/* V4.5 composed minimal surface: reuse the recording capsule language without debug clutter. */
+body:has(.user-shell) {
+  background:
+    radial-gradient(circle at 50% -18%, rgba(255,255,255,0.070), transparent 34%),
+    radial-gradient(circle at 18% 28%, rgba(90,200,250,0.080), transparent 25%),
+    radial-gradient(circle at 82% 26%, rgba(255,45,146,0.065), transparent 25%),
+    linear-gradient(150deg, #010103 0%, #05060a 58%, #010103 100%);
+}
+
+body:has(.user-shell)::before {
+  background: radial-gradient(circle at 50% 46%, rgba(255,255,255,0.050), transparent 38%);
+  opacity: 0.55;
+}
+
+.user-shell {
+  min-height: 100vh;
+  padding: 24px;
+  place-items: center;
+}
+
+.minimal-console {
+  display: grid;
+  gap: 22px;
+  justify-items: center;
+  padding: 12px;
+  width: min(100%, 560px);
+}
+
+.minimal-topbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.minimal-console .brand-block {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.minimal-console .product-mark {
+  color: rgba(255,255,255,0.92);
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.minimal-console h1 {
+  color: rgba(235,239,247,0.48);
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1;
+  margin: 0;
+}
+
+.minimal-console .ghost-button {
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.060);
+  border-radius: 999px;
+  color: rgba(235,239,247,0.58);
+  min-height: 28px;
+  padding: 4px 11px;
+}
+
+.minimal-stage {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  width: 100%;
+}
+
+.minimal-console .voice-overlay {
+  background: #000;
+  border: 0;
+  border-radius: 999px;
+  box-shadow:
+    0 34px 100px rgba(0,0,0,0.70),
+    0 0 76px rgba(90,200,250,0.11),
+    0 0 58px rgba(255,45,146,0.070),
+    inset 0 1px 0 rgba(255,255,255,0.040);
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  min-height: 118px;
+  overflow: hidden;
+  padding: 18px 26px;
+  width: min(100%, 460px);
+}
+
+.minimal-console .voice-overlay::before {
+  background:
+    radial-gradient(circle at 28% 50%, rgba(90,200,250,0.16), transparent 34%),
+    radial-gradient(circle at 74% 46%, rgba(255,45,146,0.13), transparent 32%);
+  opacity: 0.78;
+}
+
+.minimal-console .voice-wave-stage {
+  background: #000;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.030);
+  height: 82px;
+  width: 100%;
+}
+
+.minimal-console .voice-wave-stage::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.12), transparent 38%),
+    linear-gradient(90deg, transparent, rgba(126,231,255,0.075), rgba(255,45,146,0.075), transparent);
+  filter: blur(8px);
+  inset: 8px;
+}
+
+.minimal-console .voice-wave-bars {
+  gap: 4px;
+  grid-template-columns: repeat(20, 1fr);
+  inset: 17px 26px;
+}
+
+.minimal-console .voice-wave-bar {
+  animation-duration: 1.15s;
+  animation-name: voice-bar-recording;
+  background: linear-gradient(180deg, #7ee7ff 0%, #5ac8fa 22%, #34c759 42%, #ffd60a 58%, #ff2d92 78%, #bf5af2 100%);
+  box-shadow: 0 0 12px rgba(126,231,255,0.25), 0 0 20px rgba(255,45,146,0.12);
+  min-height: 10px;
+  opacity: 0.90;
+}
+
+.minimal-console .voice-wave-ribbon {
+  animation-direction: alternate;
+  animation-duration: 4.2s;
+  background: linear-gradient(90deg, transparent, rgba(90,200,250,0.50), rgba(52,199,89,0.34), rgba(255,214,10,0.35), rgba(255,45,146,0.48), transparent);
+  filter: blur(4px);
+  height: 14px;
+  opacity: 0.44;
+}
+
+.minimal-console .ribbon-b {
+  animation-duration: 6s;
+  opacity: 0.26;
+}
+
+.minimal-console .voice-glow-core {
+  background: radial-gradient(circle, rgba(255,255,255,0.32), rgba(126,231,255,0.18) 42%, transparent 72%);
+  height: 48px;
+  opacity: 0.52;
+  width: 48px;
+}
+
+.minimal-console .voice-overlay-copy {
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+}
+
+.minimal-meta {
+  align-items: center;
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.050);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+  color: rgba(235,239,247,0.62);
+  display: grid;
+  gap: 2px;
+  max-width: 430px;
+  min-height: 42px;
+  padding: 8px 16px;
+  text-align: center;
+  width: min(100%, 430px);
+}
+
+.minimal-meta span {
+  color: rgba(126,231,255,0.68);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.minimal-meta strong {
+  color: rgba(247,248,251,0.78);
+  font-size: 12px;
+  font-weight: 610;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.minimal-meta p {
+  color: rgba(247,248,251,0.84);
+  font-size: 12px;
+  margin: 2px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.minimal-record-button {
+  background: rgba(0,0,0,0.74);
+  border: 1px solid rgba(255,255,255,0.080);
+  border-radius: 999px;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.045);
+  color: rgba(247,248,251,0.86);
+  gap: 9px;
+  min-height: 38px;
+  min-width: 94px;
+  padding: 7px 16px;
+}
+
+.minimal-record-button[data-phase="recording"] {
+  background: linear-gradient(90deg, rgba(90,200,250,0.20), rgba(255,45,146,0.22)), #000;
+  border-color: rgba(126,231,255,0.22);
+  box-shadow: 0 18px 56px rgba(90,200,250,0.15), 0 0 34px rgba(255,45,146,0.12);
+}
+
+.record-glyph {
+  align-items: center;
+  display: inline-grid;
+  gap: 2px;
+  grid-template-columns: repeat(3, 3px);
+  height: 14px;
+}
+
+.record-glyph i {
+  animation: voice-bar-recording 980ms ease-in-out infinite;
+  background: linear-gradient(180deg, #7ee7ff, #ff2d92);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(126,231,255,0.28);
+  display: block;
+  height: 12px;
+  min-height: 5px;
+}
+
+.record-glyph i:nth-child(2) { animation-delay: -180ms; }
+.record-glyph i:nth-child(3) { animation-delay: -360ms; }
+
+.minimal-footer {
+  align-items: center;
+  color: rgba(235,239,247,0.42);
+  display: flex;
+  font-size: 11px;
+  font-weight: 560;
+  gap: 12px;
+  justify-content: center;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.minimal-footer span + span::before {
+  color: rgba(235,239,247,0.25);
+  content: "/";
+  margin-right: 12px;
+}
+
+@media (max-width: 620px) {
+  .minimal-console {
+    gap: 20px;
+    padding: 8px;
+  }
+
+  .minimal-console .voice-overlay {
+    min-height: 108px;
+    padding: 15px 18px;
+  }
+
+  .minimal-console .voice-wave-stage {
+    height: 78px;
+  }
+
+  .minimal-footer {
+    align-items: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .minimal-footer span + span::before {
+    content: "";
+    margin-right: 0;
+  }
+}

@@ -1,16 +1,18 @@
 use crate::error::VoxError;
 
 #[cfg(all(windows, not(test)))]
+#[allow(dead_code)]
 mod platform {
     use super::VoxError;
     use std::ffi::c_void;
-    use std::ptr::null;
+    use std::ptr::{null, null_mut};
     use std::sync::mpsc::{self, Sender};
     use std::sync::{Mutex, OnceLock};
     use std::thread::{self, JoinHandle};
 
     type Bool = i32;
     type ColorRef = u32;
+    type HBitmap = *mut c_void;
     type HBrush = *mut c_void;
     type HCursor = *mut c_void;
     type Hdc = *mut c_void;
@@ -20,6 +22,7 @@ mod platform {
     type HRegion = *mut c_void;
     type HgdiObj = *mut c_void;
     type Hwnd = *mut c_void;
+    type HwndInsertAfter = *mut c_void;
     type LParam = isize;
     type LResult = isize;
     type WParam = usize;
@@ -90,8 +93,60 @@ mod platform {
         pt: Point,
     }
 
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct Size {
+        cx: i32,
+        cy: i32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct BlendFunction {
+        blend_op: u8,
+        blend_flags: u8,
+        source_constant_alpha: u8,
+        alpha_format: u8,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct BitmapInfoHeader {
+        bi_size: u32,
+        bi_width: i32,
+        bi_height: i32,
+        bi_planes: u16,
+        bi_bit_count: u16,
+        bi_compression: u32,
+        bi_size_image: u32,
+        bi_x_pels_per_meter: i32,
+        bi_y_pels_per_meter: i32,
+        bi_clr_used: u32,
+        bi_clr_important: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct RgbQuad {
+        rgb_blue: u8,
+        rgb_green: u8,
+        rgb_red: u8,
+        rgb_reserved: u8,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct BitmapInfo {
+        bmi_header: BitmapInfoHeader,
+        bmi_colors: [RgbQuad; 1],
+    }
+
+    const AC_SRC_ALPHA: u8 = 0x01;
+    const AC_SRC_OVER: u8 = 0x00;
+    const BI_RGB: u32 = 0;
     const CS_VREDRAW: u32 = 0x0001;
     const CS_HREDRAW: u32 = 0x0002;
+    const DIB_RGB_COLORS: u32 = 0;
     const LWA_ALPHA: u32 = 0x00000002;
     const PM_REMOVE: u32 = 0x0001;
     const PS_SOLID: i32 = 0;
@@ -107,6 +162,7 @@ mod platform {
     const WS_EX_NOACTIVATE: u32 = 0x08000000;
     const WS_EX_TOOLWINDOW: u32 = 0x00000080;
     const WS_EX_TOPMOST: u32 = 0x00000008;
+    const ULW_ALPHA: u32 = 0x00000002;
     const WS_POPUP: u32 = 0x80000000;
 
     #[link(name = "kernel32")]
@@ -136,11 +192,13 @@ mod platform {
         fn DestroyWindow(hwnd: Hwnd) -> Bool;
         fn DispatchMessageW(message: *const Msg) -> LResult;
         fn EndPaint(hwnd: Hwnd, paint: *const PaintStruct) -> Bool;
+        fn GetDC(hwnd: Hwnd) -> Hdc;
         fn GetSystemMetrics(index: i32) -> i32;
         fn InvalidateRect(hwnd: Hwnd, rect: *const Rect, erase: Bool) -> Bool;
         fn KillTimer(hwnd: Hwnd, event_id: usize) -> Bool;
         fn PeekMessageW(message: *mut Msg, hwnd: Hwnd, min: u32, max: u32, remove: u32) -> Bool;
         fn RegisterClassW(wnd_class: *const WndClassW) -> u16;
+        fn ReleaseDC(hwnd: Hwnd, dc: Hdc) -> i32;
         fn SetLayeredWindowAttributes(
             hwnd: Hwnd,
             color_key: ColorRef,
@@ -150,10 +208,30 @@ mod platform {
         fn SetTimer(hwnd: Hwnd, event_id: usize, elapsed: u32, timer_func: *const c_void) -> usize;
         fn ShowWindow(hwnd: Hwnd, command: i32) -> Bool;
         fn TranslateMessage(message: *const Msg) -> Bool;
+        fn UpdateLayeredWindow(
+            hwnd: Hwnd,
+            hdc_dst: Hdc,
+            ppt_dst: *const Point,
+            psize: *const Size,
+            hdc_src: Hdc,
+            ppt_src: *const Point,
+            cr_key: ColorRef,
+            pblend: *const BlendFunction,
+            flags: u32,
+        ) -> Bool;
     }
 
     #[link(name = "gdi32")]
     extern "system" {
+        fn CreateCompatibleDC(hdc: Hdc) -> Hdc;
+        fn CreateDIBSection(
+            hdc: Hdc,
+            bitmap_info: *const BitmapInfo,
+            usage: u32,
+            bits: *mut *mut c_void,
+            section: *mut c_void,
+            offset: u32,
+        ) -> HBitmap;
         fn CreatePen(style: i32, width: i32, color: ColorRef) -> HgdiObj;
         fn CreateRoundRectRgn(
             x1: i32,
@@ -164,6 +242,7 @@ mod platform {
             height: i32,
         ) -> HRegion;
         fn CreateSolidBrush(color: ColorRef) -> HBrush;
+        fn DeleteDC(hdc: Hdc) -> Bool;
         fn DeleteObject(object: HgdiObj) -> Bool;
         fn RoundRect(
             hdc: Hdc,
@@ -183,7 +262,7 @@ mod platform {
     const HEIGHT: i32 = 32;
     const MARGIN_BOTTOM: i32 = 92;
     const TIMER_ID: usize = 1;
-    const TIMER_MS: u32 = 90;
+    const TIMER_MS: u32 = 72;
     const CLASS_NAME: &[u16] = &[
         b'V' as u16,
         b'o' as u16,
@@ -326,7 +405,10 @@ mod platform {
                 match command {
                     OverlayCommand::SetMode(next_mode) => {
                         mode = next_mode;
-                        unsafe { InvalidateRect(hwnd, null(), 0) };
+                        let frame = frame_cell().lock().map(|frame| *frame).unwrap_or(0);
+                        unsafe {
+                            render_layered_overlay(hwnd, mode, frame).ok();
+                        };
                     }
                     OverlayCommand::Hide | OverlayCommand::Stop => {
                         unsafe {
@@ -382,27 +464,10 @@ mod platform {
                 ));
             }
 
-            let region = CreateRoundRectRgn(0, 0, WIDTH + 1, HEIGHT + 1, HEIGHT, HEIGHT);
-            if region.is_null() {
+            if render_layered_overlay(hwnd, NativeOverlayMode::Recording, 0).is_err() {
                 DestroyWindow(hwnd);
                 return Err(format!(
-                    "创建原生浮窗圆角区域失败，Win32 错误码：{}",
-                    GetLastError()
-                ));
-            }
-            if SetWindowRgn(hwnd, region, 1) == 0 {
-                DeleteObject(region as HgdiObj);
-                DestroyWindow(hwnd);
-                return Err(format!(
-                    "应用原生浮窗圆角区域失败，Win32 错误码：{}",
-                    GetLastError()
-                ));
-            }
-
-            if SetLayeredWindowAttributes(hwnd, 0, 244, LWA_ALPHA) == 0 {
-                DestroyWindow(hwnd);
-                return Err(format!(
-                    "设置原生浮窗透明度失败，Win32 错误码：{}",
+                    "render native overlay failed, Win32 error: {}",
                     GetLastError()
                 ));
             }
@@ -433,10 +498,13 @@ mod platform {
                 0
             }
             WM_TIMER => {
-                if let Ok(mut frame) = frame_cell().lock() {
+                let frame = if let Ok(mut frame) = frame_cell().lock() {
                     *frame = frame.wrapping_add(1);
-                }
-                InvalidateRect(hwnd, null(), 0);
+                    *frame
+                } else {
+                    0
+                };
+                render_layered_overlay(hwnd, current_mode(), frame).ok();
                 0
             }
             WM_DESTROY => {
@@ -448,165 +516,390 @@ mod platform {
     }
 
     unsafe fn paint_overlay(hwnd: Hwnd, mode: NativeOverlayMode) {
-        let mut paint = PaintStruct::default();
-        let hdc = BeginPaint(hwnd, &mut paint);
-        if hdc.is_null() {
-            return;
-        }
-
-        let background = CreateSolidBrush(colorref(3, 3, 5));
-        let border_pen = CreatePen(PS_SOLID, 1, colorref(3, 3, 5));
-        let old_brush = SelectObject(hdc, background as HgdiObj);
-        let old_pen = SelectObject(hdc, border_pen as HgdiObj);
-        RoundRect(hdc, 0, 0, WIDTH, HEIGHT, HEIGHT, HEIGHT);
-        SelectObject(hdc, old_pen);
-        SelectObject(hdc, old_brush);
-        DeleteObject(border_pen as HgdiObj);
-        DeleteObject(background as HgdiObj);
-
-        SetBkMode(hdc, TRANSPARENT);
         let frame = frame_cell().lock().map(|frame| *frame).unwrap_or(0);
-        match mode {
-            NativeOverlayMode::Recording => draw_recording_bars(hdc, frame),
-            NativeOverlayMode::Transcribing => draw_transcribing_dots(hdc, frame),
-        }
-
-        EndPaint(hwnd, &paint);
+        render_layered_overlay(hwnd, mode, frame).ok();
     }
 
-    unsafe fn draw_recording_bars(hdc: Hdc, frame: u32) {
-        let colors = recording_palette(frame);
+    unsafe fn render_layered_overlay(
+        hwnd: Hwnd,
+        mode: NativeOverlayMode,
+        frame: u32,
+    ) -> Result<(), ()> {
+        let mut buffer = render_overlay_pixels(mode, frame);
+        let screen_dc = GetDC(null_mut());
+        if screen_dc.is_null() {
+            return Err(());
+        }
+
+        let memory_dc = CreateCompatibleDC(screen_dc);
+        if memory_dc.is_null() {
+            ReleaseDC(null_mut(), screen_dc);
+            return Err(());
+        }
+
+        let bitmap_info = BitmapInfo {
+            bmi_header: BitmapInfoHeader {
+                bi_size: std::mem::size_of::<BitmapInfoHeader>() as u32,
+                bi_width: WIDTH,
+                bi_height: -HEIGHT,
+                bi_planes: 1,
+                bi_bit_count: 32,
+                bi_compression: BI_RGB,
+                bi_size_image: (WIDTH * HEIGHT * 4) as u32,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut bits: *mut c_void = null_mut();
+        let bitmap = CreateDIBSection(
+            screen_dc,
+            &bitmap_info,
+            DIB_RGB_COLORS,
+            &mut bits,
+            null_mut(),
+            0,
+        );
+        if bitmap.is_null() || bits.is_null() {
+            DeleteDC(memory_dc);
+            ReleaseDC(null_mut(), screen_dc);
+            return Err(());
+        }
+
+        std::ptr::copy_nonoverlapping(buffer.as_mut_ptr(), bits.cast::<u8>(), buffer.len());
+        let old_bitmap = SelectObject(memory_dc, bitmap as HgdiObj);
+        let size = Size {
+            cx: WIDTH,
+            cy: HEIGHT,
+        };
+        let source = Point { x: 0, y: 0 };
+        let blend = BlendFunction {
+            blend_op: AC_SRC_OVER,
+            blend_flags: 0,
+            source_constant_alpha: 255,
+            alpha_format: AC_SRC_ALPHA,
+        };
+        let result = UpdateLayeredWindow(
+            hwnd,
+            screen_dc,
+            null(),
+            &size,
+            memory_dc,
+            &source,
+            0,
+            &blend,
+            ULW_ALPHA,
+        );
+        SelectObject(memory_dc, old_bitmap);
+        DeleteObject(bitmap as HgdiObj);
+        DeleteDC(memory_dc);
+        ReleaseDC(null_mut(), screen_dc);
+
+        if result == 0 {
+            Err(())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn render_overlay_pixels(mode: NativeOverlayMode, frame: u32) -> Vec<u8> {
+        let mut canvas = Canvas::new(WIDTH as usize, HEIGHT as usize, 3);
+        canvas.draw_capsule(0.0, 0.0, WIDTH as f32, HEIGHT as f32, HEIGHT as f32 / 2.0);
+        match mode {
+            NativeOverlayMode::Recording => draw_recording_bars(&mut canvas, frame),
+            NativeOverlayMode::Transcribing => draw_transcribing_dots(&mut canvas, frame),
+        }
+        canvas.into_bgra()
+    }
+
+    struct Canvas {
+        width: usize,
+        height: usize,
+        scale: usize,
+        pixels: Vec<LinearPixel>,
+    }
+
+    #[derive(Clone, Copy, Default)]
+    struct LinearPixel {
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+    }
+
+    #[derive(Clone, Copy)]
+    struct Rgba {
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+    }
+
+    impl Canvas {
+        fn new(width: usize, height: usize, scale: usize) -> Self {
+            Self {
+                width,
+                height,
+                scale,
+                pixels: vec![LinearPixel::default(); width * height * scale * scale],
+            }
+        }
+
+        fn draw_capsule(&mut self, x: f32, y: f32, width: f32, height: f32, radius: f32) {
+            self.fill_round_rect(
+                x,
+                y,
+                width,
+                height,
+                radius,
+                Rgba {
+                    red: 3.0,
+                    green: 3.0,
+                    blue: 5.0,
+                    alpha: 0.94,
+                },
+            );
+            self.fill_round_rect(
+                x + 1.2,
+                y + 1.2,
+                width - 2.4,
+                height - 2.4,
+                radius - 1.2,
+                Rgba {
+                    red: 2.0,
+                    green: 2.0,
+                    blue: 4.0,
+                    alpha: 0.98,
+                },
+            );
+        }
+
+        fn fill_round_rect(
+            &mut self,
+            x: f32,
+            y: f32,
+            width: f32,
+            height: f32,
+            radius: f32,
+            color: Rgba,
+        ) {
+            let scale = self.scale as f32;
+            let min_x = (x * scale).floor().max(0.0) as usize;
+            let max_x = ((x + width) * scale)
+                .ceil()
+                .min((self.width * self.scale) as f32) as usize;
+            let min_y = (y * scale).floor().max(0.0) as usize;
+            let max_y = ((y + height) * scale)
+                .ceil()
+                .min((self.height * self.scale) as f32) as usize;
+            let left = x * scale;
+            let top = y * scale;
+            let right = (x + width) * scale;
+            let bottom = (y + height) * scale;
+            let radius = radius * scale;
+
+            for sy in min_y..max_y {
+                for sx in min_x..max_x {
+                    let px = sx as f32 + 0.5;
+                    let py = sy as f32 + 0.5;
+                    let qx = px.clamp(left + radius, right - radius);
+                    let qy = py.clamp(top + radius, bottom - radius);
+                    let dx = px - qx;
+                    let dy = py - qy;
+                    if (dx * dx + dy * dy).sqrt() <= radius {
+                        self.blend_scaled(sx, sy, color);
+                    }
+                }
+            }
+        }
+
+        fn blend_scaled(&mut self, sx: usize, sy: usize, color: Rgba) {
+            let scaled_width = self.width * self.scale;
+            let pixel = &mut self.pixels[sy * scaled_width + sx];
+            let inv = 1.0 - color.alpha;
+            pixel.red = color.red * color.alpha + pixel.red * inv;
+            pixel.green = color.green * color.alpha + pixel.green * inv;
+            pixel.blue = color.blue * color.alpha + pixel.blue * inv;
+            pixel.alpha = color.alpha + pixel.alpha * inv;
+        }
+
+        fn fill_bar(&mut self, x: f32, y: f32, width: f32, height: f32, color: Rgba) {
+            self.fill_round_rect(x, y, width, height, width / 2.0, color);
+        }
+
+        fn fill_dot(&mut self, cx: f32, cy: f32, radius: f32, color: Rgba) {
+            self.fill_round_rect(
+                cx - radius,
+                cy - radius,
+                radius * 2.0,
+                radius * 2.0,
+                radius,
+                color,
+            );
+        }
+
+        fn into_bgra(self) -> Vec<u8> {
+            let mut output = vec![0; self.width * self.height * 4];
+            let scale_area = (self.scale * self.scale) as f32;
+            let scaled_width = self.width * self.scale;
+            for y in 0..self.height {
+                for x in 0..self.width {
+                    let mut red = 0.0;
+                    let mut green = 0.0;
+                    let mut blue = 0.0;
+                    let mut alpha = 0.0;
+                    for yy in 0..self.scale {
+                        for xx in 0..self.scale {
+                            let pixel = self.pixels
+                                [(y * self.scale + yy) * scaled_width + (x * self.scale + xx)];
+                            red += pixel.red;
+                            green += pixel.green;
+                            blue += pixel.blue;
+                            alpha += pixel.alpha;
+                        }
+                    }
+                    red /= scale_area;
+                    green /= scale_area;
+                    blue /= scale_area;
+                    alpha = (alpha / scale_area).clamp(0.0, 1.0);
+                    let index = (y * self.width + x) * 4;
+                    output[index] = blue.clamp(0.0, 255.0) as u8;
+                    output[index + 1] = green.clamp(0.0, 255.0) as u8;
+                    output[index + 2] = red.clamp(0.0, 255.0) as u8;
+                    output[index + 3] = (alpha * 255.0).round() as u8;
+                }
+            }
+            output
+        }
+    }
+
+    fn draw_recording_bars(canvas: &mut Canvas, frame: u32) {
+        let colors = recording_palette(frame / 8);
         let base_heights = [
-            4, 7, 10, 5, 12, 8, 3, 11, 6, 13, 9, 4, 12, 7, 10, 5, 8, 11, 6, 3,
+            4.0, 7.0, 10.0, 5.0, 12.0, 8.0, 3.0, 11.0, 6.0, 13.0, 9.0, 4.0, 12.0, 7.0, 10.0, 5.0,
+            8.0, 11.0, 6.0, 3.0,
         ];
 
         for (index, base_height) in base_heights.iter().enumerate() {
-            let color = colors[index % colors.len()];
-            let glow = dim_color(color, 0.32);
-            let pulse = [0, 2, 5, 8, 5, 2][(index + frame as usize) % 6];
-            let height = (*base_height + pulse).min(21);
-            let x = 13 + index as i32 * 5;
-            let y = 16 - height / 2;
+            let color = with_alpha(
+                dim_rgba(colors[index % colors.len()], sweep_intensity(index, frame)),
+                0.95,
+            );
+            let glow = with_alpha(color, 0.22);
+            let pulse_frame = frame as usize / 2;
+            let pulse_phase = (index + 6 - (pulse_frame % 6)) % 6;
+            let pulse: f32 = [0.0, 1.0, 3.0, 5.0, 3.0, 1.0][pulse_phase];
+            let height = (*base_height + pulse).min(18.5_f32);
+            let x = 13.0 + index as f32 * 5.0;
+            let y = 16.0 - height / 2.0;
 
-            let glow_brush = CreateSolidBrush(glow);
-            let glow_pen = CreatePen(PS_SOLID, 1, glow);
-            let old_glow_brush = SelectObject(hdc, glow_brush as HgdiObj);
-            let old_glow_pen = SelectObject(hdc, glow_pen as HgdiObj);
-            RoundRect(hdc, x - 1, y - 2, x + 4, y + height + 2, 5, 5);
-            SelectObject(hdc, old_glow_pen);
-            SelectObject(hdc, old_glow_brush);
-            DeleteObject(glow_pen as HgdiObj);
-            DeleteObject(glow_brush as HgdiObj);
-
-            let brush = CreateSolidBrush(color);
-            let pen = CreatePen(PS_SOLID, 1, color);
-            let old_brush = SelectObject(hdc, brush as HgdiObj);
-            let old_pen = SelectObject(hdc, pen as HgdiObj);
-            RoundRect(hdc, x, y, x + 3, y + height, 4, 4);
-
-            SelectObject(hdc, old_pen);
-            SelectObject(hdc, old_brush);
-            DeleteObject(pen as HgdiObj);
-            DeleteObject(brush as HgdiObj);
+            canvas.fill_bar(x - 0.8, y - 1.8, 4.0, height + 3.6, glow);
+            canvas.fill_bar(x, y, 2.4, height, color);
         }
     }
 
-    unsafe fn draw_transcribing_dots(hdc: Hdc, frame: u32) {
-        let colors = recording_palette(frame / 2);
-
-        draw_recording_ghost_bars(hdc);
+    fn draw_transcribing_dots(canvas: &mut Canvas, frame: u32) {
+        let colors = recording_palette(0);
+        draw_recording_ghost_bars(canvas);
 
         for index in 0..6 {
-            let color = colors[index % colors.len()];
-            let glow = dim_color(color, 0.38);
-            let phase = (frame as usize + index * 2) % 12;
-            let radius = if phase <= 2 {
-                3
-            } else if phase <= 7 {
-                2
-            } else {
-                1
-            };
-            let cx = 40 + index as i32 * 8;
-            let cy = 16;
-
-            let glow_brush = CreateSolidBrush(glow);
-            let glow_pen = CreatePen(PS_SOLID, 1, glow);
-            let old_glow_brush = SelectObject(hdc, glow_brush as HgdiObj);
-            let old_glow_pen = SelectObject(hdc, glow_pen as HgdiObj);
-            RoundRect(hdc, cx - 5, cy - 5, cx + 6, cy + 6, 10, 10);
-            SelectObject(hdc, old_glow_pen);
-            SelectObject(hdc, old_glow_brush);
-            DeleteObject(glow_pen as HgdiObj);
-            DeleteObject(glow_brush as HgdiObj);
-
-            let brush = CreateSolidBrush(color);
-            let pen = CreatePen(PS_SOLID, 1, color);
-            let old_brush = SelectObject(hdc, brush as HgdiObj);
-            let old_pen = SelectObject(hdc, pen as HgdiObj);
-            RoundRect(
-                hdc,
-                cx - radius,
-                cy - radius,
-                cx + radius + 1,
-                cy + radius + 1,
-                radius * 2,
-                radius * 2,
+            let color = with_alpha(
+                dim_rgba(colors[index % colors.len()], dot_intensity(index, frame)),
+                0.98,
             );
-            SelectObject(hdc, old_pen);
-            SelectObject(hdc, old_brush);
-            DeleteObject(pen as HgdiObj);
-            DeleteObject(brush as HgdiObj);
+            let glow = with_alpha(color, 0.18);
+            let phase = ((frame as usize / 2) + 11 - index) % 12;
+            let radius = [
+                1.8, 1.9, 2.1, 2.5, 2.75, 2.5, 2.1, 1.9, 1.8, 1.65, 1.65, 1.75,
+            ][phase];
+            let cx = 40.0 + index as f32 * 8.0;
+            let cy = 16.0;
+            canvas.fill_dot(cx, cy, 4.2, glow);
+            canvas.fill_dot(cx, cy, radius, color);
         }
     }
 
-    unsafe fn draw_recording_ghost_bars(hdc: Hdc) {
-        let ghost = colorref(16, 16, 20);
-        let brush = CreateSolidBrush(ghost);
-        let pen = CreatePen(PS_SOLID, 1, ghost);
-        let old_brush = SelectObject(hdc, brush as HgdiObj);
-        let old_pen = SelectObject(hdc, pen as HgdiObj);
-        let heights = [3, 5, 7, 4, 8, 6, 3, 7, 4, 8, 6, 3, 8, 5, 7, 4, 6, 7, 4, 3];
+    fn draw_recording_ghost_bars(canvas: &mut Canvas) {
+        let ghost = Rgba {
+            red: 10.0,
+            green: 10.0,
+            blue: 14.0,
+            alpha: 0.42,
+        };
+        let heights = [
+            3.0, 5.0, 7.0, 4.0, 8.0, 6.0, 3.0, 7.0, 4.0, 8.0, 6.0, 3.0, 8.0, 5.0, 7.0, 4.0, 6.0,
+            7.0, 4.0, 3.0,
+        ];
         for (index, height) in heights.iter().enumerate() {
-            let x = 13 + index as i32 * 5;
-            let y = 16 - height / 2;
-            RoundRect(hdc, x, y, x + 3, y + height, 4, 4);
+            let x = 13.0 + index as f32 * 5.0;
+            let y = 16.0 - height / 2.0;
+            canvas.fill_bar(x, y, 2.4, *height, ghost);
         }
-        SelectObject(hdc, old_pen);
-        SelectObject(hdc, old_brush);
-        DeleteObject(pen as HgdiObj);
-        DeleteObject(brush as HgdiObj);
     }
 
-    fn recording_palette(frame: u32) -> [ColorRef; 6] {
+    fn recording_palette(frame: u32) -> [Rgba; 6] {
         let phase = (frame % 6) as usize;
         let palette = [
-            colorref(90, 200, 250),
-            colorref(126, 231, 255),
-            colorref(52, 199, 89),
-            colorref(255, 214, 10),
-            colorref(255, 45, 146),
-            colorref(191, 90, 242),
+            rgb(90, 200, 250),
+            rgb(126, 231, 255),
+            rgb(52, 199, 89),
+            rgb(255, 214, 10),
+            rgb(255, 45, 146),
+            rgb(191, 90, 242),
         ];
         [
-            palette[phase % 6],
-            palette[(phase + 1) % 6],
-            palette[(phase + 2) % 6],
-            palette[(phase + 3) % 6],
-            palette[(phase + 4) % 6],
-            palette[(phase + 5) % 6],
+            palette[(6 - phase) % 6],
+            palette[(7 - phase) % 6],
+            palette[(8 - phase) % 6],
+            palette[(9 - phase) % 6],
+            palette[(10 - phase) % 6],
+            palette[(11 - phase) % 6],
         ]
     }
 
-    fn dim_color(color: ColorRef, ratio: f32) -> ColorRef {
-        let red = (color & 0xff) as f32;
-        let green = ((color >> 8) & 0xff) as f32;
-        let blue = ((color >> 16) & 0xff) as f32;
-        colorref(
-            (red * ratio) as u8,
-            (green * ratio) as u8,
-            (blue * ratio) as u8,
-        )
+    fn sweep_intensity(index: usize, frame: u32) -> f32 {
+        let travel = (frame as usize / 2) % 36;
+        let sweep = if travel <= 18 { travel } else { 36 - travel } + 1;
+        let direct = index.abs_diff(sweep);
+        let wrapped = 20 - direct.min(20);
+        let distance = direct.min(wrapped);
+        match distance {
+            0 | 1 => 1.0,
+            2 | 3 => 0.90,
+            4 | 5 => 0.80,
+            _ => 0.70,
+        }
+    }
+
+    fn dot_intensity(index: usize, frame: u32) -> f32 {
+        let phase = ((frame as usize / 2) + 11 - index) % 12;
+        match phase {
+            3..=5 => 1.0,
+            2 | 6 => 0.82,
+            1 | 7 | 11 => 0.66,
+            _ => 0.50,
+        }
+    }
+
+    fn rgb(red: u8, green: u8, blue: u8) -> Rgba {
+        Rgba {
+            red: red as f32,
+            green: green as f32,
+            blue: blue as f32,
+            alpha: 1.0,
+        }
+    }
+
+    fn dim_rgba(color: Rgba, ratio: f32) -> Rgba {
+        Rgba {
+            red: color.red * ratio,
+            green: color.green * ratio,
+            blue: color.blue * ratio,
+            alpha: color.alpha,
+        }
+    }
+
+    fn with_alpha(color: Rgba, alpha: f32) -> Rgba {
+        Rgba { alpha, ..color }
     }
 
     fn current_mode_cell() -> &'static Mutex<NativeOverlayMode> {

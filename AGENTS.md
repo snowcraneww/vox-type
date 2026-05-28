@@ -13,7 +13,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 
 每次开始工作前，从仓库根目录执行：
 
-1. 确认当前目录是 `C:/grace_repos/open-source/vox-type` 或等价 Git Bash 路径。
+1. 确认当前目录是 仓库根目录或等价 Git Bash 路径。
 2. 阅读 `docs/harness/progress.md`。
 3. 阅读 `docs/harness/feature_list.json`，选择优先级最高的未完成项。
 4. 阅读 `docs/harness/working-agreement.md`。
@@ -32,7 +32,7 @@ VoxType 是一个早期开源项目，目标是探索和实现本地优先的语
 - 验证、手动测试或用户反馈发现 bug 时，必须记录到 `docs/harness/debugging-log.md`；如果影响功能状态或后续优先级，同时同步 `docs/harness/progress.md`、`docs/harness/feature_list.json` 或 `docs/harness/session-handoff.md`。
 - 不要重置、回滚或覆盖用户未要求处理的改动。
 - 面向维护者的研究、方案、进度和规则文档默认使用中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
-- Windows PowerShell 5.1 容易把 UTF-8 中文命令片段按本地代码页解释。涉及中文文件的查看、搜索、diff、局部替换和批量编辑时，默认使用 Git Bash 的 `bash -lc`、`rg`、`sed` 或脚本化 UTF-8 读写；不要在 PowerShell 命令里嵌入中文片段做替换。PowerShell 只用于 Windows 专用配置、系统 API、进程管理或必须使用 PowerShell cmdlet 的场景。
+- Windows PowerShell 5.1 容易把 UTF-8 中文命令片段按本地代码页解释。涉及中文文件的查看、搜索、diff、局部替换和批量编辑时，默认使用 Git Bash 的 `bash -lc`、`rg`、`sed` 或脚本化 UTF-8 读写；不要在 PowerShell 命令里嵌入中文片段做替换。PowerShell 只用于 Windows 专用配置、系统 API、进程管理或必须使用 PowerShell cmdlet 的场景。 若必须通过 Python/脚本在 PowerShell 管道中修改中文，脚本源码必须保持 ASCII，并用 `\uXXXX`、`chr()` 或从 UTF-8 文件读取中文；不要把中文直接写进 PowerShell here-string 或命令参数。
 
 ## 技能使用
 

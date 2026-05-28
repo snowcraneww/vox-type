@@ -462,6 +462,12 @@ export function App() {
     try {
       const audio = await stopRecording();
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
+      setStatus({ phase: 'transcribing', message: '录音已停止，正在处理最后一段', lastTranscript: null });
+      addDiagnostic({ title: '实验实时录音已停止', result: 'success', detail: `采集到 ${audio.sampleCount} 个 mono 样本，已立即停止录音流并隐藏浮窗。` });
+      await hideDictationOverlay().catch((error: unknown) => {
+        addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(error) });
+      });
+
       await processFinalLiveTranscriptionChunk();
       if (!liveInsertedTextRef.current) {
         setStatus({ phase: 'transcribing', message: '实时片段未产生文本，正在用整段录音兜底转写', lastTranscript: null });
@@ -471,16 +477,15 @@ export function App() {
         addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
       } else {
         setStatus({ phase: 'succeeded', message: '实验实时输入已停止', lastTranscript: null });
-        addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: `采集到 ${audio.sampleCount} 个 mono 样本，已停止录音流。` });
+        addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: '尾段处理完成。' });
       }
     } catch (error) {
       const detail = formatError(error);
       setRecordingStatus((current) => ({ ...current, state: 'idle' }));
       setStatus({ phase: 'failed', message: `实验实时输入失败：${detail}`, lastTranscript: null });
       addDiagnostic({ title: '实验实时输入失败', result: 'error', detail });
-    } finally {
-      await hideDictationOverlay().catch((error: unknown) => {
-        addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(error) });
+      await hideDictationOverlay().catch((hideError: unknown) => {
+        addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(hideError) });
       });
     }
   }
@@ -727,52 +732,43 @@ export function App() {
   }
 
   function renderUserView() {
+    const readinessLabel = asrConfigStatus.ready
+      ? '本地识别已就绪'
+      : '需要在诊断模式配置 ASR';
+    const mainOverlayModel = {
+      ...voiceOverlayModel,
+      mode: status.phase === 'failed' ? voiceOverlayModel.mode : 'recording',
+      level: Math.max(voiceOverlayModel.level, 0.42),
+    };
+
     return (
       <main className="app-shell user-shell">
-        <section className="tool-window" aria-labelledby="app-title">
-          <header className="tool-header">
-            <div>
+        <section className="minimal-console" aria-labelledby="app-title">
+          <header className="minimal-topbar">
+            <div className="brand-block">
               <span className="product-mark">VoxType</span>
-              <p>本地优先语音输入</p>
+              <h1 id="app-title">语音输入</h1>
             </div>
-            <button className="ghost-button" type="button" onClick={() => setViewMode('diagnostic')}>诊断模式</button>
+            <button className="ghost-button" type="button" onClick={() => setViewMode('diagnostic')}>诊断</button>
           </header>
 
-          <div className="voice-dashboard">
-            <div className="voice-copy">
-              <p className="eyebrow">DICTATION READY</p>
-              <h1 id="app-title">语音直接变成文字</h1>
-              <p className="voice-subtitle">按住 Ctrl+Alt+Space 说话，或按 Ctrl+Alt+V 开始/停止。停止后会转写并上屏到当前光标位置。</p>
-              <div className="status-strip" data-phase={status.phase}><span>{phaseLabel}</span><strong>{status.message}</strong></div>
+          <section className="minimal-stage" aria-label="语音输入">
+            <VoiceOverlay model={mainOverlayModel} />
+            <div className="minimal-meta" aria-live="polite">
+              <span>{phaseLabel}</span>
+              <strong>{status.message}</strong>
+              {status.lastTranscript ? <p>{status.lastTranscript}</p> : null}
             </div>
-            <div className="record-orb-wrap">
-              <VoiceOverlay model={voiceOverlayModel} />
-              <button className="record-orb" data-phase={status.phase} type="button" onClick={() => void handlePrimaryRecordingAction()}>
-                <span className="record-symbol" />
-                <span>{isRecording ? '停止录音' : '开始录音'}</span>
-              </button>
-            </div>
-          </div>
+            <button className="minimal-record-button" data-phase={status.phase} type="button" onClick={() => void handlePrimaryRecordingAction()}>
+              <span className="record-glyph" aria-hidden="true"><i /><i /><i /></span>
+              <span>{isRecording ? '停止' : '开始'}</span>
+            </button>
+          </section>
 
-          <div className="transcript-card compact-section">
-            <div>
-              <span>最近文本</span>
-              <p>{status.lastTranscript ?? '还没有识别文本。完成一次录音和转写后会显示在这里。'}</p>
-            </div>
-            <div className="action-row">
-              <button type="button" onClick={handleTranscribeLastRecording}>转写最近录音</button>
-              <button type="button" onClick={handleTranscribeAndInsert}>转写并上屏</button>
-            </div>
-          </div>
-
-          <div className="quick-settings" aria-label="快速设置">
-            {renderDeviceSelect(true)}
-            <div className="setting-chip"><span>ASR</span><strong>{asrConfigStatus.ready ? '已就绪' : '未就绪'}</strong></div>
-            <div className="setting-chip"><span>模型</span><strong>whisper.cpp</strong></div>
-            <div className="setting-chip"><span>快捷键</span><strong>{hotkeyStatus.registered ? `${hotkeyStatus.accelerator} / ${toggleHotkey}` : '需处理'}</strong></div>
-          </div>
-
-          {!asrConfigStatus.ready ? <div className="setup-banner"><span>{asrConfigStatus.message}</span><button type="button" onClick={handleInstallManagedAsr} disabled={isInstallingAsr}>{isInstallingAsr ? '正在安装' : '一键安装 whisper.cpp'}</button></div> : null}
+          <footer className="minimal-footer">
+            <span>{readinessLabel}</span>
+            <span>Ctrl+Alt+Space / Ctrl+Alt+V</span>
+          </footer>
         </section>
       </main>
     );

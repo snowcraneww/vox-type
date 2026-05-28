@@ -2,7 +2,7 @@
 
 ## 当前已验证状态
 
-- 仓库根目录：`C:/grace_repos/open-source/vox-type`
+- 仓库根目录：当前 Git 工作树根目录
 - 当前阶段：MVP proof-of-life、V2 日常输入体验和 V3 切换录音模式已完成，当前进入 V4 原生桌面浮窗去除外层白灰框与视觉恢复阶段。
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
@@ -13,6 +13,18 @@
 - 当前 blocker：无。
 
 ## 2026-05-28 V4 原生浮窗视觉恢复
+
+- 主窗体二次调整：解决上一版“缩成一团”的问题，放宽用户主界面宽度和右侧声谱胶囊，同时精简文字和按钮文案，保留功能不变。
+
+- 主窗体视觉对齐：用 React/CSS 将用户主界面改成和 native 浮窗一致的黑色精密胶囊风格，减少玻璃卡片和大标题感，保留诊断模式作为工作台。
+
+- 追加体验修复：录音态光感从单向 sweep 改为左右往返；`Ctrl+Alt+V` 第二次触发后先停止录音并隐藏浮窗，再继续尾段转写和上屏，减少“第二次按了反应慢”的体感。
+
+- 追加渲染升级：为解决 GDI 直接绘制和 `SetWindowRgn` 硬裁剪导致的锯齿和低分辨率感，原生浮窗改为 Rust 软件高倍渲染 BGRA 位图，再通过 `UpdateLayeredWindow` 做每像素 alpha 透明；这保留无外框，但胶囊边缘改为抗锯齿。
+
+- 追加视觉微调：颜色回到更柔和的旧版蓝绿黄粉紫顺序，录音动效降速，6 个转写点从上下波浪改回原地呼吸加载；胶囊边缘通过内缩绘制和降低透明度弱化锯齿，仍不画可见边框。
+
+- 追加视觉回调：按旧 WebView/SVG 浮窗参考恢复 20 根频谱柱和 6 个转写点的动效感觉，修正彩色光带为向右推进；继续保持 `native-win32` 无可见外边框策略。
 
 - 维护者手动验证 `native-win32` 浮窗后确认：诊断模式无报错，浮窗外层白/灰矩形框已经消失。
 - 维护者反馈：原生 GDI 版本虽然解决外框，但视觉比之前 WebView/SVG 版本粗糙，希望恢复彩色频谱柱录音态和六点转写态。
@@ -533,3 +545,23 @@
 - `overlay::show_dictation_overlay` 现在优先使用 `native-win32`，失败时自动回退 `fallback-webview`，诊断模式会显示当前后端和失败原因。
 - 自动验证进展：`cargo test --manifest-path src-tauri/Cargo.toml overlay_backend` 通过，3 个相关测试通过。
 - 人工验证待办：启动 Tauri 桌面模式，进入诊断模式，确认 `桌面浮窗后端` 为 `native-win32`，并检查 `测试桌面浮窗` 是否不再出现外层白/灰矩形。
+
+### 2026-05-28 V4.3 主界面重设计
+
+- 使用 `frontend-design` 方向重新收敛主界面：暗色控制台、精简文字、统一字号和间距，并对齐 native-win32 黑色胶囊浮窗的视觉语言。
+- 默认主界面保留品牌、快捷键提示、主语音胶囊、当前状态、最近文本和系统状态；详细操作继续放在诊断模式。
+- 修复 Windows PowerShell 编码导致的 `????` 文案损坏，并将测试断言更新到新主界面。
+- 验证：`npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx` 通过；`npm run typecheck` 通过；`npm run build` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过。
+
+### 2026-05-28 V4.4 极简主界面
+
+- 根据维护者反馈，默认主界面从信息面板改为极简日常输入入口：移除系统状态卡、最近文本卡、ASR 安装条和多个次级按钮。
+- 主界面现在只保留 VoxType、语音胶囊、一个开始/停止按钮、快捷键提示和诊断入口；其他信息继续留在诊断模式。
+- 验证：`npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx` 通过；`npm run typecheck` 通过；`npm run build` 通过；`git diff --check` 通过。
+
+### 2026-05-28 V4.5 主界面声波胶囊复用
+
+- 根据维护者反馈，去掉主界面的粗大彩色点视觉，改为直接复用录音态 20 根彩色声波柱的胶囊风格。
+- 主界面不再过度空白：恢复一个轻量状态胶囊和最近文本预览，但不恢复系统信息卡片堆叠。
+- 主按钮图标从圆点改为小声波柱，与浮窗录音状态语言一致。
+- 验证：`npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx` 通过；`npm run typecheck` 通过；`npm run build` 通过；`git diff --check` 通过。

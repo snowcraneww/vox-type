@@ -47,12 +47,12 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByText('VoxType')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '语音直接变成文字' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '开始录音' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '诊断模式' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '语音输入' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '开始' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '诊断' })).toBeInTheDocument();
     expect(screen.getByRole('status', { name: '语音输入状态：已就绪' })).toBeInTheDocument();
-    expect(screen.getByText('需处理')).toBeInTheDocument();
-    expect(screen.getByText('whisper.cpp')).toBeInTheDocument();
+    expect(screen.getByText('需要在诊断模式配置 ASR')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '安装 whisper.cpp' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '诊断工作台' })).not.toBeInTheDocument();
     expect(document.querySelector('.traffic-lights')).not.toBeInTheDocument();
   });
@@ -63,7 +63,7 @@ describe('App', () => {
 
     await screen.findByText(/Ctrl\+Alt\+Space/);
     pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
-    fireEvent.click(screen.getByRole('button', { name: '诊断模式' }));
+    fireEvent.click(screen.getByRole('button', { name: '诊断' }));
 
     expect(await screen.findByText('收到全局快捷键按下')).toBeInTheDocument();
   });
@@ -102,6 +102,28 @@ describe('App', () => {
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
   });
 
+  it('hides the toggle overlay before waiting for the final tail transcription', async () => {
+    let resolveTail!: (value: { transcript: { engine: string; text: string }; fromSampleIndex: number; toSampleIndex: number; asrSampleCount: number }) => void;
+    vi.mocked(transcribeLastRecordingChunk).mockImplementationOnce(() => new Promise((resolve) => {
+      resolveTail = resolve;
+    }));
+
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
+
+    await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
+    expect(insertTextWithClipboard).not.toHaveBeenCalledWith('delayed tail');
+
+    resolveTail({ transcript: { engine: 'whisper.cpp', text: 'delayed tail' }, fromSampleIndex: 0, toSampleIndex: 52000, asrSampleCount: 2866 });
+    await waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('delayed tail'));
+  });
+
   it('streams an active recording chunk while toggle dictation is recording', async () => {
     render(<App />);
     await screen.findByText(/Ctrl\+Alt\+Space/);
@@ -138,7 +160,7 @@ describe('App', () => {
   it('opens the diagnostic workbench on request', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '诊断模式' }));
+    fireEvent.click(screen.getByRole('button', { name: '诊断' }));
 
     expect(screen.getByRole('heading', { name: '诊断工作台' })).toBeInTheDocument();
     expect(screen.getByText('开始录音采集')).toBeInTheDocument();
