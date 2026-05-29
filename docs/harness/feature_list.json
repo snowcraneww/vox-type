@@ -296,9 +296,12 @@
                 "2026-05-29: V5.5 将模型选择页和诊断页按钮、panel、输入框、日志项、状态 pill 统一到浅绿主题；模型页不再露出蓝色主按钮。",
                 "2026-05-29: V5.5 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
                 "2026-05-29: V5.6 根据维护者反馈降低中心绿色透明度、扩大径向渐变扩散范围，并把外圈底色从接近白改为淡绿白，减少中间太绿、四周太白的割裂感。",
-                "2026-05-29: V5.6 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
+                "2026-05-29: V5.6 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
+                "2026-05-29: V5.7 将 VoxType 和语音输入控制中心、输入模式和快捷键状态、准备状态和系统能力、识别记录和条数都改为同一行主次排版。",
+                "2026-05-29: V5.7 系统能力项改为左右 flex 对齐，左侧能力名固定不换行，右侧当前值右对齐并支持截断，避免麦克风和 Remote Audio 上下错位。",
+                "2026-05-29: V5.7 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
             ],
-            "notes": "V5.6 已柔化浅绿径向渐变过渡；当前等待维护者手动评估视觉方向。"
+            "notes": "V5.7 已优化标题主次排版和准备状态对齐；当前等待维护者手动评估视觉方向。"
         }
     ]
 }

@@ -70,6 +70,9 @@
 - V5.5 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
 - 2026-05-29 V5.6 浅绿过渡微调：根据维护者反馈，降低中心绿色透明度、扩大径向渐变扩散范围，并把外圈底色从接近白改为淡绿白，减少“中间太绿、四周太白”的割裂感。
 - V5.6 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
+- 2026-05-29 V5.7 标题和状态对齐：根据维护者反馈，将 VoxType 和“语音输入控制中心”、输入模式和“快捷键状态”、准备状态和“系统能力”、识别记录和条数都改为同一行主次排版。
+- V5.7 准备状态对齐：系统能力项改为左右 flex 对齐，左侧能力名固定不换行，右侧当前值右对齐并支持截断，避免麦克风和 Remote Audio 上下错位。
+- V5.7 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。
