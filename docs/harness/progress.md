@@ -58,6 +58,10 @@
 - V5.2 模型选择：本地 whisper.cpp 和云端 API 改为左右 tab；选中本地时显示 whisper.cpp 配置，选中云端时显示下一版 API Key/模型/服务商配置占位。
 - V5.2 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`npm test -- --run` 通过，6 个测试文件、25 个测试；`npm run build` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过。
 
+- 2026-05-29 V5.3 浅色主题试验：根据维护者反馈，主窗体先从深色测试台风格改为浅色白底加薄荷绿径向渐变背景，文字改为深灰绿，卡片改为半透明白色玻璃质感。
+- V5.3 范围约束：仅覆盖主界面 `.control-center.v51` 和模型选择页 `.model-shell` / `.model-panel` 的视觉主题；桌面浮窗 overlay 继续保持当前深色彩色动效，诊断功能和 ASR/快捷键逻辑不变。
+- V5.3 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
+
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。
 - 最近结果新增主界面动作：复制、重新上屏、清空；诊断模式继续保留 ASR 配置、录音测试、真实转写、真实闭环、浮窗测试和日志复制。

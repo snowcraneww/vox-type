@@ -2225,6 +2225,158 @@ kbd {
   margin: 0;
 }
 
+/* V5.3: light mint control center. Keep the desktop overlay dark and cinematic. */
+body:has(.control-center.v51),
+body:has(.model-shell) {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(176, 238, 210, 0.78), transparent 34%),
+    radial-gradient(circle at 86% 8%, rgba(187, 241, 225, 0.62), transparent 30%),
+    radial-gradient(circle at 78% 82%, rgba(235, 249, 205, 0.74), transparent 34%),
+    linear-gradient(145deg, #f8fbf5 0%, #edf8ee 48%, #f9fbf7 100%);
+  color: #14241c;
+}
+
+body:has(.control-center.v51)::before,
+body:has(.model-shell)::before {
+  background-image:
+    linear-gradient(rgba(18, 76, 50, 0.030) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 76, 50, 0.026) 1px, transparent 1px);
+  opacity: 0.45;
+}
+
+.control-center.v51,
+.model-panel {
+  --ink: #13231b;
+  --muted: #607166;
+  --muted-strong: #35483b;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.82), rgba(248,253,247,0.68)),
+    rgba(255,255,255,0.72);
+  border: 1px solid rgba(58, 114, 80, 0.14);
+  box-shadow:
+    0 30px 90px rgba(74, 119, 85, 0.18),
+    0 8px 24px rgba(36, 74, 51, 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.84);
+  color: var(--ink);
+}
+
+.control-center.v51 .product-mark,
+.model-panel .product-mark,
+.model-header h1 {
+  color: #12241b;
+}
+
+.v51 .control-topbar h1 {
+  color: rgba(31, 54, 41, 0.64);
+}
+
+.control-center.v51 .topbar-status {
+  background: rgba(255,255,255,0.64);
+  border-color: rgba(55, 112, 77, 0.12);
+  color: rgba(43, 70, 53, 0.70);
+}
+
+.control-center.v51 button,
+.model-panel button {
+  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(240,249,239,0.74));
+  border-color: rgba(53, 107, 74, 0.16);
+  color: #183126;
+  box-shadow: 0 8px 20px rgba(56, 106, 72, 0.08), inset 0 1px 0 rgba(255,255,255,0.86);
+}
+
+.control-center.v51 button:hover:not(:disabled),
+.model-panel button:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(228,247,230,0.84));
+  border-color: rgba(28, 128, 81, 0.28);
+  box-shadow: 0 12px 30px rgba(55, 109, 73, 0.13), 0 0 22px rgba(52, 199, 89, 0.16);
+}
+
+.control-center.v51 button:disabled,
+.model-panel button:disabled {
+  color: rgba(54, 78, 63, 0.34);
+}
+
+.control-center.v51 .control-section,
+.transcript-history,
+.model-choice,
+.model-config {
+  background: rgba(255,255,255,0.56);
+  border-color: rgba(50, 104, 72, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.74);
+}
+
+.control-center.v51 .mode-card,
+.control-center.v51 .readiness-grid div,
+.history-list article {
+  background: rgba(255,255,255,0.58);
+  border-color: rgba(54, 107, 75, 0.12);
+}
+
+.control-center.v51 .mode-card[data-active="true"],
+.model-choice[data-active="true"] {
+  background:
+    radial-gradient(circle at 14% 16%, rgba(107, 219, 157, 0.20), transparent 46%),
+    rgba(255,255,255,0.76);
+  border-color: rgba(28, 128, 81, 0.24);
+  box-shadow: 0 14px 34px rgba(42, 128, 78, 0.10), inset 0 1px 0 rgba(255,255,255,0.86);
+}
+
+.section-heading span,
+.history-header span,
+.model-choice span,
+.model-config .field span,
+.cloud-placeholder span {
+  color: rgba(22, 123, 76, 0.78);
+}
+
+.section-heading strong,
+.history-header strong,
+.model-choice strong,
+.cloud-placeholder strong,
+.mode-card h2 {
+  color: #15271e;
+}
+
+.mode-kicker,
+.mode-card p,
+.readiness-grid dt,
+.history-list time,
+.empty-history,
+.cloud-placeholder p {
+  color: rgba(49, 72, 58, 0.58);
+}
+
+.readiness-grid dd,
+.history-list p {
+  color: rgba(22, 34, 27, 0.86);
+}
+
+.history-stats span,
+kbd {
+  background: rgba(255,255,255,0.62);
+  border-color: rgba(54, 107, 75, 0.12);
+  color: rgba(43, 70, 53, 0.70);
+}
+
+.model-choice[aria-selected="false"] {
+  color: rgba(55, 78, 64, 0.54);
+}
+
+.model-panel input,
+.model-panel select {
+  background: rgba(255,255,255,0.72);
+  border-color: rgba(54, 107, 75, 0.16);
+  color: #14241c;
+}
+
+.model-panel input::placeholder {
+  color: rgba(54, 78, 63, 0.42);
+}
+
+.model-panel .runtime-message {
+  color: rgba(43, 70, 53, 0.72);
+}
+
 @media (max-width: 820px) {
   .control-center.v51 { max-height: none; }
   .v51-top-grid,

@@ -283,9 +283,12 @@
                 "2026-05-29: 隐私和编码扫描通过：本轮修改文件未命中本机用户名、个人邮箱、用户目录、旧 GitHub noreply 或本机仓库路径；未命中问号乱码或替换字符。",
                 "2026-05-29: V5.2 根据维护者反馈删除主界面独立动态状态胶囊，把输入模式和准备状态保持同一行左右两侧，并将识别记录标题、统计、清空和导出按钮合并为同一行紧凑工具条。",
                 "2026-05-29: V5.2 将模型选择改为左右 tab：选中本地 whisper.cpp 时显示本地配置，选中云端 API 时显示下一版 API Key/模型/服务商配置占位。",
-                "2026-05-29: V5.2 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；npm test -- --run 通过，6 个测试文件、25 个测试；npm run build 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
+                "2026-05-29: V5.2 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；npm test -- --run 通过，6 个测试文件、25 个测试；npm run build 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。",
+                "2026-05-29: V5.3 根据维护者反馈将主窗体从深色测试台风格改为浅色白底加薄荷绿径向渐变背景，文字改为深灰绿，卡片改为半透明白色玻璃质感。",
+                "2026-05-29: V5.3 仅覆盖主界面和模型选择页视觉主题；桌面浮窗 overlay 保持当前深色彩色动效，诊断功能和 ASR/快捷键逻辑不变。",
+                "2026-05-29: V5.3 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
             ],
-            "notes": "V5.2 已按维护者反馈压缩主界面信息密度，释放识别记录区域，并把模型选择改为 tab；自动验证已通过，当前等待维护者手动验收后再标记为 passing。"
+            "notes": "V5.3 已完成浅色薄荷绿主窗体主题试验并通过自动验证；当前等待维护者手动评估视觉方向。"
         }
     ]
 }
