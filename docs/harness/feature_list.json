@@ -302,9 +302,12 @@
                 "2026-05-29: V5.7 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
                 "2026-05-29: V5.8 将最外层背景改为更接近内部 panel 的柔和浅绿渐变；输入模式卡片内模式名、快捷键、Ready 和设置图标统一垂直居中；设置图标去掉按钮圆圈，只保留绿色图标。",
                 "2026-05-29: V5.8 准备状态小圆点从右上角改为右侧垂直居中，与麦克风/Remote Audio 等单行文本保持同一中线。",
-                "2026-05-29: V5.8 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
+                "2026-05-29: V5.8 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
+                "2026-05-29: V5.9 输入模式不再显示 Ready 文字，改为最右侧状态圆点，并通过 tooltip/aria-label 说明快捷键已注册或未注册；设置图标继续去按钮化并放大为深绿色。",
+                "2026-05-29: V5.9 无识别记录时改为浅绿虚线空状态面板；识别记录容器使用 overflow: clip 并为列表底部保留细小间距，减少底部圆角被截断的观感。",
+                "2026-05-29: V5.9 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
             ],
-            "notes": "V5.8 已微调外层背景、输入模式行内垂直对齐、设置图标样式和准备状态点对齐；当前等待维护者手动评估视觉方向。"
+            "notes": "V5.9 已将输入模式状态改为纯圆点、优化设置图标和识别记录空状态；当前等待维护者手动评估视觉方向。"
         }
     ]
 }

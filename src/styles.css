@@ -1995,9 +1995,13 @@ kbd {
 .mode-card-actions {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   line-height: 1;
   min-width: 0;
+}
+
+.mode-card-actions {
+  margin-left: auto;
 }
 
 .mode-line {
@@ -2015,14 +2019,18 @@ kbd {
 }
 
 .ready-dot {
+  background: rgba(179, 140, 35, 0.82);
   border-radius: 999px;
-  color: rgba(255,214,10,0.88);
-  font-size: 11px;
-  font-weight: 720;
+  box-shadow: 0 0 0 3px rgba(179, 140, 35, 0.10);
+  display: block;
+  flex: 0 0 auto;
+  height: 8px;
+  width: 8px;
 }
 
 .ready-dot[data-ready="true"] {
-  color: rgba(52,199,89,0.90);
+  background: rgba(37, 151, 62, 0.90);
+  box-shadow: 0 0 0 3px rgba(37, 151, 62, 0.10);
 }
 
 .v51 .mode-card button {
@@ -2030,11 +2038,11 @@ kbd {
   border-color: transparent;
   border-radius: 999px;
   box-shadow: none;
-  color: rgba(19, 116, 45, 0.68);
-  font-size: 16px;
+  color: rgba(13, 91, 35, 0.82);
+  font-size: 18px;
   line-height: 1;
-  min-height: 26px;
-  min-width: 26px;
+  min-height: 22px;
+  min-width: 22px;
   padding: 0;
 }
 
@@ -2046,7 +2054,7 @@ kbd {
 }
 
 .v51 .mode-card button:disabled {
-  opacity: 0.78;
+  opacity: 0.88;
 }
 
 .v51 .readiness-grid div {
@@ -2093,7 +2101,7 @@ kbd {
   flex-direction: column;
   gap: 8px;
   min-height: 448px;
-  overflow: hidden;
+  overflow: clip;
   padding: 11px 12px 12px;
 }
 
@@ -2163,13 +2171,31 @@ kbd {
 
 .empty-history {
   align-self: stretch;
-  color: rgba(235,239,247,0.46);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(82, 185, 90, 0.08), rgba(176, 224, 151, 0.05) 48%, rgba(255,255,255,0) 82%),
+    rgba(254,255,252,0.50);
+  border: 1px dashed rgba(54, 119, 66, 0.16);
+  border-radius: 16px;
   display: grid;
   flex: 1;
-  font-size: 13px;
+  gap: 5px;
   margin: 0;
   min-height: 0;
+  place-content: center;
   place-items: center;
+  text-align: center;
+}
+
+.empty-history span {
+  color: rgba(19, 116, 45, 0.64);
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.empty-history strong {
+  color: rgba(49, 72, 58, 0.54);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .history-list {
@@ -2181,8 +2207,9 @@ kbd {
   margin: 0;
   max-height: min(56vh, 560px);
   min-height: 0;
+  border-radius: 16px;
   overflow: auto;
-  padding: 0 4px 0 0;
+  padding: 0 4px 2px 0;
 }
 
 .history-list article {

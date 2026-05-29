@@ -64,7 +64,7 @@ describe('App', () => {
     expect(screen.queryByTestId('voice-wave')).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: '识别记录' })).toBeInTheDocument();
     expect(screen.getByTestId('history-toolbar')).toBeInTheDocument();
-    expect(screen.getByText('还没有识别记录')).toBeInTheDocument();
+    expect(screen.getByText('等待第一次识别')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '清空全部识别记录' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '导出识别记录' })).toBeInTheDocument();
     expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('0');
@@ -134,7 +134,7 @@ describe('App', () => {
     expect(screen.getByText('测试文本')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '清空全部识别记录' }));
-    expect(screen.getByText('还没有识别记录')).toBeInTheDocument();
+    expect(screen.getByText('等待第一次识别')).toBeInTheDocument();
   });
 
   it('opens model selection and leaves cloud API as a placeholder', async () => {
@@ -175,7 +175,7 @@ describe('App', () => {
     expect(insertTextWithClipboard).toHaveBeenLastCalledWith('测试文本');
 
     fireEvent.click(screen.getByRole('button', { name: '清空全部识别记录' }));
-    expect(screen.getByText('还没有识别记录')).toBeInTheDocument();
+    expect(screen.getByText('等待第一次识别')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '重新上屏此记录' })).not.toBeInTheDocument();
   });
 
