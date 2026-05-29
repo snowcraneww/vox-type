@@ -308,9 +308,11 @@
                 "2026-05-29: V5.9 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
                 "2026-05-29: V5.10 将输入模式状态圆点移动到快捷键后方，并与准备状态系统能力圆点统一为同样的 7px 绿色点样式。",
                 "2026-05-29: V5.10 为设置按钮增加 icon-only-button class，并用高优先级样式覆盖全局按钮主题，彻底移除按钮背景、边框和阴影，只保留更大的深绿色设置图标。",
-                "2026-05-29: V5.10 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
+                "2026-05-29: V5.10 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
+                "2026-05-29: 维护者确认当前浅绿主窗体版本比较满意；满意版已提交为 74aa469 style: align mode status indicators。",
+                "2026-05-29: 新增 V6 计划 docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md，下一版聚焦自定义快捷键和 MiniMax 云端 API 配置；V7 候选为桌面录音浮窗浅绿化统一。"
             ],
-            "notes": "V5.10 已将输入模式状态点移动到快捷键后方、统一状态点尺寸，并彻底移除设置图标外圈；当前等待维护者手动评估视觉方向。"
+            "notes": "V5.10 满意版已收尾；V6 计划已写好，下一版进入自定义快捷键和 MiniMax 云端 API 配置。"
         }
     ]
 }
