@@ -52,6 +52,18 @@ impl Default for ToggleHotkeyBinding {
     }
 }
 
+pub fn validate_hotkey_pair(push_to_talk: &str, toggle: &str) -> Result<(), String> {
+    let push = push_to_talk.trim();
+    let toggle = toggle.trim();
+    if push.is_empty() || toggle.is_empty() {
+        return Err("快捷键不能为空".to_string());
+    }
+    if push.eq_ignore_ascii_case(toggle) {
+        return Err("两个输入模式不能使用同一个快捷键".to_string());
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PushToTalkEvent {
     Pressed,
@@ -238,5 +250,24 @@ mod tests {
             ToggleHotkeyBinding::default().accelerator,
             HotkeyBinding::default().accelerator
         );
+    }
+
+    #[test]
+    fn hotkey_validation_rejects_duplicate_bindings() {
+        let error = validate_hotkey_pair("Ctrl+Alt+Space", "Ctrl+Alt+Space").unwrap_err();
+
+        assert_eq!(error, "两个输入模式不能使用同一个快捷键");
+    }
+
+    #[test]
+    fn hotkey_validation_rejects_blank_bindings() {
+        let error = validate_hotkey_pair("   ", "Ctrl+Alt+V").unwrap_err();
+
+        assert_eq!(error, "快捷键不能为空");
+    }
+
+    #[test]
+    fn hotkey_validation_accepts_distinct_bindings() {
+        validate_hotkey_pair("Ctrl+Alt+Space", "Ctrl+Alt+V").unwrap();
     }
 }

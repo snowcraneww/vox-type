@@ -121,6 +121,25 @@ fn get_hotkey_status(
 }
 
 #[tauri::command]
+fn save_hotkey_preferences(
+    app: AppHandle,
+    push_to_talk_hotkey: String,
+    toggle_dictation_hotkey: String,
+) -> Result<hotkey::HotkeyRegistrationStatus, error::VoxError> {
+    hotkey::validate_hotkey_pair(&push_to_talk_hotkey, &toggle_dictation_hotkey)
+        .map_err(error::VoxError::Config)?;
+    let config_dir = app_config_dir(&app)?;
+    let mut preferences = preferences::load_user_preferences(config_dir.clone());
+    let normalized_push_to_talk = push_to_talk_hotkey.trim().to_string();
+    preferences.push_to_talk_hotkey = Some(normalized_push_to_talk.clone());
+    preferences.toggle_dictation_hotkey = Some(toggle_dictation_hotkey.trim().to_string());
+    preferences::save_user_preferences(config_dir, preferences)?;
+    Ok(hotkey::HotkeyRegistrationStatus::registered(
+        normalized_push_to_talk,
+    ))
+}
+
+#[tauri::command]
 fn get_asr_config_status(app: AppHandle) -> Result<AsrConfigStatus, error::VoxError> {
     let config_dir = app_config_dir(&app)?;
     Ok(asr_config::get_asr_config_status(config_dir))
@@ -390,6 +409,7 @@ pub fn run() {
             get_recording_status,
             get_user_preferences,
             get_hotkey_status,
+            save_hotkey_preferences,
             get_asr_config_status,
             save_asr_config,
             install_managed_asr,

@@ -199,7 +199,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - Modify: `src-tauri/src/lib.rs`
 - Modify: `src/tauriClient.ts`
 
-- [ ] **Step 1: 写快捷键校验测试**
+- [x] **Step 1: 写快捷键校验测试**
 
 在 `src-tauri/src/hotkey.rs` tests 中增加：
 
@@ -216,7 +216,7 @@ fn hotkey_validation_accepts_distinct_bindings() {
 }
 ```
 
-- [ ] **Step 2: 实现校验函数**
+- [x] **Step 2: 实现校验函数**
 
 在 `src-tauri/src/hotkey.rs` 增加：
 
@@ -234,7 +234,7 @@ pub fn validate_hotkey_pair(push_to_talk: &str, toggle: &str) -> Result<(), Stri
 }
 ```
 
-- [ ] **Step 3: 增加 Tauri command**
+- [x] **Step 3: 增加 Tauri command**
 
 在 `src-tauri/src/lib.rs` 增加 `save_hotkey_preferences` command：
 
@@ -258,7 +258,7 @@ fn save_hotkey_preferences(
 
 说明：这一步先保存和返回状态；真正运行时重新注册要在同一 task 后续补上，避免 command 名先缺失。
 
-- [ ] **Step 4: 前端 client 增加调用**
+- [x] **Step 4: 前端 client 增加调用**
 
 在 `src/tauriClient.ts` 增加：
 
@@ -268,12 +268,14 @@ export async function saveHotkeyPreferences(pushToTalkHotkey: string, toggleDict
 }
 ```
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml hotkey preferences
 npm run typecheck
 ```
+
+实际验证记录：`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo test --manifest-path src-tauri/Cargo.toml hotkey_validation --no-run` 通过；`npm run typecheck` 通过。动态重新注册全局快捷键尚未补齐，后续 task 必须处理或在 UI 中明确提示重启生效。
 
 - [ ] **Step 6: 提交**
 

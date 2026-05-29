@@ -87,6 +87,8 @@
 - 2026-05-29 V6 API Key 策略更新：MiniMax 真实 API Key 默认只从系统环境变量 `MINIMAX_API_KEY` 读取，不写入仓库、日志、文档、测试快照或项目配置文件；项目配置只保存 provider/base URL/model/language 等非密钥字段。
 - 2026-05-29 V6 Task 1 进行中：新增用户偏好字段 `push_to_talk_hotkey` 和 `toggle_dictation_hotkey`，并修正输入设备保存逻辑为读取现有偏好后只更新设备字段，避免未来覆盖快捷键偏好。
 - 2026-05-29 验证注意：`cargo test --manifest-path src-tauri/Cargo.toml preferences` 和既有 `hotkey` 测试均在运行测试二进制时报 `STATUS_ENTRYPOINT_NOT_FOUND`，已记录到 `docs/harness/debugging-log.md`；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 和 `npm run typecheck` 通过。
+- 2026-05-29 V6 Task 2 部分完成：新增快捷键成对校验，拒绝空快捷键和两个模式使用同一快捷键；新增 `save_hotkey_preferences` Tauri command 和前端 `saveHotkeyPreferences` client。当前保存后返回注册状态，但实际动态重新注册全局快捷键仍需后续补齐。
+- V6 Task 2 验证：`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo test --manifest-path src-tauri/Cargo.toml hotkey_validation --no-run` 通过；`npm run typecheck` 通过。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。

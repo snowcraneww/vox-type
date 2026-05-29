@@ -52,6 +52,10 @@ export async function getHotkeyStatus(): Promise<HotkeyRegistrationStatus> {
   return invoke<HotkeyRegistrationStatus>('get_hotkey_status');
 }
 
+export async function saveHotkeyPreferences(pushToTalkHotkey: string, toggleDictationHotkey: string): Promise<HotkeyRegistrationStatus> {
+  return invoke<HotkeyRegistrationStatus>('save_hotkey_preferences', { pushToTalkHotkey, toggleDictationHotkey });
+}
+
 export async function simulateDictation(): Promise<AppStatus> {
   return invoke<AppStatus>('simulate_dictation');
 }
