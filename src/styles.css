@@ -2260,9 +2260,9 @@ body:has(.control-center.v51),
 body:has(.model-shell),
 body:has(.diagnostic-shell) {
   background:
-    radial-gradient(ellipse at 50% 6%, rgba(84, 190, 96, 0.36), transparent 42%),
-    radial-gradient(ellipse at 50% 28%, rgba(132, 216, 126, 0.20), transparent 45%),
-    linear-gradient(180deg, #f7fbf1 0%, #f4faee 42%, #fbfdf8 100%);
+    radial-gradient(ellipse at 50% 8%, rgba(91, 184, 96, 0.24), rgba(173, 222, 154, 0.13) 36%, rgba(246, 251, 239, 0) 72%),
+    radial-gradient(ellipse at 50% 34%, rgba(147, 214, 126, 0.12), rgba(244, 250, 237, 0) 68%),
+    linear-gradient(180deg, #f5faee 0%, #f6fbf0 48%, #f9fcf5 100%);
   color: #102519;
 }
 
@@ -2283,9 +2283,8 @@ body:has(.diagnostic-shell)::before {
   --muted: #607461;
   --muted-strong: #2e5237;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(72, 184, 86, 0.20), transparent 44%),
-    radial-gradient(ellipse at 50% 34%, rgba(147, 219, 134, 0.11), transparent 48%),
-    linear-gradient(180deg, rgba(255,255,255,0.86), rgba(247,252,243,0.72)),
+    radial-gradient(ellipse at 50% 0%, rgba(84, 184, 89, 0.14), rgba(173, 222, 151, 0.08) 42%, rgba(255,255,255,0) 76%),
+    linear-gradient(180deg, rgba(253,255,250,0.84), rgba(247,252,242,0.78)),
     rgba(255,255,255,0.76);
   border: 1px solid rgba(53, 117, 65, 0.15);
   box-shadow:
@@ -2351,9 +2350,8 @@ body:has(.diagnostic-shell)::before {
 .diagnostic-shell .settings-grid div,
 .diagnostic-shell .diagnostic-list li {
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(81, 190, 91, 0.14), transparent 44%),
-    radial-gradient(ellipse at 50% 30%, rgba(174, 226, 141, 0.10), transparent 48%),
-    rgba(255,255,255,0.60);
+    radial-gradient(ellipse at 50% 0%, rgba(88, 188, 92, 0.10), rgba(178, 224, 151, 0.07) 44%, rgba(255,255,255,0) 78%),
+    rgba(253,255,250,0.63);
   border-color: rgba(50, 116, 62, 0.13);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.74);
 }
@@ -2362,17 +2360,16 @@ body:has(.diagnostic-shell)::before {
 .control-center.v51 .readiness-grid div,
 .history-list article {
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(77, 186, 89, 0.13), transparent 50%),
-    rgba(255,255,255,0.66);
+    radial-gradient(ellipse at 50% 0%, rgba(82, 185, 90, 0.09), rgba(176, 224, 151, 0.06) 48%, rgba(255,255,255,0) 82%),
+    rgba(254,255,252,0.68);
   border-color: rgba(54, 119, 66, 0.13);
 }
 
 .control-center.v51 .mode-card[data-active="true"],
 .model-choice[data-active="true"] {
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(68, 185, 84, 0.22), transparent 50%),
-    radial-gradient(ellipse at 50% 42%, rgba(171, 230, 146, 0.12), transparent 52%),
-    rgba(255,255,255,0.76);
+    radial-gradient(ellipse at 50% 0%, rgba(70, 180, 84, 0.16), rgba(169, 226, 145, 0.09) 48%, rgba(255,255,255,0) 82%),
+    rgba(254,255,252,0.78);
   border-color: rgba(28, 128, 81, 0.24);
   box-shadow: 0 14px 34px rgba(42, 128, 78, 0.10), inset 0 1px 0 rgba(255,255,255,0.86);
 }

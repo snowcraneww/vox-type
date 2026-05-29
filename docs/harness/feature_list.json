@@ -294,9 +294,11 @@
                 "2026-05-29: V5.5 统一浅绿径向渐变光源为上中部更绿、底部和四周更淡，避免左右或边缘各自发绿造成方向混乱。",
                 "2026-05-29: V5.5 将识别记录容器从 grid 改为 flex column，列表使用 align-content: start，避免少量记录时工具条和记录之间出现异常大空白。",
                 "2026-05-29: V5.5 将模型选择页和诊断页按钮、panel、输入框、日志项、状态 pill 统一到浅绿主题；模型页不再露出蓝色主按钮。",
-                "2026-05-29: V5.5 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
+                "2026-05-29: V5.5 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
+                "2026-05-29: V5.6 根据维护者反馈降低中心绿色透明度、扩大径向渐变扩散范围，并把外圈底色从接近白改为淡绿白，减少中间太绿、四周太白的割裂感。",
+                "2026-05-29: V5.6 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
             ],
-            "notes": "V5.5 已统一浅绿光源方向、修正识别记录异常留白，并把模型选择页和诊断页纳入同一浅绿主题；当前等待维护者手动评估视觉方向。"
+            "notes": "V5.6 已柔化浅绿径向渐变过渡；当前等待维护者手动评估视觉方向。"
         }
     ]
 }

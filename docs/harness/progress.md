@@ -68,6 +68,8 @@
 - V5.5 识别记录修正：识别记录容器从 grid 改为 flex column，列表使用 `align-content: start`，避免只有少量记录时工具条和记录之间、记录和底部之间出现异常大空白。
 - V5.5 主题统一：模型选择页和诊断页按钮、panel、输入框、日志项、状态 pill 改为同一浅绿主题；模型页不再露出蓝色主按钮。
 - V5.5 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
+- 2026-05-29 V5.6 浅绿过渡微调：根据维护者反馈，降低中心绿色透明度、扩大径向渐变扩散范围，并把外圈底色从接近白改为淡绿白，减少“中间太绿、四周太白”的割裂感。
+- V5.6 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。
