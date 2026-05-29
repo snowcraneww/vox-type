@@ -61,6 +61,9 @@
 - 2026-05-29 V5.3 浅色主题试验：根据维护者反馈，主窗体先从深色测试台风格改为浅色白底加薄荷绿径向渐变背景，文字改为深灰绿，卡片改为半透明白色玻璃质感。
 - V5.3 范围约束：仅覆盖主界面 `.control-center.v51` 和模型选择页 `.model-shell` / `.model-panel` 的视觉主题；桌面浮窗 overlay 继续保持当前深色彩色动效，诊断功能和 ASR/快捷键逻辑不变。
 - V5.3 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
+- 2026-05-29 V5.4 浅绿层次和密度修正：根据维护者反馈，将薄荷色调改为更正常的浅绿径向渐变，并让主窗体、panel、tab/card、识别记录项使用不同深浅的绿色层级。
+- V5.4 布局修正：输入模式卡片改为单行结构，左侧为“模式名 + 快捷键”，右侧集中放 Ready 状态和快捷键设置按钮；准备状态项也改为“能力名 + 当前值”单行显示；识别记录减少上下留白并提高列表可用高度。
+- V5.4 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。

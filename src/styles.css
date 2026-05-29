@@ -1928,10 +1928,10 @@ kbd {
 
 /* V5.1: recognition history first, with the same refined signal language as the overlay. */
 .control-center.v51 {
-  gap: 10px;
+  gap: 9px;
   max-height: calc(100vh - 40px);
   overflow: hidden;
-  padding: 16px;
+  padding: 15px;
   width: min(100%, 980px);
 }
 
@@ -1957,8 +1957,8 @@ kbd {
   background: rgba(0,0,0,0.26);
   border-color: rgba(255,255,255,0.060);
   border-radius: 16px;
-  gap: 8px;
-  padding: 10px;
+  gap: 7px;
+  padding: 9px;
 }
 
 .v51 .mode-selector {
@@ -1968,13 +1968,31 @@ kbd {
 .v51 .mode-card.compact {
   align-items: center;
   border-radius: 15px;
-  min-height: 50px;
-  padding: 9px 10px;
+  min-height: 42px;
+  padding: 8px 9px;
 }
 
 .v51 .mode-card.compact h2 {
   font-size: 14px;
-  margin: 0 0 6px;
+  margin: 0;
+}
+
+.mode-line,
+.mode-card-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mode-line {
+  flex: 1;
+}
+
+.mode-line kbd {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ready-dot {
@@ -1990,13 +2008,18 @@ kbd {
 
 .v51 .mode-card button {
   border-radius: 999px;
-  min-height: 28px;
-  min-width: 28px;
+  min-height: 26px;
+  min-width: 26px;
   padding: 0;
 }
 
 .v51 .readiness-grid div {
-  min-height: 48px;
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 38px;
+  padding: 8px 24px 8px 9px;
 }
 
 .transcript-history {
@@ -2004,16 +2027,16 @@ kbd {
   border: 1px solid rgba(255,255,255,0.060);
   border-radius: 22px;
   display: grid;
-  gap: 10px;
-  min-height: 420px;
+  gap: 8px;
+  min-height: 448px;
   overflow: hidden;
-  padding: 14px;
+  padding: 11px 12px 12px;
 }
 
 .history-header {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: space-between;
   min-width: 0;
 }
@@ -2086,10 +2109,10 @@ kbd {
 
 .history-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   list-style: none;
   margin: 0;
-  max-height: min(50vh, 520px);
+  max-height: min(56vh, 560px);
   overflow: auto;
   padding: 0 4px 0 0;
 }
@@ -2100,9 +2123,9 @@ kbd {
   border: 1px solid rgba(255,255,255,0.055);
   border-radius: 16px;
   display: grid;
-  gap: 8px;
+  gap: 7px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  padding: 11px 12px;
+  padding: 9px 10px;
 }
 
 .history-list time {
@@ -2116,7 +2139,7 @@ kbd {
 .history-list p {
   color: rgba(255,255,255,0.88);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.48;
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -2229,11 +2252,11 @@ kbd {
 body:has(.control-center.v51),
 body:has(.model-shell) {
   background:
-    radial-gradient(circle at 16% 10%, rgba(176, 238, 210, 0.78), transparent 34%),
-    radial-gradient(circle at 86% 8%, rgba(187, 241, 225, 0.62), transparent 30%),
-    radial-gradient(circle at 78% 82%, rgba(235, 249, 205, 0.74), transparent 34%),
-    linear-gradient(145deg, #f8fbf5 0%, #edf8ee 48%, #f9fbf7 100%);
-  color: #14241c;
+    radial-gradient(circle at 14% 8%, rgba(125, 214, 139, 0.38), transparent 34%),
+    radial-gradient(circle at 88% 12%, rgba(91, 190, 112, 0.30), transparent 31%),
+    radial-gradient(circle at 76% 84%, rgba(187, 232, 141, 0.34), transparent 34%),
+    linear-gradient(145deg, #fbfdf8 0%, #eff8ea 46%, #f8fbf3 100%);
+  color: #102519;
 }
 
 body:has(.control-center.v51)::before,
@@ -2246,16 +2269,18 @@ body:has(.model-shell)::before {
 
 .control-center.v51,
 .model-panel {
-  --ink: #13231b;
-  --muted: #607166;
-  --muted-strong: #35483b;
+  --ink: #102519;
+  --muted: #607461;
+  --muted-strong: #2e5237;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.82), rgba(248,253,247,0.68)),
-    rgba(255,255,255,0.72);
-  border: 1px solid rgba(58, 114, 80, 0.14);
+    radial-gradient(circle at 16% 2%, rgba(126, 211, 132, 0.18), transparent 38%),
+    radial-gradient(circle at 92% 22%, rgba(85, 178, 105, 0.12), transparent 35%),
+    linear-gradient(180deg, rgba(255,255,255,0.86), rgba(247,252,243,0.72)),
+    rgba(255,255,255,0.76);
+  border: 1px solid rgba(53, 117, 65, 0.15);
   box-shadow:
-    0 30px 90px rgba(74, 119, 85, 0.18),
-    0 8px 24px rgba(36, 74, 51, 0.08),
+    0 30px 90px rgba(71, 128, 73, 0.16),
+    0 8px 24px rgba(36, 88, 43, 0.08),
     inset 0 1px 0 rgba(255,255,255,0.84);
   color: var(--ink);
 }
@@ -2300,16 +2325,21 @@ body:has(.model-shell)::before {
 .transcript-history,
 .model-choice,
 .model-config {
-  background: rgba(255,255,255,0.56);
-  border-color: rgba(50, 104, 72, 0.12);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(110, 206, 120, 0.13), transparent 42%),
+    radial-gradient(circle at 88% 0%, rgba(194, 233, 152, 0.16), transparent 36%),
+    rgba(255,255,255,0.60);
+  border-color: rgba(50, 116, 62, 0.13);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.74);
 }
 
 .control-center.v51 .mode-card,
 .control-center.v51 .readiness-grid div,
 .history-list article {
-  background: rgba(255,255,255,0.58);
-  border-color: rgba(54, 107, 75, 0.12);
+  background:
+    radial-gradient(circle at 10% 18%, rgba(93, 194, 108, 0.12), transparent 48%),
+    rgba(255,255,255,0.66);
+  border-color: rgba(54, 119, 66, 0.13);
 }
 
 .control-center.v51 .mode-card[data-active="true"],
@@ -2326,7 +2356,7 @@ body:has(.model-shell)::before {
 .model-choice span,
 .model-config .field span,
 .cloud-placeholder span {
-  color: rgba(22, 123, 76, 0.78);
+  color: rgba(19, 116, 45, 0.78);
 }
 
 .section-heading strong,
@@ -2334,7 +2364,7 @@ body:has(.model-shell)::before {
 .model-choice strong,
 .cloud-placeholder strong,
 .mode-card h2 {
-  color: #15271e;
+  color: #102818;
 }
 
 .mode-kicker,
@@ -2348,7 +2378,7 @@ body:has(.model-shell)::before {
 
 .readiness-grid dd,
 .history-list p {
-  color: rgba(22, 34, 27, 0.86);
+  color: rgba(15, 39, 23, 0.88);
 }
 
 .history-stats span,
