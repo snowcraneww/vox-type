@@ -9,6 +9,8 @@ const PREFERENCES_FILE_NAME: &str = "user-preferences.json";
 #[serde(rename_all = "camelCase")]
 pub struct UserPreferences {
     pub selected_input_device_name: Option<String>,
+    pub push_to_talk_hotkey: Option<String>,
+    pub toggle_dictation_hotkey: Option<String>,
 }
 
 pub fn load_user_preferences(config_dir: PathBuf) -> UserPreferences {
@@ -43,6 +45,14 @@ fn normalize_preferences(preferences: UserPreferences) -> UserPreferences {
             .selected_input_device_name
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty()),
+        push_to_talk_hotkey: preferences
+            .push_to_talk_hotkey
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        toggle_dictation_hotkey: preferences
+            .toggle_dictation_hotkey
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
     }
 }
 
@@ -58,6 +68,8 @@ mod tests {
             dir.path().to_path_buf(),
             UserPreferences {
                 selected_input_device_name: Some("Studio Microphone".to_string()),
+                push_to_talk_hotkey: None,
+                toggle_dictation_hotkey: None,
             },
         )
         .unwrap();
@@ -71,6 +83,26 @@ mod tests {
     }
 
     #[test]
+    fn saves_and_loads_hotkey_preferences() {
+        let dir = tempfile::tempdir().unwrap();
+
+        save_user_preferences(
+            dir.path().to_path_buf(),
+            UserPreferences {
+                selected_input_device_name: None,
+                push_to_talk_hotkey: Some("Ctrl+Alt+Space".to_string()),
+                toggle_dictation_hotkey: Some("Ctrl+Alt+V".to_string()),
+            },
+        )
+        .unwrap();
+
+        let loaded = load_user_preferences(dir.path().to_path_buf());
+
+        assert_eq!(loaded.push_to_talk_hotkey.as_deref(), Some("Ctrl+Alt+Space"));
+        assert_eq!(loaded.toggle_dictation_hotkey.as_deref(), Some("Ctrl+Alt+V"));
+    }
+
+    #[test]
     fn trims_blank_selected_input_device_name_to_none() {
         let dir = tempfile::tempdir().unwrap();
 
@@ -78,10 +110,32 @@ mod tests {
             dir.path().to_path_buf(),
             UserPreferences {
                 selected_input_device_name: Some("   ".to_string()),
+                push_to_talk_hotkey: Some("   ".to_string()),
+                toggle_dictation_hotkey: Some("   ".to_string()),
             },
         )
         .unwrap();
 
         assert_eq!(saved.selected_input_device_name, None);
+        assert_eq!(saved.push_to_talk_hotkey, None);
+        assert_eq!(saved.toggle_dictation_hotkey, None);
+    }
+
+    #[test]
+    fn preserves_hotkeys_when_selected_device_changes() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let mut preferences = UserPreferences {
+            selected_input_device_name: None,
+            push_to_talk_hotkey: Some("Ctrl+Shift+Space".to_string()),
+            toggle_dictation_hotkey: Some("Ctrl+Shift+V".to_string()),
+        };
+        preferences.selected_input_device_name = Some("Remote Audio".to_string());
+
+        let saved = save_user_preferences(dir.path().to_path_buf(), preferences).unwrap();
+
+        assert_eq!(saved.selected_input_device_name.as_deref(), Some("Remote Audio"));
+        assert_eq!(saved.push_to_talk_hotkey.as_deref(), Some("Ctrl+Shift+Space"));
+        assert_eq!(saved.toggle_dictation_hotkey.as_deref(), Some("Ctrl+Shift+V"));
     }
 }

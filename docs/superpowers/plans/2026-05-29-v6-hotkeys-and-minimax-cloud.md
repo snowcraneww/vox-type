@@ -119,7 +119,7 @@ V6 不做：
 - Modify: `src/types.ts`
 - Modify: `src/tauriClient.ts`
 
-- [ ] **Step 1: 写 Rust 偏好测试**
+- [x] **Step 1: 写 Rust 偏好测试**
 
 在 `src-tauri/src/preferences.rs` 的 tests 中增加：
 
@@ -145,7 +145,7 @@ fn saves_and_loads_hotkey_preferences() {
 }
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml preferences
@@ -153,7 +153,7 @@ cargo test --manifest-path src-tauri/Cargo.toml preferences
 
 预期：因为 `UserPreferences` 还没有两个快捷键字段而失败。
 
-- [ ] **Step 3: 增加字段和 normalize 逻辑**
+- [x] **Step 3: 增加字段和 normalize 逻辑**
 
 在 `UserPreferences` 中增加：
 
@@ -164,7 +164,7 @@ pub toggle_dictation_hotkey: Option<String>,
 
 在 `normalize_preferences` 中 trim 空字符串为 `None`。
 
-- [ ] **Step 4: 更新 TypeScript 类型**
+- [x] **Step 4: 更新 TypeScript 类型**
 
 在 `src/types.ts` 的 `UserPreferences` 中增加：
 
@@ -173,12 +173,14 @@ pushToTalkHotkey: string | null;
 toggleDictationHotkey: string | null;
 ```
 
-- [ ] **Step 5: 跑测试**
+- [x] **Step 5: 跑测试**
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml preferences
 npm run typecheck
 ```
+
+实际验证记录：`npm run typecheck` 通过，`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo test --manifest-path src-tauri/Cargo.toml preferences` 编译通过但测试二进制启动时报 `STATUS_ENTRYPOINT_NOT_FOUND`，且既有 `hotkey` 测试也同样失败，已记录到 `docs/harness/debugging-log.md`。
 
 - [ ] **Step 6: 提交**
 

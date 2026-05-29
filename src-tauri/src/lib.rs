@@ -74,11 +74,12 @@ fn set_input_device(
     device_name: Option<String>,
 ) -> Result<recorder::RecorderInfo, error::VoxError> {
     let info = recorder.set_input_device(device_name.clone())?;
+    let config_dir = app_config_dir(&app)?;
+    let mut preferences = preferences::load_user_preferences(config_dir.clone());
+    preferences.selected_input_device_name = device_name;
     preferences::save_user_preferences(
-        app_config_dir(&app)?,
-        UserPreferences {
-            selected_input_device_name: device_name,
-        },
+        config_dir,
+        preferences,
     )?;
     Ok(info)
 }

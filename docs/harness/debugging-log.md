@@ -1396,3 +1396,22 @@ V4.3 虽然统一了字号和色彩，但默认界面仍然承载了设备、ASR
 - `npm run typecheck` 通过。
 - `npm run build` 通过。
 - `git diff --check` 通过。
+# 2026-05-29 Rust 单测二进制启动失败：STATUS_ENTRYPOINT_NOT_FOUND
+
+## 现象
+
+- 执行 `cargo test --manifest-path src-tauri/Cargo.toml preferences -- --no-capture` 时，代码可以编译到 test profile，但运行测试二进制失败。
+- 同样执行既有 `hotkey` 测试也失败，说明不是 V6 Task 1 新增断言导致。
+- 错误：`STATUS_ENTRYPOINT_NOT_FOUND` / exit code `0xc0000139`。
+
+## 当前证据
+
+- `cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过。
+- `npm run typecheck` 通过。
+- `where.exe VCRUNTIME140.dll` 首个命中路径是 JDK 目录下的 `vcruntime140.dll`，然后才是 `C:\Windows\System32\vcruntime140.dll`，可能存在 Windows DLL 优先级/运行时入口点不匹配。
+
+## 处理策略
+
+- V6 实现期间不把 `cargo test` 失败误报为代码测试失败，也不声称 Rust 单测通过。
+- Rust 代码阶段先以 `cargo check --manifest-path src-tauri/Cargo.toml --lib` 验证可编译。
+- 后续需要调整 PATH 或运行环境，确保系统 VC runtime 优先，再恢复完整 `cargo test`。

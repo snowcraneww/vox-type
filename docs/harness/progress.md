@@ -85,6 +85,8 @@
 - 2026-05-29 V5 收尾：维护者确认当前浅绿主窗体版本比较满意；当前满意版已提交为 `74aa469 style: align mode status indicators`，工作区检查干净。
 - 2026-05-29 V6 计划：新增 `docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md`，下一版聚焦三个产品能力：主界面两个设置图标打开快捷键设置并持久化注册；模型选择页支持 MiniMax 云端 API 配置；桌面录音浮窗统一到主窗体浅绿视觉系统但保留原有精致波形动效。MiniMax ASR 官方 endpoint 尚需实现前二次确认，不把非官方搜索结果写死。
 - 2026-05-29 V6 API Key 策略更新：MiniMax 真实 API Key 默认只从系统环境变量 `MINIMAX_API_KEY` 读取，不写入仓库、日志、文档、测试快照或项目配置文件；项目配置只保存 provider/base URL/model/language 等非密钥字段。
+- 2026-05-29 V6 Task 1 进行中：新增用户偏好字段 `push_to_talk_hotkey` 和 `toggle_dictation_hotkey`，并修正输入设备保存逻辑为读取现有偏好后只更新设备字段，避免未来覆盖快捷键偏好。
+- 2026-05-29 验证注意：`cargo test --manifest-path src-tauri/Cargo.toml preferences` 和既有 `hotkey` 测试均在运行测试二进制时报 `STATUS_ENTRYPOINT_NOT_FOUND`，已记录到 `docs/harness/debugging-log.md`；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 和 `npm run typecheck` 通过。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。

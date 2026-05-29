@@ -87,6 +87,8 @@ export interface AsrConfigStatus extends AsrConfig {
 
 export interface UserPreferences {
   selectedInputDeviceName: string | null;
+  pushToTalkHotkey: string | null;
+  toggleDictationHotkey: string | null;
 }
 
 export interface HotkeyRegistrationStatus {
