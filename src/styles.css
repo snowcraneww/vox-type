@@ -1981,6 +1981,7 @@ kbd {
 .v51 .mode-card.compact {
   align-items: center;
   border-radius: 15px;
+  display: flex;
   min-height: 42px;
   padding: 8px 9px;
 }
@@ -1995,6 +1996,7 @@ kbd {
   align-items: center;
   display: flex;
   gap: 8px;
+  line-height: 1;
   min-width: 0;
 }
 
@@ -2003,8 +2005,12 @@ kbd {
 }
 
 .mode-line kbd {
+  align-items: center;
+  display: inline-flex;
   flex: 0 1 auto;
+  min-height: 24px;
   overflow: hidden;
+  padding: 4px 8px;
   text-overflow: ellipsis;
 }
 
@@ -2020,10 +2026,27 @@ kbd {
 }
 
 .v51 .mode-card button {
+  background: transparent;
+  border-color: transparent;
   border-radius: 999px;
+  box-shadow: none;
+  color: rgba(19, 116, 45, 0.68);
+  font-size: 16px;
+  line-height: 1;
   min-height: 26px;
   min-width: 26px;
   padding: 0;
+}
+
+.v51 .mode-card button:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: rgba(13, 91, 35, 0.86);
+}
+
+.v51 .mode-card button:disabled {
+  opacity: 0.78;
 }
 
 .v51 .readiness-grid div {
@@ -2032,7 +2055,15 @@ kbd {
   gap: 10px;
   justify-content: space-between;
   min-height: 38px;
-  padding: 8px 24px 8px 9px;
+  padding: 8px 22px 8px 9px;
+}
+
+.v51 .readiness-grid div::after {
+  height: 7px;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
 }
 
 .v51 .readiness-grid dt,
@@ -2290,9 +2321,9 @@ body:has(.control-center.v51),
 body:has(.model-shell),
 body:has(.diagnostic-shell) {
   background:
-    radial-gradient(ellipse at 50% 8%, rgba(91, 184, 96, 0.24), rgba(173, 222, 154, 0.13) 36%, rgba(246, 251, 239, 0) 72%),
-    radial-gradient(ellipse at 50% 34%, rgba(147, 214, 126, 0.12), rgba(244, 250, 237, 0) 68%),
-    linear-gradient(180deg, #f5faee 0%, #f6fbf0 48%, #f9fcf5 100%);
+    radial-gradient(ellipse at 50% 12%, rgba(91, 184, 96, 0.18), rgba(173, 222, 154, 0.14) 38%, rgba(239, 249, 229, 0.06) 74%),
+    radial-gradient(ellipse at 50% 58%, rgba(181, 226, 154, 0.10), rgba(248, 252, 243, 0) 72%),
+    linear-gradient(180deg, #f3faec 0%, #f6fbef 48%, #f8fcf4 100%);
   color: #102519;
 }
 
