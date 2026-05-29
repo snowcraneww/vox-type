@@ -83,8 +83,8 @@
 - V5.10 设置图标修正：为设置按钮增加 `icon-only-button` class，并用高优先级样式覆盖全局按钮主题，彻底移除按钮背景、边框和阴影，只保留更大的深绿色设置图标。
 - V5.10 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
 - 2026-05-29 V5 收尾：维护者确认当前浅绿主窗体版本比较满意；当前满意版已提交为 `74aa469 style: align mode status indicators`，工作区检查干净。
-- 2026-05-29 V6 计划：新增 `docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md`，下一版聚焦两个产品能力：主界面两个设置图标打开快捷键设置并持久化注册；模型选择页支持 MiniMax 云端 API 配置。MiniMax ASR 官方 endpoint 尚需实现前二次确认，不把非官方搜索结果写死。
-- 2026-05-29 V7 候选：将桌面录音浮窗从当前深色彩色胶囊调整为与主窗体一致的浅绿渐变版本，但需要保留当前较精致的波形动效。
+- 2026-05-29 V6 计划：新增 `docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md`，下一版聚焦三个产品能力：主界面两个设置图标打开快捷键设置并持久化注册；模型选择页支持 MiniMax 云端 API 配置；桌面录音浮窗统一到主窗体浅绿视觉系统但保留原有精致波形动效。MiniMax ASR 官方 endpoint 尚需实现前二次确认，不把非官方搜索结果写死。
+- 2026-05-29 V6 API Key 策略更新：MiniMax 真实 API Key 默认只从系统环境变量 `MINIMAX_API_KEY` 读取，不写入仓库、日志、文档、测试快照或项目配置文件；项目配置只保存 provider/base URL/model/language 等非密钥字段。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。

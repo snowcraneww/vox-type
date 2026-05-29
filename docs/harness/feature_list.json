@@ -310,9 +310,10 @@
                 "2026-05-29: V5.10 为设置按钮增加 icon-only-button class，并用高优先级样式覆盖全局按钮主题，彻底移除按钮背景、边框和阴影，只保留更大的深绿色设置图标。",
                 "2026-05-29: V5.10 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
                 "2026-05-29: 维护者确认当前浅绿主窗体版本比较满意；满意版已提交为 74aa469 style: align mode status indicators。",
-                "2026-05-29: 新增 V6 计划 docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md，下一版聚焦自定义快捷键和 MiniMax 云端 API 配置；V7 候选为桌面录音浮窗浅绿化统一。"
+                "2026-05-29: 新增 V6 计划 docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md，下一版聚焦自定义快捷键、MiniMax 云端 API 配置和桌面录音浮窗浅绿化统一。",
+                "2026-05-29: V6 API Key 策略更新为环境变量优先：MiniMax 真实 API Key 默认只从 MINIMAX_API_KEY 读取，不写入仓库、日志、文档、测试快照或项目配置文件；项目配置只保存 provider/base URL/model/language 等非密钥字段。"
             ],
-            "notes": "V5.10 满意版已收尾；V6 计划已写好，下一版进入自定义快捷键和 MiniMax 云端 API 配置。"
+            "notes": "V5.10 满意版已收尾；V6 计划已更新，下一版进入自定义快捷键、MiniMax 云端 API 配置和桌面浮窗浅绿化统一。"
         }
     ]
 }

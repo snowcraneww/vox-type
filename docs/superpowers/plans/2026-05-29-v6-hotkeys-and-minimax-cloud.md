@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让用户可以在界面里修改两种语音输入快捷键，并在模型选择页配置 MiniMax 云端语音识别，为后续本地/云端 ASR 切换打基础。
+**Goal:** 让用户可以在界面里修改两种语音输入快捷键，在模型选择页配置 MiniMax 云端语音识别，并把桌面录音浮窗统一到当前浅绿主窗体视觉系统。
 
-**Architecture:** V6 分两条主线：快捷键配置进入 `user-preferences.json` 并在 Tauri 启动时注册；云端模型配置新增独立 `cloud-asr-config.json`，前端先完成 MiniMax 配置、检测和保存，再接入 ASR 引擎抽象。MiniMax ASR 官方 endpoint 需要在实现前二次确认，不能把搜索结果里的非官方接口写死。
+**Architecture:** V6 分三条主线：快捷键配置进入 `user-preferences.json` 并在 Tauri 启动时注册；云端模型配置新增独立 `cloud-asr-config.json`，但 MiniMax API Key 默认只从系统环境变量读取且不落盘；桌面浮窗复用当前浅绿主窗体的色彩系统，只保留原有精致波形动效。MiniMax ASR 官方 endpoint 需要在实现前二次确认，不能把搜索结果里的非官方接口写死。
 
 **Tech Stack:** React + TypeScript、Tauri command、Rust、serde JSON 配置、tauri-plugin-global-shortcut、MiniMax HTTP API。
 
@@ -30,26 +30,21 @@ V6 必做：
 - 快捷键配置保存后持久化，下次启动继续生效。
 - 快捷键冲突、格式错误、注册失败要在 UI 和诊断日志里可见。
 - 模型选择页的 `云端 API` tab 支持 MiniMax 配置：
-  - API Key。
+  - API Key 状态读取：优先读取系统环境变量 `MINIMAX_API_KEY`，UI 只显示“已配置/未配置”和脱敏预览，不保存真实 Key。
   - Group ID 或官方要求的账号/组字段。
   - Base URL。
   - 模型名。
   - 语言。
   - 保存配置。
   - 检测配置。
-- API Key 不能写入仓库、日志、文档、测试快照；UI 中默认用 password input。
+- 桌面录音浮窗从当前深色彩色胶囊调整为与主窗体一致的浅绿渐变版本，但保留当前波形/转写动效的精致度。
+- API Key 不能写入仓库、日志、文档、测试快照、项目配置文件；推荐用户在系统环境变量中配置 `MINIMAX_API_KEY`。
 
 V6 不做：
 
 - 不做多厂商云端 API，只做 MiniMax。
 - 不做流式实时云端识别，只做与当前录音后转写链路兼容的非流式接入。
-- 不改桌面浮窗视觉风格。
-
-V7 候选：
-
-- 把桌面录音浮窗从当前深色彩色胶囊，调整为与主窗体一致的浅绿渐变版本。
-- 需要保留当前浮窗的精致动效，只换色彩系统和背景质感。
-- V7 实施前要先做视觉对比，因为当前浮窗虽然不统一，但动效质量较高。
+- 不做 API Key 明文输入持久化；如果临时输入功能以后需要加，也必须只进入内存并明确标注“本次运行有效”。
 
 ---
 
@@ -67,6 +62,7 @@ V7 候选：
 - 修改 `src/ModelSettingsView.tsx`
   - 云端 API tab 改为 MiniMax 配置表单。
   - 本地和云端 tab 保持互斥选中状态。
+  - API Key 区域显示环境变量读取状态，不提供默认落盘保存真实 API Key 的输入框。
 - 修改 `src/App.tsx`
   - 加载、保存快捷键偏好。
   - 加载、保存云端 ASR 配置。
@@ -78,7 +74,8 @@ V7 候选：
 - 修改 `src/App.test.tsx`
   - 覆盖快捷键设置入口。
   - 覆盖 MiniMax 配置表单。
-  - 覆盖空 API Key 不应显示为已就绪。
+  - 覆盖缺少 `MINIMAX_API_KEY` 时不应显示为已就绪。
+  - 覆盖浮窗浅绿主题入口仍能渲染状态动效。
 
 ### Rust / Tauri
 
@@ -94,11 +91,15 @@ V7 候选：
   - 保存后重新注册快捷键，失败时保留旧快捷键或明确回滚。
 - 新建 `src-tauri/src/cloud_asr_config.rs`
   - 负责 MiniMax 云端配置的读写、脱敏状态、ready 判断。
+  - 真实 API Key 只从 `MINIMAX_API_KEY` 环境变量读取，不写入 `cloud-asr-config.json`。
 - 新建 `src-tauri/src/cloud_asr.rs`
   - 负责 MiniMax HTTP 调用。
   - 先把接口封装成 trait-friendly 单元，方便后续接入其它厂商。
 - 修改 `src-tauri/src/asr.rs`
   - 增加云端 ASR 引擎抽象入口，但 V6 只在用户选择云端时调用。
+- 修改 `src/DictationOverlay.tsx`、`src/VoiceOverlay.tsx`、`src/voiceOverlayModel.ts`、`src/styles.css`
+  - 将桌面录音浮窗和主窗体视觉系统统一为浅绿渐变。
+  - 保留录音波形、转写点、状态切换动效。
 - 修改 `src-tauri/Cargo.toml`
   - 如需要 HTTP client，优先使用 `reqwest` + `rustls-tls`。
 
@@ -395,12 +396,12 @@ fn saves_status_without_exposing_api_key() {
         dir.path().to_path_buf(),
         CloudAsrConfig {
             provider: "minimax".to_string(),
-            api_key: Some("secret-key".to_string()),
             group_id: Some("group-1".to_string()),
             base_url: Some("https://api.minimax.io".to_string()),
             model: Some("speech-to-text".to_string()),
             language: Some("zh".to_string()),
         },
+        Some("secret-key".to_string()),
     )
     .unwrap();
 
@@ -417,7 +418,6 @@ fn saves_status_without_exposing_api_key() {
 ```rust
 pub struct CloudAsrConfig {
     pub provider: String,
-    pub api_key: Option<String>,
     pub group_id: Option<String>,
     pub base_url: Option<String>,
     pub model: Option<String>,
@@ -425,7 +425,18 @@ pub struct CloudAsrConfig {
 }
 ```
 
-状态字段不返回完整 API Key，只返回 `api_key_configured` 和 `api_key_preview`。
+`CloudAsrConfig` 不包含真实 API Key。状态字段不返回完整 API Key，只返回 `api_key_configured`、`api_key_source` 和 `api_key_preview`。`api_key_source` 取值：`env`、`missing`；V6 默认只支持 `env`。
+
+实现时从环境变量读取：
+
+```rust
+pub fn minimax_api_key_from_env() -> Option<String> {
+    std::env::var("MINIMAX_API_KEY")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+```
 
 - [ ] **Step 3: command 接入**
 
@@ -482,7 +493,8 @@ it('shows MiniMax cloud API settings in model selection', async () => {
   fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
   fireEvent.click(screen.getByRole('tab', { name: /云端 API/ }));
 
-  expect(screen.getByLabelText('MiniMax API Key')).toBeInTheDocument();
+  expect(screen.getByText('MINIMAX_API_KEY')).toBeInTheDocument();
+  expect(screen.getByText('未配置')).toBeInTheDocument();
   expect(screen.getByLabelText('MiniMax Group ID')).toBeInTheDocument();
   expect(screen.getByLabelText('MiniMax Base URL')).toBeInTheDocument();
   expect(screen.getByLabelText('MiniMax 模型')).toBeInTheDocument();
@@ -494,7 +506,7 @@ it('shows MiniMax cloud API settings in model selection', async () => {
 
 在云端 tab 中添加：
 
-- `MiniMax API Key`：`type="password"`
+- `MiniMax API Key` 状态：显示环境变量名 `MINIMAX_API_KEY`、配置状态、脱敏预览；不提供默认明文输入框，不把真实 key 存到项目配置文件。
 - `MiniMax Group ID`
 - `MiniMax Base URL`：默认 `https://api.minimax.io`
 - `MiniMax 模型`
@@ -502,11 +514,11 @@ it('shows MiniMax cloud API settings in model selection', async () => {
 
 - [ ] **Step 3: 保存按钮**
 
-调用 `saveCloudAsrConfig`，保存后显示脱敏状态，不在 UI 日志里打印完整 API Key。
+调用 `saveCloudAsrConfig` 保存非密钥字段。保存后刷新状态，显示 `MINIMAX_API_KEY` 是否已从系统环境变量读取；不在 UI 日志里打印完整 API Key。
 
 - [ ] **Step 4: 检测按钮**
 
-先实现“本地配置完整性检测”：API Key、Base URL、模型都存在即可显示“配置完整，等待真实 API 验证”。真实调用在 Task 6。
+先实现“本地配置完整性检测”：`MINIMAX_API_KEY` 环境变量、Base URL、模型都存在即可显示“配置完整，等待真实 API 验证”。真实调用在 Task 6。
 
 - [ ] **Step 5: 验证**
 
@@ -581,7 +593,84 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 
 ---
 
-## Task 7: 文档、验证和收尾
+## Task 7: 桌面浮窗浅绿视觉统一
+
+**Files:**
+
+- Modify: `src/DictationOverlay.tsx`
+- Modify: `src/VoiceOverlay.tsx`
+- Modify: `src/voiceOverlayModel.ts`
+- Modify: `src/DictationOverlay.test.tsx`
+- Modify: `src/VoiceOverlay.test.tsx`
+- Modify: `src/styles.css`
+
+- [ ] **Step 1: 写视觉结构测试**
+
+在 `src/DictationOverlay.test.tsx` 中增加断言：
+
+```ts
+it('uses the light green overlay theme without removing motion states', () => {
+  render(<DictationOverlay model={{ mode: 'recording', level: 0.6, message: '录音中', transcriptPreview: null }} />);
+
+  const overlay = screen.getByTestId('dictation-overlay');
+  expect(overlay).toHaveAttribute('data-theme', 'light-green');
+  expect(overlay).toHaveAttribute('data-mode', 'recording');
+});
+```
+
+- [ ] **Step 2: 给浮窗组件增加主题标记**
+
+在浮窗根节点增加：
+
+```tsx
+data-theme="light-green"
+```
+
+不要删除现有 `data-mode`，因为录音/转写/空闲动效依赖它。
+
+- [ ] **Step 3: 改 CSS 色彩系统**
+
+在 `src/styles.css` 中将桌面浮窗背景从深色黑底改为浅绿胶囊：
+
+```css
+.overlay-root .wave-ripple[data-theme="light-green"],
+.voice-overlay[data-theme="light-green"] {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(84, 184, 89, 0.18), rgba(173, 222, 151, 0.10) 42%, rgba(255,255,255,0) 76%),
+    linear-gradient(180deg, rgba(253,255,250,0.92), rgba(247,252,242,0.82));
+  color: #102519;
+}
+```
+
+实际选择器要以当前组件结构为准，不能破坏 native overlay 的透明背景。
+
+- [ ] **Step 4: 保留波形动效**
+
+保留现有：
+
+- 录音波形运动。
+- 转写六点/转写状态动效。
+- 空闲状态静止波形。
+
+只替换颜色和胶囊背景，不重写动效算法。
+
+- [ ] **Step 5: 验证**
+
+```bash
+npm test -- --run src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx
+npm run typecheck
+```
+
+- [ ] **Step 6: 提交**
+
+```bash
+git add src/DictationOverlay.tsx src/VoiceOverlay.tsx src/voiceOverlayModel.ts src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx src/styles.css
+git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "style: align dictation overlay with green theme"
+```
+
+---
+
+## Task 8: 文档、验证和收尾
 
 **Files:**
 
@@ -596,7 +685,9 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - 如何设置快捷键。
 - 快捷键保存后需要重启还是立即生效。
 - 如何配置 MiniMax。
-- API Key 不会出现在日志中的说明。
+- 如何在系统环境变量里配置 `MINIMAX_API_KEY`。
+- API Key 不会出现在日志、项目配置、仓库和文档中的说明。
+- 桌面浮窗已与主窗体浅绿视觉系统统一。
 
 - [ ] **Step 2: 更新 harness**
 
@@ -622,13 +713,13 @@ git diff --check
 - 个人用户名。
 - 本机路径。
 - API Key 形态文本。
-- `MINIMAX_API_KEY` 的真实值不能出现。
+- `MINIMAX_API_KEY` 的真实值不能出现，项目文档只能出现变量名。
 
 - [ ] **Step 5: 提交**
 
 ```bash
 git add docs/harness/progress.md docs/harness/feature_list.json docs/guide/run-and-understand.md
-git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "docs: update v6 hotkeys and cloud asr guidance"
+git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "docs: update v6 hotkeys cloud asr and overlay guidance"
 ```
 
 ---
@@ -638,7 +729,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "do
 - 主界面两个设置图标可点击，并能打开快捷键设置对话框。
 - 两个快捷键可保存、可持久化、可在启动后用于实际全局快捷键注册。
 - 重复快捷键和非法快捷键有明确错误。
-- 模型选择页可配置 MiniMax 云端 API，并且不会泄露 API Key。
+- 模型选择页可配置 MiniMax 云端 API 的非密钥字段，并且只从系统环境变量 `MINIMAX_API_KEY` 读取真实 API Key。
+- 桌面录音浮窗与主窗体浅绿视觉系统统一，同时保留原有波形/转写动效。
 - 如果 MiniMax 官方 ASR endpoint 未确认，V6 至少完成配置和抽象，真实转写任务不得假装完成。
 - 文档、harness、测试全部对齐。
-
