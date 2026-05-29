@@ -42,6 +42,17 @@
 
 ## 2026-05-28 V5 主窗体产品化重设计
 
+- 2026-05-29 V5.1 细化：维护者确认新的信息架构方向，但要求准备状态不能只放图标，状态胶囊要直接沿用桌面浮窗里的彩色声波/六点动效语言。
+- V5.1 实现：主界面改为“识别记录为主体”的控制中心，顶部保留 `VoxType` 和小号说明，右侧入口改为“模型选择”和“诊断”。
+- V5.1 输入模式：左侧展示“按住说话”和“连续输入”两种模式，并分别显示 `Ctrl+Alt+Space`、`Ctrl+Alt+V` 的就绪状态；齿轮按钮暂作为下一版自定义快捷键入口占位。
+- V5.1 准备状态：右侧保留麦克风、本地识别、上屏、云端 API 四项，每项有短文字和 tooltip；不再把快捷键重复放入准备状态。
+- V5.1 动态状态：主界面中部直接复用 `VoiceOverlay` 的黑色胶囊、彩色声波和转写动效，但不重复显示识别正文，正文统一进入识别记录。
+- V5.1 识别记录：本次运行期间按倒序保留转写文本，支持复制、重新上屏、删除、清空全部和导出文本；统计显示识别次数、累计录音时长、累计字数和平均速度。
+- V5.1 模型选择：新增独立模型配置页面，迁移 whisper.cpp 可执行文件、模型路径、语言、一键安装、检测和保存入口；云端 API 作为下一版占位。
+- V5.1 验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过。
+- V5.1 完整自动验证：`npm test -- --run` 通过，6 个测试文件、25 个测试；`npm run typecheck` 通过；`npm run build` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过。
+- V5.1 隐私和编码扫描：本轮修改文件未命中本机用户名、个人邮箱、用户目录、旧 GitHub noreply 或本机仓库路径；未命中问号乱码或替换字符。
+
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。
 - 最近结果新增主界面动作：复制、重新上屏、清空；诊断模式继续保留 ASR 配置、录音测试、真实转写、真实闭环、浮窗测试和日志复制。
@@ -571,7 +582,7 @@
 
 - 使用 `frontend-design` 方向重新收敛主界面：暗色控制台、精简文字、统一字号和间距，并对齐 native-win32 黑色胶囊浮窗的视觉语言。
 - 默认主界面保留品牌、快捷键提示、主语音胶囊、当前状态、最近文本和系统状态；详细操作继续放在诊断模式。
-- 修复 Windows PowerShell 编码导致的 `????` 文案损坏，并将测试断言更新到新主界面。
+- 修复 Windows PowerShell 编码导致的问号乱码文案损坏，并将测试断言更新到新主界面。
 - 验证：`npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx` 通过；`npm run typecheck` 通过；`npm run build` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过。
 
 ### 2026-05-28 V4.4 极简主界面

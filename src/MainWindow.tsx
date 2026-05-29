@@ -1,114 +1,75 @@
-import type { CSSProperties } from 'react';
-import type { AppPhase, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo } from './types';
+import type { AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, TranscriptRecord, TranscriptStats } from './types';
+import { VoiceOverlay } from './VoiceOverlay';
+import type { VoiceOverlayModel } from './voiceOverlayModel';
 
 interface MainWindowProps {
   status: AppStatus;
   phaseLabel: string;
   asrConfigStatus: AsrConfigStatus;
   hotkeyStatus: HotkeyRegistrationStatus;
+  toggleHotkey: string;
   recorderInfo: RecorderInfo | null;
-  isRecording: boolean;
-  onPrimaryRecordingAction: () => void;
+  voiceOverlayModel: VoiceOverlayModel;
+  records: TranscriptRecord[];
+  stats: TranscriptStats;
   onOpenDiagnostic: () => void;
-  onCopyTranscript: () => void;
-  onReinsertTranscript: () => void;
-  onClearTranscript: () => void;
+  onOpenModelSettings: () => void;
+  onCopyRecord: (record: TranscriptRecord) => void;
+  onReinsertRecord: (record: TranscriptRecord) => void;
+  onDeleteRecord: (id: number) => void;
+  onClearRecords: () => void;
+  onExportRecords: () => void;
 }
 
-interface ReadinessItem {
-  label: string;
-  value: string;
-  state: 'ready' | 'warning' | 'busy' | 'error';
+function formatDuration(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function readinessToneForPhase(phase: AppPhase): ReadinessItem['state'] {
-  if (phase === 'failed') return 'error';
-  if (phase === 'recording' || phase === 'transcribing' || phase === 'inserting') return 'busy';
-  return 'ready';
+function modeReadyLabel(ready: boolean) {
+  return ready ? '● Ready' : '● 未就绪';
 }
 
-function SignalMark({ active }: { active: boolean }) {
-  return (
-    <div className="control-signal" data-active={active} aria-hidden="true">
-      {Array.from({ length: 14 }, (_, index) => <span key={index} style={{ '--bar-index': index } as CSSProperties} />)}
-    </div>
-  );
-}
-
-function ModeSelector({ isRecording, onPrimaryRecordingAction }: Pick<MainWindowProps, 'isRecording' | 'onPrimaryRecordingAction'>) {
-  return (
-    <section className="control-section mode-selector" aria-label="输入模式">
-      <div className="section-heading"><span>输入模式</span><strong>选择你现在的说话方式</strong></div>
-      <div className="mode-grid">
-        <article className="mode-card" data-active={isRecording ? 'false' : 'true'}>
-          <div><span className="mode-kicker">短句</span><h2>按住说话</h2><p>按住快捷键说一句，松开后转写并上屏。</p></div>
-          <kbd>Ctrl+Alt+Space</kbd>
-        </article>
-        <article className="mode-card" data-active={isRecording ? 'true' : 'false'}>
-          <div><span className="mode-kicker">长句</span><h2>连续输入</h2><p>按一次开始，录音中分段上屏，再按一次停止。</p></div>
-          <kbd>Ctrl+Alt+V</kbd>
-        </article>
-      </div>
-      <button className="primary-control-button" data-recording={isRecording} type="button" onClick={onPrimaryRecordingAction}>
-        <span className="button-signal" aria-hidden="true"><i /><i /><i /></span>
-        <span>{isRecording ? '停止当前录音' : '开始一次语音输入'}</span>
-      </button>
-    </section>
-  );
-}
-
-function ReadinessPanel({ items }: { items: ReadinessItem[] }) {
-  return (
-    <section className="control-section readiness-panel" aria-label="准备状态">
-      <div className="section-heading"><span>准备状态</span><strong>系统能力检查</strong></div>
-      <dl className="readiness-grid">
-        {items.map((item) => <div key={item.label} data-state={item.state}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
-      </dl>
-    </section>
-  );
-}
-
-function RecentTranscript({ text, onCopyTranscript, onReinsertTranscript, onClearTranscript }: Pick<MainWindowProps, 'onCopyTranscript' | 'onReinsertTranscript' | 'onClearTranscript'> & { text: string | null }) {
-  const hasText = Boolean(text?.trim());
-  return (
-    <section className="control-section recent-transcript" aria-label="最近结果">
-      <div className="section-heading"><span>最近结果</span><strong>{hasText ? '上一段识别文本' : '还没有识别文本'}</strong></div>
-      <p>{hasText ? text : '完成一次语音输入后，最近文本会显示在这里。'}</p>
-      <div className="recent-actions">
-        <button type="button" onClick={onCopyTranscript} disabled={!hasText}>复制</button>
-        <button type="button" onClick={onReinsertTranscript} disabled={!hasText}>重新上屏</button>
-        <button type="button" onClick={onClearTranscript} disabled={!hasText}>清空</button>
-      </div>
-    </section>
-  );
-}
-
-export function MainWindow({ status, phaseLabel, asrConfigStatus, hotkeyStatus, recorderInfo, isRecording, onPrimaryRecordingAction, onOpenDiagnostic, onCopyTranscript, onReinsertTranscript, onClearTranscript }: MainWindowProps) {
-  const readinessItems: ReadinessItem[] = [
-    { label: '麦克风', value: recorderInfo?.deviceName ?? '等待设备', state: recorderInfo ? 'ready' : 'warning' },
-    { label: '本地识别', value: asrConfigStatus.ready ? 'whisper.cpp 已就绪' : '需要配置 ASR', state: asrConfigStatus.ready ? 'ready' : 'warning' },
-    { label: '快捷键', value: hotkeyStatus.registered ? hotkeyStatus.accelerator : '注册失败', state: hotkeyStatus.registered ? 'ready' : 'error' },
-    { label: '上屏', value: '剪贴板粘贴', state: readinessToneForPhase(status.phase) },
+export function MainWindow({ status, phaseLabel, asrConfigStatus, hotkeyStatus, toggleHotkey, recorderInfo, voiceOverlayModel, records, stats, onOpenDiagnostic, onOpenModelSettings, onCopyRecord, onReinsertRecord, onDeleteRecord, onClearRecords, onExportRecords }: MainWindowProps) {
+  const hotkeysReady = hotkeyStatus.registered;
+  const readinessItems = [
+    { label: '麦克风', value: recorderInfo?.deviceName ?? '等待设备', state: recorderInfo ? 'ready' : 'warning', title: recorderInfo ? `${recorderInfo.sampleRate} Hz / ${recorderInfo.channels} 声道` : '等待 Tauri 读取默认输入设备。' },
+    { label: '本地识别', value: asrConfigStatus.ready ? 'whisper.cpp' : '未配置', state: asrConfigStatus.ready ? 'ready' : 'warning', title: asrConfigStatus.message },
+    { label: '上屏', value: 'Clipboard', state: status.phase === 'failed' ? 'error' : 'ready', title: '使用剪贴板写入文本并发送 Ctrl+V。' },
+    { label: '云端 API', value: '未配置', state: 'warning', title: '云端 API / 大模型接入计划放在下一版。' },
   ];
-  const headline = asrConfigStatus.ready && hotkeyStatus.registered ? '本地语音输入已就绪' : '需要处理配置后使用';
 
   return (
     <main className="app-shell user-shell">
-      <section className="control-center" aria-labelledby="app-title">
+      <section className="control-center v51" aria-labelledby="app-title">
         <header className="control-topbar">
           <div className="brand-block"><span className="product-mark">VoxType</span><h1 id="app-title">语音输入控制中心</h1></div>
-          <div className="topbar-actions"><span className="topbar-status" data-phase={status.phase}>{phaseLabel}</span><button className="ghost-button" type="button" onClick={onOpenDiagnostic}>诊断</button></div>
+          <div className="topbar-actions"><button className="ghost-button" type="button" onClick={onOpenModelSettings}>模型选择</button><button className="ghost-button" type="button" onClick={onOpenDiagnostic}>诊断</button></div>
         </header>
-        <section className="control-hero" aria-label="当前状态">
-          <SignalMark active={isRecording || status.phase === 'recording'} />
-          <div className="hero-copy" aria-live="polite"><span>{headline}</span><strong>{status.message}</strong></div>
-        </section>
-        <div className="control-grid">
-          <ModeSelector isRecording={isRecording} onPrimaryRecordingAction={onPrimaryRecordingAction} />
-          <ReadinessPanel items={readinessItems} />
-          <RecentTranscript text={status.lastTranscript} onCopyTranscript={onCopyTranscript} onReinsertTranscript={onReinsertTranscript} onClearTranscript={onClearTranscript} />
+        <div className="v51-top-grid">
+          <section className="control-section mode-selector" aria-label="输入模式">
+            <div className="section-heading"><span>输入模式</span><strong>快捷键状态</strong></div>
+            <article className="mode-card compact" title="按住快捷键说一句，松开后转写并上屏。"><div><h2>按住说话</h2><kbd>Ctrl+Alt+Space</kbd></div><span className="ready-dot" data-ready={hotkeysReady}>{modeReadyLabel(hotkeysReady)}</span><button type="button" disabled title="下一版支持自定义快捷键" aria-label="修改按住说话快捷键">⚙</button></article>
+            <article className="mode-card compact" title="按一次开始，录音中分段上屏，再按一次停止。"><div><h2>连续输入</h2><kbd>{toggleHotkey}</kbd></div><span className="ready-dot" data-ready={hotkeysReady}>{modeReadyLabel(hotkeysReady)}</span><button type="button" disabled title="下一版支持自定义快捷键" aria-label="修改连续输入快捷键">⚙</button></article>
+          </section>
+          <section className="control-section readiness-panel" aria-label="准备状态">
+            <div className="section-heading"><span>准备状态</span><strong>系统能力</strong></div>
+            <dl className="readiness-grid">
+              {readinessItems.map((item) => <div key={item.label} data-state={item.state} title={item.title}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
+            </dl>
+          </section>
         </div>
+        <section className="status-capsule" aria-label="动态状态" title={`${phaseLabel}：${status.message}`}>
+          <VoiceOverlay model={voiceOverlayModel} />
+        </section>
+        <section className="transcript-history" aria-label="识别记录">
+          <header className="history-header"><div><span>识别记录</span><strong>{records.length} 条</strong></div><div className="history-actions"><button type="button" onClick={onClearRecords} disabled={records.length === 0} aria-label="清空全部识别记录" title="清空全部识别记录">清空全部</button><button type="button" onClick={onExportRecords} disabled={records.length === 0} aria-label="导出识别记录" title="导出识别记录">导出文本</button></div></header>
+          <div className="history-stats"><span title="本次运行识别次数"># {stats.count}</span><span title="本次运行累计录音时长">⏱ {formatDuration(stats.totalDurationMs)}</span><span title="本次运行累计识别字数">文 {stats.totalChars}</span><span title="本次运行平均识别速度">⚡ {stats.charsPerMinute}/m</span></div>
+          {records.length === 0 ? <p className="empty-history">还没有识别记录</p> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`识别记录 ${record.time}`}><time>{record.time}</time><p>{record.text}</p><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label="复制此记录" title="复制此记录">⧉</button><button type="button" onClick={() => onReinsertRecord(record)} aria-label="重新上屏此记录" title="重新上屏此记录">↩</button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label="删除此识别记录" title="删除此识别记录">×</button></div></article></li>)}</ol>}
+        </section>
       </section>
     </main>
   );
-}
+ }

@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DiagnosticView } from './DiagnosticView';
 import { formatDiagnosticsForCopy } from './diagnostics';
 import { MainWindow } from './MainWindow';
+import { ModelSettingsView } from './ModelSettingsView';
+import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
 import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus, TranscriptRecord, TranscriptStats } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -60,7 +62,7 @@ const initialOverlayBackendStatus: OverlayBackendStatus = {
 };
 
 export function App() {
-  const [viewMode, setViewMode] = useState<'user' | 'diagnostic'>('user');
+  const [viewMode, setViewMode] = useState<'user' | 'diagnostic' | 'model'>('user');
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
   const [status, setStatus] = useState<AppStatus>(initialStatus);
   const [recorderInfo, setRecorderInfo] = useState<RecorderInfo | null>(null);
@@ -82,8 +84,10 @@ export function App() {
   const [whisperModelPath, setWhisperModelPath] = useState('');
   const [asrLanguage, setAsrLanguage] = useState('zh');
   const [isInstallingAsr, setIsInstallingAsr] = useState(false);
+  const [transcriptRecords, setTranscriptRecords] = useState<TranscriptRecord[]>([]);
   const didLoadRuntime = useRef(false);
   const nextDiagnosticIdRef = useRef(2);
+  const nextTranscriptRecordIdRef = useRef(1);
   const isRecordingRef = useRef(false);
   const liveTimerRef = useRef<number | null>(null);
   const liveCursorRef = useRef(0);
@@ -224,6 +228,82 @@ export function App() {
     };
     return labels[status.phase];
   }, [status.phase]);
+
+  const overlayLevel = isRecording ? 0.72 : status.phase === 'transcribing' || status.phase === 'inserting' ? 0.38 : 0.18;
+  const voiceOverlayModel = useMemo(() => ({ ...createVoiceOverlayModel(status, overlayLevel), transcriptPreview: null }), [status, overlayLevel]);
+
+  const transcriptStats = useMemo<TranscriptStats>(() => {
+    const totalDurationMs = transcriptRecords.reduce((sum, record) => sum + record.durationMs, 0);
+    const totalChars = transcriptRecords.reduce((sum, record) => sum + record.text.length, 0);
+    return {
+      count: transcriptRecords.length,
+      totalDurationMs,
+      totalChars,
+      charsPerMinute: totalDurationMs > 0 ? Math.round(totalChars / (totalDurationMs / 60000)) : 0,
+    };
+  }, [transcriptRecords]);
+
+  function addTranscriptRecord(text: string, durationMs: number, source: TranscriptRecord['source']) {
+    const normalizedText = text.trim();
+    if (!normalizedText) {
+      return;
+    }
+    const record: TranscriptRecord = {
+      id: nextTranscriptRecordIdRef.current++,
+      time: new Date().toLocaleTimeString(),
+      text: normalizedText,
+      durationMs: Math.max(0, Math.round(durationMs)),
+      source,
+    };
+    setTranscriptRecords((current) => [record, ...current]);
+  }
+
+  async function handleCopyRecord(record: TranscriptRecord) {
+    try {
+      await navigator.clipboard.writeText(record.text);
+      addDiagnostic({ title: '识别记录已复制', result: 'success', detail: `文本：${record.text}` });
+    } catch (error) {
+      addDiagnostic({ title: '复制识别记录失败', result: 'error', detail: formatError(error) });
+    }
+  }
+
+  async function handleReinsertRecord(record: TranscriptRecord) {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: '重新上屏未执行', result: 'warning', detail: '浏览器预览模式不能调用 Windows 剪贴板上屏。' });
+      return;
+    }
+    try {
+      await insertTextWithClipboard(record.text);
+      setStatus({ phase: 'succeeded', message: '识别记录已重新上屏', lastTranscript: record.text });
+      addDiagnostic({ title: '识别记录重新上屏请求已发送', result: 'success', detail: `文本：${record.text}` });
+    } catch (error) {
+      const detail = formatError(error);
+      setStatus({ phase: 'failed', message: `重新上屏失败：${detail}`, lastTranscript: null });
+      addDiagnostic({ title: '识别记录重新上屏失败', result: 'error', detail });
+    }
+  }
+
+  function handleDeleteRecord(id: number) {
+    setTranscriptRecords((current) => current.filter((record) => record.id !== id));
+  }
+
+  function handleClearRecords() {
+    setTranscriptRecords([]);
+    addDiagnostic({ title: '识别记录已清空', result: 'info', detail: '本次运行期间的识别记录已清空。' });
+  }
+
+  async function handleExportRecords() {
+    const text = transcriptRecords.map((record) => `[${record.time}] ${record.text}`).join('\n');
+    if (!text) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      addDiagnostic({ title: '识别记录已导出', result: 'success', detail: `已复制 ${transcriptRecords.length} 条识别记录到剪贴板。` });
+    } catch (error) {
+      addDiagnostic({ title: '导出识别记录失败', result: 'error', detail: formatError(error) });
+    }
+  }
 
   async function handleSimulateDictation() {
     if (isTauriRuntime()) {
@@ -429,6 +509,7 @@ export function App() {
       }
       setStatus({ phase: 'recording', message: '实验实时输入中，继续说话即可分段上屏', lastTranscript: text });
       await insertTextWithClipboard(text);
+      addTranscriptRecord(text, Math.round(chunk.asrSampleCount / 16), 'toggle');
       liveInsertedTextRef.current = true;
       addDiagnostic({ title: '实验实时片段已上屏', result: 'success', detail: `${chunk.transcript.engine} 返回 ${chunk.asrSampleCount} 个 ASR 样本的片段：${text}` });
     } catch (error) {
@@ -454,6 +535,7 @@ export function App() {
         return;
       }
       await insertTextWithClipboard(text);
+      addTranscriptRecord(text, Math.round(chunk.asrSampleCount / 16), 'toggle');
       liveInsertedTextRef.current = true;
       setStatus({ phase: 'succeeded', message: '实验实时输入尾段已上屏', lastTranscript: text });
       addDiagnostic({ title: '实验实时尾段已上屏', result: 'success', detail: `${chunk.transcript.engine} 返回 ${chunk.asrSampleCount} 个 ASR 样本的尾段：${text}` });
@@ -493,6 +575,7 @@ export function App() {
         setStatus({ phase: 'transcribing', message: '实时片段未产生文本，正在用整段录音兜底转写', lastTranscript: null });
         const transcript = await transcribeLastRecording();
         await insertTextWithClipboard(transcript.text);
+        addTranscriptRecord(transcript.text, audio.asrDurationMs, 'toggle');
         setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: transcript.text });
         addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
       } else {
@@ -524,6 +607,7 @@ export function App() {
       const transcript = await transcribeLastRecording();
       setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: transcript.text });
       await insertTextWithClipboard(transcript.text);
+      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'push-to-talk');
       setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${transcript.text}` });
     } catch (error) {
@@ -590,6 +674,7 @@ export function App() {
     try {
       setStatus({ phase: 'transcribing', message: '正在调用 whisper.cpp 转写最近录音', lastTranscript: null });
       const transcript = await transcribeLastRecording();
+      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual');
       setStatus({ phase: 'succeeded', message: '真实转写完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实转写成功', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
     } catch (error) {
@@ -611,6 +696,7 @@ export function App() {
       addDiagnostic({ title: '真实转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
+      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual');
       setStatus({ phase: 'succeeded', message: '真实语音输入闭环完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实闭环上屏请求已发送', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -658,6 +744,7 @@ export function App() {
       addDiagnostic({ title: '主界面转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
+      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual');
       setStatus({ phase: 'succeeded', message: '语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '主界面语音输入完成', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -758,13 +845,37 @@ export function App() {
         phaseLabel={phaseLabel}
         asrConfigStatus={asrConfigStatus}
         hotkeyStatus={hotkeyStatus}
+        toggleHotkey={toggleHotkey}
         recorderInfo={recorderInfo}
-        isRecording={isRecording}
-        onPrimaryRecordingAction={() => void handlePrimaryRecordingAction()}
+        voiceOverlayModel={voiceOverlayModel}
+        records={transcriptRecords}
+        stats={transcriptStats}
         onOpenDiagnostic={() => setViewMode('diagnostic')}
-        onCopyTranscript={() => void handleCopyLastTranscript()}
-        onReinsertTranscript={() => void handleReinsertLastTranscript()}
-        onClearTranscript={handleClearLastTranscript}
+        onOpenModelSettings={() => setViewMode('model')}
+        onCopyRecord={(record) => void handleCopyRecord(record)}
+        onReinsertRecord={(record) => void handleReinsertRecord(record)}
+        onDeleteRecord={handleDeleteRecord}
+        onClearRecords={handleClearRecords}
+        onExportRecords={() => void handleExportRecords()}
+      />
+    );
+  }
+
+  function renderModelSettingsView() {
+    return (
+      <ModelSettingsView
+        asrConfigStatus={asrConfigStatus}
+        whisperBinaryPath={whisperBinaryPath}
+        whisperModelPath={whisperModelPath}
+        asrLanguage={asrLanguage}
+        isInstallingAsr={isInstallingAsr}
+        onBack={() => setViewMode('user')}
+        onWhisperBinaryPathChange={setWhisperBinaryPath}
+        onWhisperModelPathChange={setWhisperModelPath}
+        onAsrLanguageChange={setAsrLanguage}
+        onInstallManagedAsr={() => void handleInstallManagedAsr()}
+        onSaveAsrConfig={() => void handleSaveAsrConfig()}
+        onRefreshAsrConfig={() => void handleRefreshAsrConfig()}
       />
     );
   }
@@ -810,5 +921,11 @@ export function App() {
   }
 
 
-  return viewMode === 'user' ? renderUserView() : renderDiagnosticView();
+  if (viewMode === 'diagnostic') {
+    return renderDiagnosticView();
+  }
+  if (viewMode === 'model') {
+    return renderModelSettingsView();
+  }
+  return renderUserView();
 }

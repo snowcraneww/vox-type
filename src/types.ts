@@ -47,6 +47,21 @@ export interface Transcript {
   engine: string;
 }
 
+export interface TranscriptRecord {
+  id: number;
+  time: string;
+  text: string;
+  durationMs: number;
+  source: 'push-to-talk' | 'toggle' | 'manual';
+}
+
+export interface TranscriptStats {
+  count: number;
+  totalDurationMs: number;
+  totalChars: number;
+  charsPerMinute: number;
+}
+
 export interface LiveTranscriptionChunk {
   transcript: Transcript;
   fromSampleIndex: number;

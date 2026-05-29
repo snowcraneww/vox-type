@@ -1,6 +1,6 @@
 {
     "project": "VoxType",
-    "last_updated": "2026-05-28",
+    "last_updated": "2026-05-29",
     "rules": {
         "single_active_feature": true,
         "passing_requires_evidence": true,
@@ -249,7 +249,7 @@
             "priority": 9,
             "area": "implementation",
             "title": "V5 主窗体产品化重设计",
-            "user_visible_behavior": "维护者打开 VoxType 主窗体时看到的是清晰的语音输入控制中心：能确认系统是否可用、选择两种输入模式、查看最近文本，并从二级入口进入设置和诊断，而不是测试按钮堆叠。",
+            "user_visible_behavior": "维护者打开 VoxType 主窗体时看到的是以识别记录为主体的语音输入控制中心：能确认两种快捷键输入模式是否就绪、查看麦克风/本地识别/上屏/云端 API 准备状态、通过动态胶囊理解当前语音状态、管理本次运行识别记录，并从二级入口进入模型选择和诊断。",
             "status": "in_progress",
             "verification": [
                 "运行 npm test -- --run。",
@@ -272,9 +272,17 @@
                 "2026-05-28: 按 V5 计划拆出 src/MainWindow.tsx 和 src/DiagnosticView.tsx，App.tsx 保留状态与命令编排。",
                 "2026-05-28: 默认主界面重构为语音输入控制中心，包含输入模式、准备状态、最近结果和诊断入口；浮窗、录音、ASR 和上屏核心链路未改。",
                 "2026-05-28: 新增前端测试覆盖 V5 控制中心结构、最近文本重新上屏和清空行为。局部验证 npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx src/DictationOverlay.test.tsx 通过，17 个测试通过；npm run typecheck 通过；npm run build 通过。",
-                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、23 个测试通过；npm run typecheck 通过；npm run build 通过；cargo check --manifest-path src-tauri/Cargo.toml --lib 通过；cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
+                "2026-05-28: 自动验证通过：npm test -- --run 通过，6 个测试文件、23 个测试通过；npm run typecheck 通过；npm run build 通过；cargo check --manifest-path src-tauri/Cargo.toml --lib 通过；cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。",
+                "2026-05-29: 维护者确认 V5.1 线稿方向，并要求准备状态保留短文字、详细说明放 tooltip；动态状态胶囊直接沿用桌面浮窗的彩色声波/六点动效设计。",
+                "2026-05-29: 写入 docs/superpowers/plans/2026-05-29-v5-1-main-window-refinement.md，追加 V5.1 修订到 docs/superpowers/specs/2026-05-28-v5-main-window-product-redesign.md。",
+                "2026-05-29: 新增本次运行识别记录、统计、复制、重新上屏、删除、清空和导出文本；记录按倒序显示，最新在上。",
+                "2026-05-29: 新增模型选择页，将 whisper.cpp 路径、一键安装、检测和保存入口迁移到模型配置语境；云端 API 保持下一版占位。",
+                "2026-05-29: 主界面动态状态复用 VoiceOverlay 胶囊动效，准备状态保留麦克风、本地识别、上屏和云端 API 四项短文字，不再把快捷键重复放入准备状态。",
+                "2026-05-29: 局部验证 npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过。",
+                "2026-05-29: 完整自动验证通过：npm test -- --run 通过，6 个测试文件、25 个测试；npm run typecheck 通过；npm run build 通过；cargo check --manifest-path src-tauri/Cargo.toml --lib 通过；cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。",
+                "2026-05-29: 隐私和编码扫描通过：本轮修改文件未命中本机用户名、个人邮箱、用户目录、旧 GitHub noreply 或本机仓库路径；未命中问号乱码或替换字符。"
             ],
-            "notes": "V5 自动验证已通过，当前等待维护者手动验证主界面产品感、两种快捷键模式和诊断模式能力后再标记为 passing。"
+            "notes": "V5.1 已完成主界面信息架构细化和模型选择页接入，完整自动验证已通过；当前等待维护者手动验收后再标记为 passing。"
         }
     ]
 }
