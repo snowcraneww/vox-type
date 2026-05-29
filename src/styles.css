@@ -2021,40 +2021,42 @@ kbd {
 .ready-dot {
   background: rgba(179, 140, 35, 0.82);
   border-radius: 999px;
-  box-shadow: 0 0 0 3px rgba(179, 140, 35, 0.10);
+  box-shadow: 0 0 0 2px rgba(179, 140, 35, 0.12);
   display: block;
   flex: 0 0 auto;
-  height: 8px;
-  width: 8px;
+  height: 7px;
+  width: 7px;
 }
 
 .ready-dot[data-ready="true"] {
-  background: rgba(37, 151, 62, 0.90);
-  box-shadow: 0 0 0 3px rgba(37, 151, 62, 0.10);
+  background: #34c759;
+  box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.12);
 }
 
-.v51 .mode-card button {
+.v51 .mode-card .icon-only-button,
+.control-center.v51 .mode-card .icon-only-button,
+.control-center.v51 .mode-card .icon-only-button:disabled {
   background: transparent;
-  border-color: transparent;
-  border-radius: 999px;
-  box-shadow: none;
-  color: rgba(13, 91, 35, 0.82);
-  font-size: 18px;
-  line-height: 1;
-  min-height: 22px;
-  min-width: 22px;
-  padding: 0;
-}
-
-.v51 .mode-card button:hover:not(:disabled) {
-  background: transparent;
-  border-color: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
   color: rgba(13, 91, 35, 0.86);
+  cursor: not-allowed;
+  font-size: 20px;
+  line-height: 1;
+  min-height: 20px;
+  min-width: 20px;
+  opacity: 0.92;
+  padding: 0;
+  transform: none;
 }
 
-.v51 .mode-card button:disabled {
-  opacity: 0.88;
+.v51 .mode-card .icon-only-button:hover:not(:disabled),
+.control-center.v51 .mode-card .icon-only-button:hover:not(:disabled) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: rgba(13, 91, 35, 0.86);
 }
 
 .v51 .readiness-grid div {
@@ -2072,6 +2074,10 @@ kbd {
   top: 50%;
   transform: translateY(-50%);
   width: 7px;
+}
+
+.v51 .readiness-grid div[data-state="ready"]::after {
+  box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.12);
 }
 
 .v51 .readiness-grid dt,

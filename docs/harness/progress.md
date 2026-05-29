@@ -79,6 +79,9 @@
 - 2026-05-29 V5.9 输入模式和空状态收口：根据维护者反馈，输入模式不再显示 Ready 文字，改为最右侧状态圆点，并通过 tooltip/aria-label 说明“快捷键已注册/未注册”；设置图标继续去按钮化并放大为深绿色。
 - V5.9 识别记录空状态：无记录时不再留大片空白，改为浅绿虚线空状态面板；识别记录容器使用 `overflow: clip` 并为列表底部保留细小间距，减少底部圆角被截断的观感。
 - V5.9 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
+- 2026-05-29 V5.10 输入模式状态点修正：根据维护者反馈，将输入模式的状态圆点移动到快捷键后方，并与准备状态系统能力圆点统一为同样的 7px 绿色点样式。
+- V5.10 设置图标修正：为设置按钮增加 `icon-only-button` class，并用高优先级样式覆盖全局按钮主题，彻底移除按钮背景、边框和阴影，只保留更大的深绿色设置图标。
+- V5.10 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过；`npm run build` 通过；隐私和乱码扫描未命中。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。

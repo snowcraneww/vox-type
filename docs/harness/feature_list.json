@@ -305,9 +305,12 @@
                 "2026-05-29: V5.8 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
                 "2026-05-29: V5.9 输入模式不再显示 Ready 文字，改为最右侧状态圆点，并通过 tooltip/aria-label 说明快捷键已注册或未注册；设置图标继续去按钮化并放大为深绿色。",
                 "2026-05-29: V5.9 无识别记录时改为浅绿虚线空状态面板；识别记录容器使用 overflow: clip 并为列表底部保留细小间距，减少底部圆角被截断的观感。",
-                "2026-05-29: V5.9 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
+                "2026-05-29: V5.9 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
+                "2026-05-29: V5.10 将输入模式状态圆点移动到快捷键后方，并与准备状态系统能力圆点统一为同样的 7px 绿色点样式。",
+                "2026-05-29: V5.10 为设置按钮增加 icon-only-button class，并用高优先级样式覆盖全局按钮主题，彻底移除按钮背景、边框和阴影，只保留更大的深绿色设置图标。",
+                "2026-05-29: V5.10 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。"
             ],
-            "notes": "V5.9 已将输入模式状态改为纯圆点、优化设置图标和识别记录空状态；当前等待维护者手动评估视觉方向。"
+            "notes": "V5.10 已将输入模式状态点移动到快捷键后方、统一状态点尺寸，并彻底移除设置图标外圈；当前等待维护者手动评估视觉方向。"
         }
     ]
 }
