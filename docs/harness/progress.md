@@ -53,6 +53,11 @@
 - V5.1 完整自动验证：`npm test -- --run` 通过，6 个测试文件、25 个测试；`npm run typecheck` 通过；`npm run build` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过。
 - V5.1 隐私和编码扫描：本轮修改文件未命中本机用户名、个人邮箱、用户目录、旧 GitHub noreply 或本机仓库路径；未命中问号乱码或替换字符。
 
+- 2026-05-29 V5.2 紧凑布局修正：维护者反馈实际效果仍太松散，要求输入模式和准备状态保持同一行左右两侧、识别记录标题/统计/按钮压缩到同一行，并去掉中间过大的“已就绪”状态模块。
+- V5.2 实现：默认主界面删除独立动态状态胶囊，把主要高度释放给识别记录；识别记录工具条合并标题、四项统计、清空和导出按钮，按钮文案改短并提高对比度。
+- V5.2 模型选择：本地 whisper.cpp 和云端 API 改为左右 tab；选中本地时显示 whisper.cpp 配置，选中云端时显示下一版 API Key/模型/服务商配置占位。
+- V5.2 自动验证：`npm test -- --run src/App.test.tsx` 通过，10 个测试；`npm run typecheck` 通过；`npm test -- --run` 通过，6 个测试文件、25 个测试；`npm run build` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过。
+
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。
 - 最近结果新增主界面动作：复制、重新上屏、清空；诊断模式继续保留 ASR 配置、录音测试、真实转写、真实闭环、浮窗测试和日志复制。

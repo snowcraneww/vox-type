@@ -60,9 +60,10 @@ describe('App', () => {
     expect(screen.getByText('上屏')).toBeInTheDocument();
     expect(screen.getByText('云端 API')).toBeInTheDocument();
     expect(screen.queryByText('快捷键')).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: '动态状态' })).toBeInTheDocument();
-    expect(screen.getByTestId('voice-wave')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '动态状态' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('voice-wave')).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: '识别记录' })).toBeInTheDocument();
+    expect(screen.getByTestId('history-toolbar')).toBeInTheDocument();
     expect(screen.getByText('还没有识别记录')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '清空全部识别记录' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '导出识别记录' })).toBeInTheDocument();
@@ -142,14 +143,20 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
 
     expect(screen.getByRole('heading', { name: '模型选择' })).toBeInTheDocument();
-    expect(screen.getByText('本地 whisper.cpp')).toBeInTheDocument();
-    expect(screen.getByText('云端 API')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /本地 whisper.cpp/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /云端 API/ })).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByText('下一版接入')).toBeInTheDocument();
+    expect(screen.getByRole('tabpanel', { name: '本地 whisper.cpp 配置' })).toBeInTheDocument();
     expect(screen.getByLabelText('whisper.cpp 可执行文件')).toBeInTheDocument();
     expect(screen.getByLabelText('Whisper 模型文件')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '一键安装 whisper.cpp' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '检测 ASR 配置' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '保存 ASR 配置' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: /云端 API/ }));
+    expect(screen.getByRole('tab', { name: /云端 API/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel', { name: '云端 API 配置' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('whisper.cpp 可执行文件')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '返回主界面' }));
     expect(screen.getByRole('heading', { name: '语音输入控制中心' })).toBeInTheDocument();

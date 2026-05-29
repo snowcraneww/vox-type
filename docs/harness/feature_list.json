@@ -280,9 +280,12 @@
                 "2026-05-29: 主界面动态状态复用 VoiceOverlay 胶囊动效，准备状态保留麦克风、本地识别、上屏和云端 API 四项短文字，不再把快捷键重复放入准备状态。",
                 "2026-05-29: 局部验证 npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过。",
                 "2026-05-29: 完整自动验证通过：npm test -- --run 通过，6 个测试文件、25 个测试；npm run typecheck 通过；npm run build 通过；cargo check --manifest-path src-tauri/Cargo.toml --lib 通过；cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。",
-                "2026-05-29: 隐私和编码扫描通过：本轮修改文件未命中本机用户名、个人邮箱、用户目录、旧 GitHub noreply 或本机仓库路径；未命中问号乱码或替换字符。"
+                "2026-05-29: 隐私和编码扫描通过：本轮修改文件未命中本机用户名、个人邮箱、用户目录、旧 GitHub noreply 或本机仓库路径；未命中问号乱码或替换字符。",
+                "2026-05-29: V5.2 根据维护者反馈删除主界面独立动态状态胶囊，把输入模式和准备状态保持同一行左右两侧，并将识别记录标题、统计、清空和导出按钮合并为同一行紧凑工具条。",
+                "2026-05-29: V5.2 将模型选择改为左右 tab：选中本地 whisper.cpp 时显示本地配置，选中云端 API 时显示下一版 API Key/模型/服务商配置占位。",
+                "2026-05-29: V5.2 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；npm test -- --run 通过，6 个测试文件、25 个测试；npm run build 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过。"
             ],
-            "notes": "V5.1 已完成主界面信息架构细化和模型选择页接入，完整自动验证已通过；当前等待维护者手动验收后再标记为 passing。"
+            "notes": "V5.2 已按维护者反馈压缩主界面信息密度，释放识别记录区域，并把模型选择改为 tab；自动验证已通过，当前等待维护者手动验收后再标记为 passing。"
         }
     ]
 }

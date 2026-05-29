@@ -3,7 +3,6 @@ import { DiagnosticView } from './DiagnosticView';
 import { formatDiagnosticsForCopy } from './diagnostics';
 import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
-import { createVoiceOverlayModel } from './voiceOverlayModel';
 import { formatError } from './errorFormat';
 import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
@@ -216,21 +215,6 @@ export function App() {
 
   const isRecording = recordingStatus.state === 'recording';
   isRecordingRef.current = isRecording;
-
-  const phaseLabel = useMemo(() => {
-    const labels: Record<AppStatus['phase'], string> = {
-      idle: '空闲',
-      recording: '录音中',
-      transcribing: '识别中',
-      inserting: '上屏中',
-      succeeded: '已完成',
-      failed: '失败',
-    };
-    return labels[status.phase];
-  }, [status.phase]);
-
-  const overlayLevel = isRecording ? 0.72 : status.phase === 'transcribing' || status.phase === 'inserting' ? 0.38 : 0.18;
-  const voiceOverlayModel = useMemo(() => ({ ...createVoiceOverlayModel(status, overlayLevel), transcriptPreview: null }), [status, overlayLevel]);
 
   const transcriptStats = useMemo<TranscriptStats>(() => {
     const totalDurationMs = transcriptRecords.reduce((sum, record) => sum + record.durationMs, 0);
@@ -842,12 +826,10 @@ export function App() {
     return (
       <MainWindow
         status={status}
-        phaseLabel={phaseLabel}
         asrConfigStatus={asrConfigStatus}
         hotkeyStatus={hotkeyStatus}
         toggleHotkey={toggleHotkey}
         recorderInfo={recorderInfo}
-        voiceOverlayModel={voiceOverlayModel}
         records={transcriptRecords}
         stats={transcriptStats}
         onOpenDiagnostic={() => setViewMode('diagnostic')}
