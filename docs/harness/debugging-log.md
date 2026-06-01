@@ -1783,3 +1783,30 @@ V7.2 将记录头部改为两列 grid 后，`.record-head` 仍使用 `align-item
 ## 残余风险
 
 本轮自动验证覆盖 React 行为、TypeScript 和生产构建；真实 Tauri 桌面窗口里的视觉比例仍需要维护者手动验收。
+
+# 2026-06-01 V7.4 transcript footer visual weight
+
+## 现象
+
+维护者复核识别记录后反馈：当上屏文本很短时，每条记录最后一行的 metadata 胶囊和复制/重新上屏/删除按钮视觉重量偏大，有些喧宾夺主。
+
+## 根因
+
+V7.1 将 metadata 和动作按钮结构化后，底部 footer 仍按左右分布占满记录宽度；metadata 胶囊和动作按钮尺寸接近主内容区，短文本记录下工具区成为视觉焦点。
+
+## 修复
+
+- 记录 footer 改为整体右对齐，避免 metadata 在左侧抢主阅读路径。
+- metadata 胶囊降低字号、padding、间距、背景透明度和边框存在感。
+- 动作按钮从 25px 缩到 22px，图标从 14px 缩到 12px，按钮间距从 5px 缩到 3px。
+
+## 验证
+
+- `npm test -- --run src/App.test.tsx` 通过，1 个测试文件、16 个测试。
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+- `git diff --check` 通过，仅有既有 CRLF/LF 提示，无 whitespace error。
+
+## 残余风险
+
+真实 Tauri 桌面窗口里的视觉比例仍需要维护者手动验收。

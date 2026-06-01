@@ -3093,8 +3093,8 @@ kbd {
 .record-footer {
   align-items: end;
   display: flex;
-  gap: 10px;
-  justify-content: space-between;
+  gap: 6px;
+  justify-content: flex-end;
   min-width: 0;
 }
 
@@ -3102,18 +3102,19 @@ kbd {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
+  justify-content: flex-end;
   min-width: 0;
 }
 
 .record-meta .stat-pill {
-  background: rgba(255,255,255,0.58);
-  border: 1px solid rgba(54, 107, 75, 0.11);
-  color: rgba(43, 70, 53, 0.70);
-  font-size: 10.5px;
+  background: rgba(255,255,255,0.42);
+  border: 1px solid rgba(54, 107, 75, 0.08);
+  color: rgba(43, 70, 53, 0.58);
+  font-size: 10px;
   font-weight: 760;
   max-width: 180px;
-  padding: 5px 7px;
+  padding: 4px 6px;
 }
 
 .record-meta .stat-pill span:last-child {
@@ -3122,20 +3123,20 @@ kbd {
 }
 
 .record-actions {
-  gap: 5px;
+  gap: 3px;
   justify-content: flex-end;
   margin-left: auto;
 }
 
 .record-actions button,
 .record-actions button:hover:not(:disabled) {
-  min-height: 25px;
-  min-width: 25px;
+  min-height: 22px;
+  min-width: 22px;
 }
 
 .record-actions .ui-icon {
-  height: 14px;
-  width: 14px;
+  height: 12px;
+  width: 12px;
 }
 
 .model-shell {

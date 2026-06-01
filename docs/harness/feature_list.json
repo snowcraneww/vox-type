@@ -409,9 +409,10 @@
                 "2026-06-01: V7 UI polish 修复维护者反馈的可见问号图标和模型配置页杂乱问题：主界面动作按钮改为本地 inline SVG，模型页按输入模式默认模型、模型配置、密钥和参数分组重排，统计缩写改为中文标签；验证 npm test -- --run src/App.test.tsx、npm run typecheck、npm run build、python -m json.tool docs/harness/feature_list.json、git diff --check 通过，可见问号占位扫描无命中。",
                 "2026-06-01: V7.1 visual polish 按维护者反馈恢复统计区彩色图标胶囊；识别记录每条改为 metadata 小胶囊加右下角复制/重新上屏/删除 icon button；模型配置区改为本地 whisper.cpp、百度短语音、百度实时 WebSocket 三个大按钮 tab，且只显示当前选中配置面板。验证 bash init.sh、npm test -- --run src/App.test.tsx、npm run typecheck、npm run build、python -m json.tool docs/harness/feature_list.json、git diff --check 通过。",
                 "2026-06-01: V7.2 visual polish 按维护者反馈移除识别记录标题重复条数，修复总统计胶囊内部嵌套样式；记录时间和正文改为同一行两列布局，长文本换行继续对齐正文列；模型页拆为模型选择和模型配置两个页签，降低选择与配置混杂。验证 bash init.sh、npm test -- --run src/App.test.tsx、npm run typecheck、npm run build、cargo check --manifest-path src-tauri/Cargo.toml --lib、cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run、cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run、python -m json.tool docs/harness/feature_list.json、git diff --check 通过。",
-                "2026-06-01: V7.3 按维护者反馈修正识别记录单条记录内时间与上屏文本垂直方向未居中的问题；record-head 改为居中对齐，统一 time 和正文 line-height，并清除正文默认 margin。验证 npm test -- --run src/App.test.tsx、npm run typecheck、npm run build、git diff --check 通过。"
+                "2026-06-01: V7.3 按维护者反馈修正识别记录单条记录内时间与上屏文本垂直方向未居中的问题；record-head 改为居中对齐，统一 time 和正文 line-height，并清除正文默认 margin。验证 npm test -- --run src/App.test.tsx、npm run typecheck、npm run build、git diff --check 通过。",
+                "2026-06-01: V7.4 按维护者反馈降低识别记录最后一行 metadata 胶囊和动作按钮视觉权重；footer 整体右对齐，metadata 胶囊缩小并降低背景/边框存在感，动作按钮和 icon 尺寸下调。验证 npm test -- --run src/App.test.tsx、npm run typecheck、npm run build、git diff --check 通过。"
             ],
-            "notes": "V7 代码、UI polish 和自动验证已完成，状态暂保持 in_progress，等待维护者在 Tauri 桌面环境手动验收准备状态、模型选择持久化、MiniMax UI 移除、百度短语音真实转写、百度实时 WebSocket V8 占位、识别记录 metadata、V7.3 记录行视觉 polish 后再标记为 passing。"
+            "notes": "V7 代码、UI polish 和自动验证已完成，状态暂保持 in_progress，等待维护者在 Tauri 桌面环境手动验收准备状态、模型选择持久化、MiniMax UI 移除、百度短语音真实转写、百度实时 WebSocket V8 占位、识别记录 metadata、V7.4 记录行 footer 视觉 polish 后再标记为 passing。"
         }
     ]
 }
