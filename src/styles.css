@@ -3428,7 +3428,7 @@ kbd {
   .config-model-switch { grid-template-columns: 1fr; width: 100%; }
 }
 .record-head {
-  align-items: start;
+  align-items: center;
   column-gap: 10px;
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
@@ -3436,6 +3436,7 @@ kbd {
 
 .record-head time {
   grid-column: 1;
+  line-height: 1.45;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3443,6 +3444,8 @@ kbd {
 
 .record-head p {
   grid-column: 2;
+  line-height: 1.45;
+  margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
 }

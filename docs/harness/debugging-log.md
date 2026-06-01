@@ -1756,3 +1756,30 @@ Real Baidu network transcription still needs maintainer validation in `npm run t
 ## 残余风险
 
 本轮自动验证覆盖 React 行为、TypeScript 和生产构建；真实 Tauri 桌面窗口里的视觉比例、滚动高度、模型选择持久化和百度短语音真实转写仍需要维护者手动验收后再把 `v7-001` 标记为 `passing`。
+
+# 2026-06-01 V7.3 transcript time/text vertical alignment
+
+## 现象
+
+维护者复核识别记录行后反馈：单条识别记录里时间和上屏文本虽然已经在同一行，但垂直方向没有居中对齐，一个偏上一个偏下。
+
+## 根因
+
+V7.2 将记录头部改为两列 grid 后，`.record-head` 仍使用 `align-items: start`，同时正文 `p` 和 `time` 的默认行高/外边距不一致，导致视觉中线不统一。
+
+## 修复
+
+- `.record-head` 改为 `align-items: center`。
+- `time` 和正文 `p` 统一 `line-height: 1.45`。
+- 正文 `p` 明确 `margin: 0`，避免浏览器默认段落外边距影响垂直对齐。
+
+## 验证
+
+- `npm test -- --run src/App.test.tsx` 通过，1 个测试文件、16 个测试。
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+- `git diff --check` 通过，仅有既有 CRLF/LF 提示，无 whitespace error。
+
+## 残余风险
+
+本轮自动验证覆盖 React 行为、TypeScript 和生产构建；真实 Tauri 桌面窗口里的视觉比例仍需要维护者手动验收。
