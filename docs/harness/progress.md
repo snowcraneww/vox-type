@@ -12,6 +12,11 @@
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
+## 2026-06-02 Interview project brief
+
+- Added `docs/guide/interview-project-brief.md` as a Chinese interview-oriented project introduction for VoxType, covering project positioning, tech stack, architecture, module boundaries, key implementation details, engineering highlights, debugging stories, current limitations, roadmap, and multiple Mermaid diagrams.
+- Synchronized `docs/integrations/baidu-asr.md` wording with the current V8 state: Baidu Realtime WebSocket API is implemented for continuous input, while real desktop streaming verification remains pending.
+
 
 ## 2026-06-01 V8 Baidu Realtime WebSocket API integration
 
