@@ -158,3 +158,7 @@
 - 已通过：`npm test -- --run src/App.test.tsx`、`npm run typecheck`、`npm run build`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check`、`cargo check --manifest-path src-tauri/Cargo.toml --lib`、`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run`、`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run`、`python -m json.tool docs/harness/feature_list.json`、`git diff --check`。
 - `v7-001` 暂保持 `in_progress`：还需要维护者运行 Tauri 桌面环境，手动验收准备状态、模型选择持久化、MiniMax UI 移除、百度短语音真实转写、百度实时 WebSocket V8 占位和识别记录 metadata。
 - 下一步：提交 V7 当前改动；维护者之后执行桌面手动验收，通过后再把 `v7-001` 标记为 `passing`。
+- V7.1 追加视觉调整已完成：统计区恢复彩色图标胶囊，识别记录 metadata 拆成小胶囊，记录动作按钮放到每条记录右下角。
+- 模型页仍保持单页推荐方案：上半部分选择按住说话模型和连续输入模型，下半部分用三个大按钮 tab 切换本地 whisper.cpp、百度短语音、百度实时 WebSocket 配置，只显示当前选中面板。
+- 最新已通过：`bash init.sh`、`npm test -- --run src/App.test.tsx`、`npm run typecheck`、`npm run build`、`python -m json.tool docs/harness/feature_list.json`、`git diff --check`。
+- 下一步：提交 V7.1 当前改动；维护者之后执行 Tauri 桌面手动验收，通过后再把 `v7-001` 标记为 `passing`。

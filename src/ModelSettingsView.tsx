@@ -1,4 +1,4 @@
-
+import { useState } from 'react';
 import type { AsrConfigStatus, CloudAsrConfigStatus, ModelReadiness, TranscriptionModelId } from './types';
 
 const text = {
@@ -6,13 +6,11 @@ const text = {
   back: '\u8fd4\u56de\u4e3b\u754c\u9762',
   defaultModels: '\u8f93\u5165\u6a21\u5f0f\u9ed8\u8ba4\u6a21\u578b',
   chooseSeparately: '\u5f53\u524d\u8def\u7531',
-  pushToTalk: '\u6309\u4f4f\u8bf4\u8bdd',
   pushToTalkModel: '\u6309\u4f4f\u8bf4\u8bdd\u6a21\u578b',
-  toggleDictation: '\u8fde\u7eed\u8f93\u5165',
   toggleDictationModel: '\u8fde\u7eed\u8f93\u5165\u6a21\u578b',
   saveDefaults: '\u4fdd\u5b58\u9ed8\u8ba4\u6a21\u578b',
   modelConfig: '\u6a21\u578b\u914d\u7f6e',
-  configDetail: '\u672c\u5730\u548c\u4e91\u7aef\u80fd\u529b',
+  configDetail: '\u9009\u62e9\u4e00\u4e2a\u6a21\u578b\u540e\u7f16\u8f91\u5bf9\u5e94\u914d\u7f6e',
   local: '\u672c\u5730 whisper.cpp',
   executable: 'whisper.cpp \u53ef\u6267\u884c\u6587\u4ef6',
   modelFile: 'Whisper \u6a21\u578b\u6587\u4ef6',
@@ -21,7 +19,8 @@ const text = {
   install: '\u4e00\u952e\u5b89\u88c5 whisper.cpp',
   checkAsr: '\u68c0\u6d4b ASR \u914d\u7f6e',
   saveAsr: '\u4fdd\u5b58 ASR \u914d\u7f6e',
-  baiduShort: '\u767e\u5ea6\u77ed\u8bed\u97f3',
+  baiduShort: '\u767e\u5ea6\u4e91\u7aef API \u77ed\u8bed\u97f3',
+  baiduShortLabel: '\u767e\u5ea6\u77ed\u8bed\u97f3',
   baiduShortConfig: '\u767e\u5ea6\u77ed\u8bed\u97f3\u8bc6\u522b\u914d\u7f6e',
   apiKey: '\u767e\u5ea6 ASR API Key',
   apiKeyInput: '\u767e\u5ea6 ASR API Key \u8f93\u5165',
@@ -39,9 +38,11 @@ const text = {
   testBaidu: '\u68c0\u6d4b\u767e\u5ea6\u914d\u7f6e',
   waitingEnv: '\u7b49\u5f85\u73af\u5883\u53d8\u91cf',
   pasteSecret: '\u7c98\u8d34\u540e\u4fdd\u5b58\u5230\u7528\u6237\u73af\u5883\u53d8\u91cf',
-  baiduRealtime: '\u767e\u5ea6\u5b9e\u65f6 WebSocket',
+  baiduRealtime: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API',
+  baiduRealtimeLabel: '\u767e\u5ea6\u5b9e\u65f6 WebSocket',
   realtimeConfig: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u914d\u7f6e',
   v8Only: 'V8 \u63a5\u5165\uff0c\u5f53\u524d\u7248\u672c\u4e0d\u53ef\u7528\u3002',
+  v8Reserved: 'V8 \u9884\u7559',
   wsEndpoint: 'WebSocket Endpoint',
   wsDevPid: 'dev_pid',
   wsCuid: 'cuid',
@@ -55,6 +56,8 @@ const text = {
   baiduRealtimeSampleRateLabel: '\u767e\u5ea6 WebSocket \u91c7\u6837\u7387',
   baiduRealtimeUserLabel: '\u767e\u5ea6 WebSocket user',
   lmPlaceholder: '\u81ea\u8bad\u7ec3\u5e73\u53f0\u6a21\u578b ID',
+  ready: '\u5df2\u5c31\u7eea',
+  notReady: '\u672a\u5c31\u7eea',
 };
 
 interface ModelSettingsViewProps {
@@ -114,24 +117,31 @@ interface ModelSettingsViewProps {
   onTestCloudAsrConfig: () => void;
 }
 
+const modelOptions: TranscriptionModelId[] = ['local-whisper', 'baidu-short', 'baidu-realtime'];
+
+function displayModelLabel(id: TranscriptionModelId) {
+  if (id === 'local-whisper') return text.local;
+  if (id === 'baidu-short') return text.baiduShortLabel;
+  return text.baiduRealtimeLabel;
+}
+
+function ModelButton({ id, active, readiness, onClick }: { id: TranscriptionModelId; active: boolean; readiness: ModelReadiness; onClick: () => void }) {
+  return <button className="model-select-button" type="button" data-active={active} data-available={readiness.availableInV7} onClick={onClick} title={readiness.message} aria-pressed={active}><span className="ready-dot" data-ready={readiness.ready} aria-hidden="true" /><strong>{displayModelLabel(id)}</strong><small>{readiness.availableInV7 ? readiness.message : text.v8Reserved}</small></button>;
+}
+
 function ModeModelSelector({ label, value, onChange, readiness }: { label: string; value: TranscriptionModelId; onChange: (value: TranscriptionModelId) => void; readiness: Record<TranscriptionModelId, ModelReadiness> }) {
-  const options: TranscriptionModelId[] = ['local-whisper', 'baidu-short', 'baidu-realtime'];
   return (
     <div className="mode-model-row">
       <div className="mode-model-label"><span>{label}</span><strong>{readiness[value].label}</strong></div>
-      <div className="segmented-models" role="group" aria-label={`${label}\u9ed8\u8ba4\u6a21\u578b`}>
-        {options.map((id) => (
-          <button key={id} type="button" data-active={value === id} data-available={readiness[id].availableInV7} onClick={() => onChange(id)} title={readiness[id].message}>
-            <span className="ready-dot" data-ready={readiness[id].ready} aria-hidden="true" />
-            {readiness[id].label}
-          </button>
-        ))}
+      <div className="model-button-grid compact" role="group" aria-label={`${label}\u9ed8\u8ba4\u6a21\u578b`}>
+        {modelOptions.map((id) => <ModelButton key={id} id={id} active={value === id} readiness={readiness[id]} onClick={() => onChange(id)} />)}
       </div>
     </div>
   );
 }
 
 export function ModelSettingsView(props: ModelSettingsViewProps) {
+  const [activeConfig, setActiveConfig] = useState<TranscriptionModelId>(props.pushToTalkModel);
   const apiKeyState = props.cloudAsrConfigStatus.apiKeyConfigured ? '\u5df2\u914d\u7f6e' : '\u672a\u914d\u7f6e';
   const apiKeyDetail = props.cloudAsrConfigStatus.apiKeyPreview ?? text.waitingEnv;
   const secretKeyState = props.cloudAsrConfigStatus.secretKeyConfigured ? '\u5df2\u914d\u7f6e' : '\u672a\u914d\u7f6e';
@@ -152,18 +162,21 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
           </div>
           <div className="model-route-actions"><button type="button" onClick={props.onSaveModeModelPreferences}>{text.saveDefaults}</button></div>
         </section>
-        <div className="section-heading model-config-heading"><span>{text.modelConfig}</span><strong>{text.configDetail}</strong></div>
-        <section className="model-config-grid" aria-label={text.modelConfig}>
-          <section className="model-config" aria-label={`${text.local} \u914d\u7f6e`}>
-            <div className="model-config-title"><div><span>{text.local}</span><strong>{props.asrConfigStatus.ready ? '\u5df2\u5c31\u7eea' : '\u672a\u5c31\u7eea'}</strong></div><span className="ready-dot" data-ready={props.asrConfigStatus.ready} /></div>
+        <section className="model-config-section" aria-label={text.modelConfig}>
+          <div className="section-heading model-config-heading"><span>{text.modelConfig}</span><strong>{text.configDetail}</strong></div>
+          <div className="model-button-grid config-tabs" role="tablist" aria-label={text.modelConfig}>
+            {modelOptions.map((id) => <button key={id} className="model-select-button config-tab" type="button" role="tab" aria-selected={activeConfig === id} data-active={activeConfig === id} data-available={props.modelReadiness[id].availableInV7} onClick={() => setActiveConfig(id)} title={props.modelReadiness[id].message}><span className="ready-dot" data-ready={props.modelReadiness[id].ready} aria-hidden="true" /><strong>{displayModelLabel(id)}</strong><small>{id === 'local-whisper' ? 'whisper.cpp' : id === 'baidu-short' ? 'server_api' : text.v8Reserved}</small></button>)}
+          </div>
+          {activeConfig === 'local-whisper' ? <section className="model-config active-config-panel" aria-label={`${text.local} \u914d\u7f6e`}>
+            <div className="model-config-title"><div><span>{text.local}</span><strong>{props.asrConfigStatus.ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.asrConfigStatus.ready} /></div>
             <label className="field"><span>{text.executable}</span><input aria-label={text.executable} value={props.whisperBinaryPath} onChange={(event) => props.onWhisperBinaryPathChange(event.target.value)} placeholder="C:\\tools\\whisper.cpp\\whisper-cli.exe" /></label>
             <label className="field"><span>{text.modelFile}</span><input aria-label={text.modelFile} value={props.whisperModelPath} onChange={(event) => props.onWhisperModelPathChange(event.target.value)} placeholder="C:\\models\\ggml-small.bin" /></label>
             <label className="field"><span>{text.language}</span><input aria-label={text.language} value={props.asrLanguage} onChange={(event) => props.onAsrLanguageChange(event.target.value)} placeholder="zh" /></label>
             <p className="runtime-message">{props.asrConfigStatus.message}</p>
             <div className="button-row"><button type="button" onClick={props.onInstallManagedAsr} disabled={props.isInstallingAsr}>{props.isInstallingAsr ? text.installing : text.install}</button><button type="button" onClick={props.onRefreshAsrConfig}>{text.checkAsr}</button><button type="button" onClick={props.onSaveAsrConfig}>{text.saveAsr}</button></div>
-          </section>
-          <section className="model-config cloud-config" aria-label={text.baiduShortConfig}>
-            <div className="model-config-title"><div><span>{text.baiduShort}</span><strong>{props.cloudAsrConfigStatus.ready ? '\u5df2\u5c31\u7eea' : '\u672a\u5c31\u7eea'}</strong></div><span className="ready-dot" data-ready={props.cloudAsrConfigStatus.ready} /></div>
+          </section> : null}
+          {activeConfig === 'baidu-short' ? <section className="model-config active-config-panel cloud-config" aria-label={text.baiduShortConfig}>
+            <div className="model-config-title"><div><span>{text.baiduShort}</span><strong>{props.cloudAsrConfigStatus.ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.cloudAsrConfigStatus.ready} /></div>
             <div className="secret-grid">
               <div className="secret-block"><div className="cloud-key-status"><span>{text.apiKey}</span><strong>{apiKeyState}</strong><code>BAIDU_ASR_API_KEY</code><small>{apiKeyDetail}</small></div><label className="field"><span>{text.apiKey}</span><input aria-label={text.apiKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudApiKeyInput} onChange={(event) => props.onCloudApiKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrApiKey} disabled={!props.cloudApiKeyInput.trim()}>{text.saveApiKey}</button></div>
               <div className="secret-block"><div className="cloud-key-status"><span>{text.secretKey}</span><strong>{secretKeyState}</strong><code>BAIDU_ASR_SECRET_KEY</code><small>{secretKeyDetail}</small></div><label className="field"><span>{text.secretKey}</span><input aria-label={text.secretKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudSecretKeyInput} onChange={(event) => props.onCloudSecretKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrSecretKey} disabled={!props.cloudSecretKeyInput.trim()}>{text.saveSecretKey}</button></div>
@@ -179,9 +192,9 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             </div>
             <p className="runtime-message">{props.cloudMessage ?? props.cloudAsrConfigStatus.message}</p>
             <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
-          </section>
-          <section className="model-config cloud-config realtime-config" aria-label={text.realtimeConfig}>
-            <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>V8 预留</strong></div><span className="ready-dot" data-ready={false} /></div>
+          </section> : null}
+          {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
+            <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>{text.v8Reserved}</strong></div><span className="ready-dot" data-ready={false} /></div>
             <p className="runtime-message">{text.v8Only}</p>
             <div className="compact-field-grid">
               <label className="field wide"><span>{text.wsEndpoint}</span><input aria-label={text.baiduRealtimeEndpointLabel} value={props.cloudBaiduRealtimeEndpoint} onChange={(event) => props.onCloudBaiduRealtimeEndpointChange(event.target.value)} /></label>
@@ -191,7 +204,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
               <label className="field"><span>{text.wsSampleRate}</span><input aria-label={text.baiduRealtimeSampleRateLabel} type="number" value={props.cloudBaiduRealtimeSampleRate} onChange={(event) => props.onCloudBaiduRealtimeSampleRateChange(event.target.value)} /></label>
               <label className="field"><span>{text.wsUser}</span><input aria-label={text.baiduRealtimeUserLabel} value={props.cloudBaiduRealtimeUser} onChange={(event) => props.onCloudBaiduRealtimeUserChange(event.target.value)} /></label>
             </div>
-          </section>
+          </section> : null}
         </section>
       </section>
     </main>

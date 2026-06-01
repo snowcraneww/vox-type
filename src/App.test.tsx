@@ -187,8 +187,8 @@ describe('App', () => {
     const firstRecord = screen.getAllByRole('article', { name: /识别记录/ })[0];
     expect(firstRecord).toHaveTextContent('第二段文本');
     expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('2');
-    expect(screen.getByTitle('本次运行累计录音时长')).toHaveTextContent('0:04');
-    expect(screen.getByTitle('本次运行累计识别字数')).toHaveTextContent('9');
+    expect(within(screen.getByTestId('history-toolbar')).getByTitle('本次运行累计录音时长')).toHaveTextContent('0:04');
+    expect(within(screen.getByTestId('history-toolbar')).getByTitle('本次运行累计识别字数')).toHaveTextContent('9');
 
     fireEvent.click(screen.getAllByRole('button', { name: '重新上屏此记录' })[0]);
     expect(insertTextWithClipboard).toHaveBeenLastCalledWith('第二段文本');
@@ -213,8 +213,11 @@ describe('App', () => {
     expect(screen.getAllByText('百度短语音').length).toBeGreaterThan(0);
     expect(screen.getAllByText('百度实时 WebSocket').length).toBeGreaterThan(0);
     expect(screen.queryByText('MiniMax')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /本地 whisper\.cpp/ }));
     expect(screen.getByLabelText('whisper.cpp 可执行文件')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /百度短语音/ }));
     expect(screen.getByLabelText('百度 ASR Endpoint')).toHaveValue('http://vop.baidu.com/server_api');
+    fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket/ }));
     expect(screen.getByText('V8 接入，当前版本不可用。')).toBeInTheDocument();
 
     fireEvent.click(within(screen.getByLabelText('连续输入模型默认模型')).getByRole('button', { name: /WebSocket/ }));

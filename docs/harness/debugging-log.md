@@ -1679,3 +1679,38 @@ Official short speech API docs confirm the endpoint is `http://vop.baidu.com/ser
 ## Residual Risk
 
 Real Baidu network transcription still needs maintainer validation in `npm run tauri -- dev` with valid `BAIDU_ASR_API_KEY` and `BAIDU_ASR_SECRET_KEY`. Full Rust test execution remains subject to the existing Windows `STATUS_ENTRYPOINT_NOT_FOUND` test-binary environment issue, so Rust verification used `--no-run` plus `cargo check`.
+# 2026-06-01 V7.1 record rows and model page visual polish
+
+## 现象
+
+维护者复核 V7 UI 后反馈：
+
+- 主界面统计区的时长、字数、速度被文字标签替代，原来的小图标更清楚也更有颜色层次。
+- 识别记录每一条把输入方式、模型、时长和字数拼接成一行大文字，视觉粗糙且不好扫读。
+- 模型选择与配置页面仍显得杂乱，三个模型按钮没有形成清晰的选中/未选中层级，配置内容平铺太重。
+
+## 根因
+
+- V7 首轮 UI polish 为了修复问号图标，过度退回了文字标签，丢掉了统计图标语言。
+- 识别记录 metadata 使用普通文本流而不是结构化 chip，导致记录正文、统计和动作按钮之间缺少视觉边界。
+- 模型配置页同时展示本地、百度短语音和百度实时 WebSocket 三块配置，信息密度超过单页可读范围。
+
+## 修复
+
+- 主界面统计区恢复为本地 inline SVG 图标 + 数值的 `StatPill`，并给次数、时长、字数、速度配置不同图标颜色。
+- 每条识别记录改成正文区域 + 底部 footer，输入方式、模型、时长和字数分别显示为小胶囊；复制、重新上屏、删除三个 icon button 收敛到右下角。
+- 模型选择页保持单页，但模型配置区改为三个大按钮 tab：本地 whisper.cpp、百度短语音、百度实时 WebSocket；只显示当前选中的配置面板。
+- 使用浅绿色径向渐变和更深/更浅的绿色按钮状态区分选中与未选中，百度实时 WebSocket 继续明确标记为 V8 预留。
+
+## 验证
+
+- `bash init.sh` 通过。
+- `npm test -- --run src/App.test.tsx` 通过，1 个测试文件、16 个测试。
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+- `python -m json.tool docs/harness/feature_list.json` 通过。
+- `git diff --check` 通过，仅有既有 CRLF/LF 提示，无 whitespace error。
+
+## 残余风险
+
+本轮自动验证覆盖 React 行为、TypeScript 和生产构建；真实 Tauri 桌面窗口里的视觉比例、滚动高度和百度短语音真实转写仍需要维护者手动验收后再把 `v7-001` 标记为 `passing`。
