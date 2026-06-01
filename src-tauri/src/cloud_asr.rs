@@ -8,6 +8,7 @@ pub struct BaiduAsrRequest {
     pub cuid: String,
     pub format: String,
     pub sample_rate: u32,
+    pub lm_id: Option<String>,
     pub speech_base64: String,
     pub byte_len: usize,
 }
@@ -20,6 +21,8 @@ struct BaiduAsrJsonPayload {
     cuid: String,
     token: String,
     dev_pid: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lm_id: Option<i32>,
     speech: String,
     len: usize,
 }
@@ -79,6 +82,7 @@ pub fn build_baidu_asr_request(
     cuid: &str,
     format: &str,
     sample_rate: u32,
+    lm_id: Option<&str>,
     pcm_16khz_mono: &[i16],
 ) -> Result<BaiduAsrRequest, VoxError> {
     if pcm_16khz_mono.is_empty() {
@@ -96,6 +100,10 @@ pub fn build_baidu_asr_request(
         cuid: required_field(cuid, "百度 ASR cuid")?,
         format: required_field(format, "百度 ASR 音频格式")?,
         sample_rate,
+        lm_id: lm_id
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string),
         speech_base64: base64_encode(&bytes),
         byte_len: bytes.len(),
     })
@@ -105,7 +113,9 @@ fn normalize_baidu_endpoint(endpoint: &str) -> String {
     endpoint.trim().trim_end_matches('/').to_string()
 }
 
-pub fn transcribe_with_baidu_short_speech(request: BaiduAsrRequest) -> Result<Transcript, VoxError> {
+pub fn transcribe_with_baidu_short_speech(
+    request: BaiduAsrRequest,
+) -> Result<Transcript, VoxError> {
     let payload = BaiduAsrJsonPayload::from(request.clone());
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(60))
@@ -124,7 +134,10 @@ pub fn transcribe_with_baidu_short_speech(request: BaiduAsrRequest) -> Result<Tr
         .text()
         .map_err(|error| VoxError::Asr(format!("读取百度 ASR 响应失败：{error}")))?;
     if !status.is_success() {
-        return Err(VoxError::Asr(format!("百度 ASR HTTP {status}：{}", body.trim())));
+        return Err(VoxError::Asr(format!(
+            "百度 ASR HTTP {status}：{}",
+            body.trim()
+        )));
     }
     parse_baidu_asr_response(&body)
 }
@@ -138,6 +151,7 @@ impl From<BaiduAsrRequest> for BaiduAsrJsonPayload {
             cuid: request.cuid,
             token: request.access_token,
             dev_pid: request.dev_pid,
+            lm_id: request.lm_id.and_then(|value| value.parse::<i32>().ok()),
             speech: request.speech_base64,
             len: request.byte_len,
         }
@@ -165,7 +179,10 @@ pub fn fetch_baidu_access_token(api_key: &str, secret_key: &str) -> Result<Strin
         .text()
         .map_err(|error| VoxError::Asr(format!("读取百度 OAuth 响应失败：{error}")))?;
     if !status.is_success() {
-        return Err(VoxError::Asr(format!("百度 OAuth HTTP {status}：{}", body.trim())));
+        return Err(VoxError::Asr(format!(
+            "百度 OAuth HTTP {status}：{}",
+            body.trim()
+        )));
     }
     parse_baidu_access_token_response(&body)
 }
@@ -190,10 +207,18 @@ pub fn parse_baidu_access_token_response(body: &str) -> Result<String, VoxError>
 pub fn parse_baidu_asr_response(body: &str) -> Result<Transcript, VoxError> {
     let value: serde_json::Value = serde_json::from_str(body)
         .map_err(|error| VoxError::Asr(format!("解析百度 ASR 响应失败：{error}")))?;
-    let err_no = value.get("err_no").and_then(serde_json::Value::as_i64).unwrap_or(-1);
+    let err_no = value
+        .get("err_no")
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(-1);
     if err_no != 0 {
-        let err_msg = value.get("err_msg").and_then(serde_json::Value::as_str).unwrap_or("未知错误");
-        return Err(VoxError::Asr(format!("百度 ASR 返回错误 {err_no}：{err_msg}")));
+        let err_msg = value
+            .get("err_msg")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("未知错误");
+        return Err(VoxError::Asr(format!(
+            "百度 ASR 返回错误 {err_no}：{err_msg}"
+        )));
     }
     let text = value
         .get("result")
@@ -203,11 +228,17 @@ pub fn parse_baidu_asr_response(body: &str) -> Result<Transcript, VoxError> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .ok_or_else(|| VoxError::Asr("百度 ASR 没有返回识别文本。".to_string()))?;
-    Ok(Transcript { text: text.to_string(), engine: "baidu-short-speech".to_string() })
+    Ok(Transcript {
+        text: text.to_string(),
+        engine: "baidu-short-speech".to_string(),
+    })
 }
 
 fn pcm_i16_le_bytes(samples: &[i16]) -> Vec<u8> {
-    samples.iter().flat_map(|sample| sample.to_le_bytes()).collect()
+    samples
+        .iter()
+        .flat_map(|sample| sample.to_le_bytes())
+        .collect()
 }
 
 fn base64_encode(bytes: &[u8]) -> String {
@@ -275,8 +306,10 @@ mod tests {
             "voxtype-local",
             "pcm",
             16_000,
+            None,
             &[1, -2],
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(request.endpoint, "http://vop.baidu.com/server_api");
         assert!(!request.endpoint.contains("baidu-access-token"));
@@ -294,8 +327,10 @@ mod tests {
             "voxtype-local",
             "pcm",
             16_000,
+            None,
             &[1, -2],
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(request.access_token, "access-token-from-oauth");
         let payload = BaiduAsrJsonPayload::from(request);
@@ -307,8 +342,30 @@ mod tests {
     }
 
     #[test]
+    fn baidu_json_payload_includes_optional_lm_id() {
+        let request = build_baidu_asr_request(
+            "http://vop.baidu.com/server_api",
+            "access-token-from-oauth",
+            "1537",
+            "voxtype-local",
+            "pcm",
+            16_000,
+            Some("12345"),
+            &[1, -2],
+        )
+        .unwrap();
+
+        let payload = BaiduAsrJsonPayload::from(request);
+        let body = serde_json::to_string(&payload).unwrap();
+
+        assert!(body.contains("\"lm_id\":12345"));
+    }
+
+    #[test]
     fn parses_baidu_success_response() {
-        let transcript = parse_baidu_asr_response(r#"{"err_no":0,"err_msg":"success.","result":["测试文本"]}"#).unwrap();
+        let transcript =
+            parse_baidu_asr_response(r#"{"err_no":0,"err_msg":"success.","result":["测试文本"]}"#)
+                .unwrap();
 
         assert_eq!(transcript.engine, "baidu-short-speech");
         assert_eq!(transcript.text, "测试文本");
@@ -316,7 +373,9 @@ mod tests {
 
     #[test]
     fn surfaces_baidu_error_response() {
-        let error = parse_baidu_asr_response(r#"{"err_no":3302,"err_msg":"authentication failed."}"#).unwrap_err();
+        let error =
+            parse_baidu_asr_response(r#"{"err_no":3302,"err_msg":"authentication failed."}"#)
+                .unwrap_err();
 
         assert!(error.to_string().contains("3302"));
         assert!(error.to_string().contains("authentication failed"));
@@ -324,14 +383,20 @@ mod tests {
 
     #[test]
     fn parses_baidu_access_token_response() {
-        let token = parse_baidu_access_token_response(r#"{"access_token":"oauth-token","expires_in":2592000}"#).unwrap();
+        let token = parse_baidu_access_token_response(
+            r#"{"access_token":"oauth-token","expires_in":2592000}"#,
+        )
+        .unwrap();
 
         assert_eq!(token, "oauth-token");
     }
 
     #[test]
     fn surfaces_baidu_access_token_error_without_secrets() {
-        let error = parse_baidu_access_token_response(r#"{"error":"invalid_client","error_description":"bad credentials"}"#).unwrap_err();
+        let error = parse_baidu_access_token_response(
+            r#"{"error":"invalid_client","error_description":"bad credentials"}"#,
+        )
+        .unwrap_err();
 
         assert!(error.to_string().contains("bad credentials"));
         assert!(!error.to_string().contains("baidu-api-key"));

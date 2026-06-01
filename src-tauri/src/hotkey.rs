@@ -288,6 +288,8 @@ mod tests {
             selected_input_device_name: None,
             push_to_talk_hotkey: Some("Ctrl+Shift+Space".to_string()),
             toggle_dictation_hotkey: None,
+            push_to_talk_model: crate::preferences::TranscriptionModelId::BaiduShort,
+            toggle_dictation_model: crate::preferences::TranscriptionModelId::BaiduShort,
         };
 
         let bindings = runtime_bindings_from_preferences(&preferences).unwrap();

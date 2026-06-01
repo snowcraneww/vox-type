@@ -159,6 +159,19 @@ fn save_hotkey_preferences(
 }
 
 #[tauri::command]
+fn save_mode_model_preferences(
+    app: AppHandle,
+    push_to_talk_model: preferences::TranscriptionModelId,
+    toggle_dictation_model: preferences::TranscriptionModelId,
+) -> Result<UserPreferences, error::VoxError> {
+    let config_dir = app_config_dir(&app)?;
+    let mut preferences = preferences::load_user_preferences(config_dir.clone());
+    preferences.push_to_talk_model = push_to_talk_model;
+    preferences.toggle_dictation_model = toggle_dictation_model;
+    preferences::save_user_preferences(config_dir, preferences)
+}
+
+#[tauri::command]
 fn get_cloud_asr_config_status(
     app: AppHandle,
 ) -> Result<cloud_asr_config::CloudAsrConfigStatus, error::VoxError> {
@@ -222,18 +235,30 @@ fn install_managed_asr(app: AppHandle) -> Result<AsrConfigStatus, error::VoxErro
 fn transcribe_last_recording(
     app: AppHandle,
     recorder: State<'_, RecorderManager>,
+    model_id: Option<preferences::TranscriptionModelId>,
 ) -> Result<Transcript, error::VoxError> {
     let samples = recorder.last_asr_samples()?;
+    let selected_model = model_id.unwrap_or(preferences::TranscriptionModelId::BaiduShort);
+    if selected_model == preferences::TranscriptionModelId::BaiduRealtime {
+        return Err(error::VoxError::Asr(
+            "百度实时 WebSocket 将在 V8 接入，当前版本不可用于转写。".to_string(),
+        ));
+    }
+    if selected_model == preferences::TranscriptionModelId::LocalWhisper {
+        return transcribe_with_local_whisper(&app, &samples);
+    }
     let cloud_status = cloud_asr_config::get_cloud_asr_config_status(app_config_dir(&app)?);
     if cloud_status.config.provider == "baidu" {
         if !cloud_status.ready {
             return Err(error::VoxError::Config(cloud_status.message));
         }
         let config = cloud_status.config;
-        let api_key = cloud_asr_config::baidu_asr_api_key_from_env()
-            .ok_or_else(|| error::VoxError::Config("未读取到 BAIDU_ASR_API_KEY 环境变量。".to_string()))?;
-        let secret_key = cloud_asr_config::baidu_asr_secret_key_from_env()
-            .ok_or_else(|| error::VoxError::Config("未读取到 BAIDU_ASR_SECRET_KEY 环境变量。".to_string()))?;
+        let api_key = cloud_asr_config::baidu_asr_api_key_from_env().ok_or_else(|| {
+            error::VoxError::Config("未读取到 BAIDU_ASR_API_KEY 环境变量。".to_string())
+        })?;
+        let secret_key = cloud_asr_config::baidu_asr_secret_key_from_env().ok_or_else(|| {
+            error::VoxError::Config("未读取到 BAIDU_ASR_SECRET_KEY 环境变量。".to_string())
+        })?;
         let access_token = cloud_asr::fetch_baidu_access_token(&api_key, &secret_key)?;
         let request = cloud_asr::build_baidu_asr_request(
             config.base_url.as_deref().unwrap_or(""),
@@ -241,12 +266,22 @@ fn transcribe_last_recording(
             config.model.as_deref().unwrap_or(""),
             config.baidu_cuid.as_deref().unwrap_or(""),
             config.baidu_format.as_deref().unwrap_or(""),
-            config.baidu_sample_rate.unwrap_or(audio::TARGET_SAMPLE_RATE),
+            config
+                .baidu_sample_rate
+                .unwrap_or(audio::TARGET_SAMPLE_RATE),
+            config.baidu_lm_id.as_deref(),
             &samples,
         )?;
         return cloud_asr::transcribe_with_baidu_short_speech(request);
     }
 
+    transcribe_with_local_whisper(&app, &samples)
+}
+
+fn transcribe_with_local_whisper(
+    app: &AppHandle,
+    samples: &[i16],
+) -> Result<Transcript, error::VoxError> {
     let config = asr_config::load_asr_config(app_config_dir(&app)?);
     let status = asr_config::status_from_config(config.clone(), "runtime".to_string());
     if !status.ready {
@@ -339,7 +374,7 @@ fn transcribe_last_recording_and_insert(
     app: AppHandle,
     recorder: State<'_, RecorderManager>,
 ) -> Result<Transcript, error::VoxError> {
-    let transcript = transcribe_last_recording(app, recorder)?;
+    let transcript = transcribe_last_recording(app, recorder, None)?;
     ClipboardInsertion.insert_text(&transcript.text)?;
     Ok(transcript)
 }
@@ -513,6 +548,7 @@ pub fn run() {
             get_user_preferences,
             get_hotkey_status,
             save_hotkey_preferences,
+            save_mode_model_preferences,
             get_asr_config_status,
             save_asr_config,
             get_cloud_asr_config_status,

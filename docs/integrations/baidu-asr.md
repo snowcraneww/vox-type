@@ -1,6 +1,6 @@
 # 百度短语音识别 ASR 接入记录
 
-本文记录 VoxType 对百度智能云语音识别文档的当前理解。它是后续实现百度云端 ASR 调用的依据之一，但本轮 V6 只实现配置和 provider 选择，不启用真实百度转写。
+本文记录 VoxType 对百度智能云语音识别文档的当前理解。V6 已接入百度短语音识别真实调用；V7 将百度短语音作为可选转写模型，并为实时 WebSocket API 保留 V8 配置入口。
 
 ## 官方来源
 
@@ -10,7 +10,7 @@
 
 ## 当前建议路线
 
-VoxType 当前主要流程是停止录音后统一转写，与百度“短语音识别标准版 API”更匹配。实时语音识别 WebSocket API 适合以后做真正流式识别、会议记录或长句实时字幕时再接入。
+VoxType 当前主要流程是停止录音后统一转写，与百度“短语音识别标准版 API”更匹配。实时语音识别 WebSocket API 更适合后续连续输入模式的真正流式识别、会议记录或长句实时字幕，真实接入放到 V8。
 
 ## 短语音识别标准版
 
@@ -108,20 +108,21 @@ VoxType 默认先用 `1537`，设置页允许维护者改成 `15372` 等值。
 
 ## VoxType 当前实现边界
 
-本轮只做：
+V7 已做：
 
-- 模型选择页支持 `MiniMax` 和 `百度短语音识别` provider 切换。
-- 百度 API Key 通过密码输入框写入用户环境变量 `BAIDU_ASR_API_KEY`。
-- 百度 endpoint、dev_pid、cuid、format、sample rate 保存到应用配置。
-- readiness 状态能区分 MiniMax 与百度配置。
+- 模型选择页移除 MiniMax 用户配置入口。
+- 按住说话和连续输入可分别选择默认模型。
+- 百度短语音配置保存 endpoint、`dev_pid`、`cuid`、`format`、sample rate 和可选 `lm_id`。
+- 百度 API Key 与 Secret Key 通过密码输入框写入用户环境变量 `BAIDU_ASR_API_KEY` / `BAIDU_ASR_SECRET_KEY`。
+- 百度短语音真实调用使用 OAuth `access_token` 路径。
+- 百度实时 WebSocket 只保留 V8 占位配置，当前不可用于真实转写。
 
-本轮不做：
+V7 不做：
 
-- 不调用百度真实 ASR endpoint。
-- 不把默认转写引擎切离本地 `whisper.cpp`。
-- 不实现实时 WebSocket ASR。
+- 不实现实时 WebSocket ASR 音频帧发送、增量结果合并和流式上屏。
+- 不接入 LLM 纠错。
 
-后续真实调用应新增独立任务，先写 Baidu 请求构造和响应解析测试，再接入录音转写链路。
+后续 V8 真实 WebSocket 接入应新增独立任务，先写协议帧、鉴权、错误恢复和增量结果合并测试，再接入连续输入录音链路。
 
 ## 2026-06-01 OAuth access_token update
 

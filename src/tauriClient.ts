@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptionModelId, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -56,12 +56,16 @@ export async function saveHotkeyPreferences(pushToTalkHotkey: string, toggleDict
   return invoke<HotkeyRegistrationStatus>('save_hotkey_preferences', { pushToTalkHotkey, toggleDictationHotkey });
 }
 
+export async function saveModeModelPreferences(pushToTalkModel: TranscriptionModelId, toggleDictationModel: TranscriptionModelId): Promise<UserPreferences> {
+  return invoke<UserPreferences>('save_mode_model_preferences', { pushToTalkModel, toggleDictationModel });
+}
+
 export async function simulateDictation(): Promise<AppStatus> {
   return invoke<AppStatus>('simulate_dictation');
 }
 
-export async function transcribeLastRecording(): Promise<Transcript> {
-  return invoke<Transcript>('transcribe_last_recording');
+export async function transcribeLastRecording(modelId?: TranscriptionModelId): Promise<Transcript> {
+  return invoke<Transcript>('transcribe_last_recording', { modelId });
 }
 
 export async function transcribeActiveRecordingChunk(fromSampleIndex: number): Promise<LiveTranscriptionChunk> {
@@ -90,10 +94,6 @@ export async function getCloudAsrConfigStatus(): Promise<CloudAsrConfigStatus> {
 
 export async function saveCloudAsrConfig(config: CloudAsrConfig): Promise<CloudAsrConfigStatus> {
   return invoke<CloudAsrConfigStatus>('save_cloud_asr_config', { config });
-}
-
-export async function saveMinimaxApiKey(apiKey: string): Promise<CloudAsrConfigStatus> {
-  return invoke<CloudAsrConfigStatus>('save_minimax_api_key', { apiKey });
 }
 
 export async function saveBaiduAsrApiKey(apiKey: string): Promise<CloudAsrConfigStatus> {

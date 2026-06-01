@@ -5,9 +5,9 @@ import { HotkeySettingsDialog } from './HotkeySettingsDialog';
 import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveMinimaxApiKey, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus, TranscriptRecord, TranscriptStats } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, RecorderRuntimeStatus, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -64,23 +64,30 @@ const initialOverlayBackendStatus: OverlayBackendStatus = {
 
 const initialCloudAsrConfigStatus: CloudAsrConfigStatus = {
   config: {
-    provider: 'minimax',
+    provider: 'baidu',
     groupId: null,
-    baseUrl: 'https://api.minimax.io',
-    model: 'speech-to-text',
+    baseUrl: 'http://vop.baidu.com/server_api',
+    model: '1537',
     language: 'zh',
     baiduCuid: null,
     baiduFormat: null,
-    baiduSampleRate: null,
+    baiduSampleRate: 16000,
+    baiduLmId: null,
+    baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr',
+    baiduRealtimeDevPid: '15372',
+    baiduRealtimeCuid: 'voxtype-local',
+    baiduRealtimeFormat: 'pcm',
+    baiduRealtimeSampleRate: 16000,
+    baiduRealtimeUser: null,
   },
   apiKeyConfigured: false,
   apiKeySource: 'missing',
   apiKeyPreview: null,
-  secretKeyConfigured: true,
-  secretKeySource: 'not-required',
+  secretKeyConfigured: false,
+  secretKeySource: 'missing',
   secretKeyPreview: null,
   ready: false,
-  message: '等待 Tauri 读取 MiniMax 配置。',
+  message: '等待 Tauri 读取百度短语音识别配置。',
 };
 
 export function App() {
@@ -106,14 +113,19 @@ export function App() {
   const [whisperBinaryPath, setWhisperBinaryPath] = useState('');
   const [whisperModelPath, setWhisperModelPath] = useState('');
   const [asrLanguage, setAsrLanguage] = useState('zh');
-  const [cloudProvider, setCloudProvider] = useState('minimax');
-  const [cloudGroupId, setCloudGroupId] = useState('');
-  const [cloudBaseUrl, setCloudBaseUrl] = useState('https://api.minimax.io');
-  const [cloudModel, setCloudModel] = useState('speech-to-text');
+  const [cloudBaseUrl, setCloudBaseUrl] = useState('http://vop.baidu.com/server_api');
+  const [cloudModel, setCloudModel] = useState('1537');
   const [cloudLanguage, setCloudLanguage] = useState('zh');
   const [cloudBaiduCuid, setCloudBaiduCuid] = useState('voxtype-local');
   const [cloudBaiduFormat, setCloudBaiduFormat] = useState('pcm');
   const [cloudBaiduSampleRate, setCloudBaiduSampleRate] = useState('16000');
+  const [cloudBaiduLmId, setCloudBaiduLmId] = useState('');
+  const [cloudBaiduRealtimeEndpoint, setCloudBaiduRealtimeEndpoint] = useState('wss://vop.baidu.com/realtime_asr');
+  const [cloudBaiduRealtimeDevPid, setCloudBaiduRealtimeDevPid] = useState('15372');
+  const [cloudBaiduRealtimeCuid, setCloudBaiduRealtimeCuid] = useState('voxtype-local');
+  const [cloudBaiduRealtimeFormat, setCloudBaiduRealtimeFormat] = useState('pcm');
+  const [cloudBaiduRealtimeSampleRate, setCloudBaiduRealtimeSampleRate] = useState('16000');
+  const [cloudBaiduRealtimeUser, setCloudBaiduRealtimeUser] = useState('');
   const [cloudApiKeyInput, setCloudApiKeyInput] = useState('');
   const [cloudSecretKeyInput, setCloudSecretKeyInput] = useState('');
   const [cloudMessage, setCloudMessage] = useState<string | null>(null);
@@ -121,6 +133,8 @@ export function App() {
   const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
   const [pushToTalkHotkey, setPushToTalkHotkey] = useState(defaultPushToTalkHotkey);
   const [toggleDictationHotkeyInput, setToggleDictationHotkeyInput] = useState(defaultToggleDictationHotkey);
+  const [pushToTalkModel, setPushToTalkModel] = useState<TranscriptionModelId>('baidu-short');
+  const [toggleDictationModel, setToggleDictationModel] = useState<TranscriptionModelId>('baidu-short');
   const [isSavingHotkeys, setIsSavingHotkeys] = useState(false);
   const [hotkeySaveMessage, setHotkeySaveMessage] = useState<string | null>(null);
   const [transcriptRecords, setTranscriptRecords] = useState<TranscriptRecord[]>([]);
@@ -135,8 +149,10 @@ export function App() {
   const liveInsertedTextRef = useRef(false);
   const liveSessionTextsRef = useRef<string[]>([]);
   const liveSessionDurationMsRef = useRef(0);
-  const cloudProviderRef = useRef('minimax');
-  const cloudProviderTouchedRef = useRef(false);
+  const asrConfigStatusRef = useRef(asrConfigStatus);
+  const cloudAsrConfigStatusRef = useRef(cloudAsrConfigStatus);
+  const pushToTalkModelRef = useRef(pushToTalkModel);
+  const toggleDictationModelRef = useRef(toggleDictationModel);
   const diagnosticsEndRef = useRef<HTMLDivElement | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([
     {
@@ -159,6 +175,25 @@ export function App() {
     ]);
   }
 
+  function getModelReadiness(modelId: TranscriptionModelId, asrStatus = asrConfigStatus, cloudStatus = cloudAsrConfigStatus): ModelReadiness {
+    if (modelId === 'local-whisper') {
+      return { id: modelId, label: 'whisper.cpp', ready: asrStatus.ready, message: asrStatus.message, availableInV7: true };
+    }
+    if (modelId === 'baidu-short') {
+      return { id: modelId, label: '百度短语音', ready: cloudStatus.config.provider === 'baidu' && cloudStatus.ready, message: cloudStatus.message, availableInV7: true };
+    }
+    return { id: modelId, label: '百度实时 WebSocket', ready: false, message: 'V8 接入，当前版本不可用。', availableInV7: false };
+  }
+
+  function assertModelUsable(model: ModelReadiness) {
+    if (!model.availableInV7) {
+      throw new Error('百度实时 WebSocket 将在 V8 接入，当前版本不可用于转写。');
+    }
+    if (!model.ready) {
+      throw new Error(`${model.label} 未就绪：${model.message}`);
+    }
+  }
+
   function applyAsrConfigStatus(nextStatus: AsrConfigStatus) {
     setAsrConfigStatus(nextStatus);
     setWhisperBinaryPath(nextStatus.whisperBinaryPath ?? '');
@@ -167,48 +202,33 @@ export function App() {
   }
 
   function applyCloudAsrConfigStatus(nextStatus: CloudAsrConfigStatus) {
-    const provider = cloudProviderTouchedRef.current ? cloudProviderRef.current : nextStatus.config.provider || 'minimax';
+    const provider = 'baidu';
     const statusConfig = provider === nextStatus.config.provider
       ? nextStatus.config
       : {
           ...nextStatus.config,
           provider,
-          baseUrl: provider === 'baidu' ? 'http://vop.baidu.com/server_api' : 'https://api.minimax.io',
-          model: provider === 'baidu' ? '1537' : 'speech-to-text',
-          baiduCuid: provider === 'baidu' ? 'voxtype-local' : null,
-          baiduFormat: provider === 'baidu' ? 'pcm' : null,
+          baseUrl: 'http://vop.baidu.com/server_api',
+          model: '1537',
+          baiduCuid: 'voxtype-local',
+          baiduFormat: 'pcm',
           baiduSampleRate: provider === 'baidu' ? 16000 : null,
-        };
+    };
     setCloudAsrConfigStatus({ ...nextStatus, config: statusConfig });
-    setCloudProvider(provider);
-    cloudProviderRef.current = provider;
-    setCloudGroupId(nextStatus.config.groupId ?? '');
-    setCloudBaseUrl(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'http://vop.baidu.com/server_api' : nextStatus.config.baseUrl ?? (provider === 'baidu' ? 'http://vop.baidu.com/server_api' : 'https://api.minimax.io'));
-    setCloudModel(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? '1537' : nextStatus.config.model ?? (provider === 'baidu' ? '1537' : 'speech-to-text'));
+    setCloudBaseUrl(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'http://vop.baidu.com/server_api' : nextStatus.config.baseUrl ?? ('http://vop.baidu.com/server_api'));
+    setCloudModel(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? '1537' : nextStatus.config.model ?? ('1537'));
     setCloudLanguage(nextStatus.config.language ?? 'zh');
     setCloudBaiduCuid(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'voxtype-local' : nextStatus.config.baiduCuid ?? 'voxtype-local');
     setCloudBaiduFormat(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'pcm' : nextStatus.config.baiduFormat ?? 'pcm');
     setCloudBaiduSampleRate(String(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 16000 : nextStatus.config.baiduSampleRate ?? 16000));
+    setCloudBaiduLmId(nextStatus.config.baiduLmId ?? '');
+    setCloudBaiduRealtimeEndpoint(nextStatus.config.baiduRealtimeEndpoint ?? 'wss://vop.baidu.com/realtime_asr');
+    setCloudBaiduRealtimeDevPid(nextStatus.config.baiduRealtimeDevPid ?? '15372');
+    setCloudBaiduRealtimeCuid(nextStatus.config.baiduRealtimeCuid ?? 'voxtype-local');
+    setCloudBaiduRealtimeFormat(nextStatus.config.baiduRealtimeFormat ?? 'pcm');
+    setCloudBaiduRealtimeSampleRate(String(nextStatus.config.baiduRealtimeSampleRate ?? 16000));
+    setCloudBaiduRealtimeUser(nextStatus.config.baiduRealtimeUser ?? '');
     setCloudMessage(nextStatus.message);
-  }
-
-  function handleCloudProviderChange(provider: string) {
-    setCloudProvider(provider);
-    cloudProviderRef.current = provider;
-    cloudProviderTouchedRef.current = true;
-    setCloudApiKeyInput('');
-    setCloudSecretKeyInput('');
-    setCloudMessage(null);
-    if (provider === 'baidu') {
-      setCloudBaseUrl((value) => value && value !== 'https://api.minimax.io' ? value : 'http://vop.baidu.com/server_api');
-      setCloudModel((value) => value && value !== 'speech-to-text' ? value : '1537');
-      setCloudBaiduCuid((value) => value || 'voxtype-local');
-      setCloudBaiduFormat((value) => value || 'pcm');
-      setCloudBaiduSampleRate((value) => value || '16000');
-      return;
-    }
-    setCloudBaseUrl((value) => value && value !== 'http://vop.baidu.com/server_api' ? value : 'https://api.minimax.io');
-    setCloudModel((value) => value && value !== '1537' ? value : 'speech-to-text');
   }
 
   useEffect(() => {
@@ -234,7 +254,7 @@ export function App() {
     });
     void getCloudAsrConfigStatus().then(applyCloudAsrConfigStatus).catch((error: unknown) => {
       const detail = formatError(error);
-      addDiagnostic({ title: '读取 MiniMax 配置失败', result: 'error', detail });
+      addDiagnostic({ title: '读取云端 ASR 配置失败', result: 'error', detail });
     });
     void getDefaultInputInfo()
       .then((info) => {
@@ -256,6 +276,8 @@ export function App() {
         setPreferredInputDeviceName(preferences.selectedInputDeviceName);
         setPushToTalkHotkey(preferences.pushToTalkHotkey ?? defaultPushToTalkHotkey);
         setToggleDictationHotkeyInput(preferences.toggleDictationHotkey ?? defaultToggleDictationHotkey);
+        setPushToTalkModel(preferences.pushToTalkModel ?? 'baidu-short');
+        setToggleDictationModel(preferences.toggleDictationModel ?? 'baidu-short');
       })
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取用户偏好失败', result: 'error', detail: formatError(error) });
@@ -311,10 +333,14 @@ export function App() {
 
   const isRecording = recordingStatus.state === 'recording';
   isRecordingRef.current = isRecording;
+  asrConfigStatusRef.current = asrConfigStatus;
+  cloudAsrConfigStatusRef.current = cloudAsrConfigStatus;
+  pushToTalkModelRef.current = pushToTalkModel;
+  toggleDictationModelRef.current = toggleDictationModel;
 
   const transcriptStats = useMemo<TranscriptStats>(() => {
     const totalDurationMs = transcriptRecords.reduce((sum, record) => sum + record.durationMs, 0);
-    const totalChars = transcriptRecords.reduce((sum, record) => sum + record.text.length, 0);
+    const totalChars = transcriptRecords.reduce((sum, record) => sum + record.charCount, 0);
     return {
       count: transcriptRecords.length,
       totalDurationMs,
@@ -323,7 +349,7 @@ export function App() {
     };
   }, [transcriptRecords]);
 
-  function addTranscriptRecord(text: string, durationMs: number, source: TranscriptRecord['source']) {
+  function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short') {
     const normalizedText = text.trim();
     if (!normalizedText) {
       return;
@@ -333,7 +359,9 @@ export function App() {
       time: new Date().toLocaleTimeString(),
       text: normalizedText,
       durationMs: Math.max(0, Math.round(durationMs)),
-      source,
+      inputMode,
+      modelId,
+      charCount: normalizedText.length,
     };
     setTranscriptRecords((current) => [record, ...current]);
   }
@@ -578,17 +606,24 @@ export function App() {
     const baiduSampleRate = Number.parseInt(cloudBaiduSampleRate, 10);
     try {
       const nextStatus = await saveCloudAsrConfig({
-        provider: cloudProvider,
-        groupId: cloudGroupId.trim() || null,
+        provider: 'baidu',
+        groupId: null,
         baseUrl: cloudBaseUrl.trim() || null,
         model: cloudModel.trim() || null,
         language: cloudLanguage.trim() || 'zh',
         baiduCuid: cloudBaiduCuid.trim() || null,
         baiduFormat: cloudBaiduFormat.trim() || null,
         baiduSampleRate: Number.isFinite(baiduSampleRate) ? baiduSampleRate : null,
+        baiduLmId: cloudBaiduLmId.trim() || null,
+        baiduRealtimeEndpoint: cloudBaiduRealtimeEndpoint.trim() || null,
+        baiduRealtimeDevPid: cloudBaiduRealtimeDevPid.trim() || null,
+        baiduRealtimeCuid: cloudBaiduRealtimeCuid.trim() || null,
+        baiduRealtimeFormat: cloudBaiduRealtimeFormat.trim() || null,
+        baiduRealtimeSampleRate: Number.isFinite(Number.parseInt(cloudBaiduRealtimeSampleRate, 10)) ? Number.parseInt(cloudBaiduRealtimeSampleRate, 10) : null,
+        baiduRealtimeUser: cloudBaiduRealtimeUser.trim() || null,
       });
       applyCloudAsrConfigStatus(nextStatus);
-      const providerName = cloudProvider === 'baidu' ? '百度 ASR' : 'MiniMax';
+      const providerName = '百度短语音';
       addDiagnostic({ title: nextStatus.ready ? `${providerName} 配置已保存并就绪` : `${providerName} 配置已保存但未就绪`, result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
     } catch (error) {
       const detail = formatError(error);
@@ -597,29 +632,21 @@ export function App() {
     }
   }
 
-  async function handleSaveMinimaxApiKey() {
-    const apiKey = cloudApiKeyInput.trim();
-    if (!apiKey) {
-      setCloudMessage('请输入 MiniMax API Key。');
-      return;
-    }
+  async function handleSaveModeModelPreferences() {
     if (!isTauriRuntime()) {
-      setCloudMessage('浏览器预览模式不能写入系统环境变量。');
-      addDiagnostic({ title: 'MiniMax API Key 未保存', result: 'warning', detail: '浏览器预览模式不能写入系统环境变量。' });
+      addDiagnostic({ title: '默认模型未保存', result: 'warning', detail: '浏览器预览模式不能写入 Tauri 用户偏好。' });
       return;
     }
     try {
-      const nextStatus = await saveMinimaxApiKey(apiKey);
-      setCloudApiKeyInput('');
-      applyCloudAsrConfigStatus(nextStatus);
-      setCloudMessage('MiniMax API Key 已写入用户环境变量。重启 VoxType 后系统进程也会读取到新值。');
-      addDiagnostic({ title: 'MiniMax API Key 已保存', result: nextStatus.apiKeyConfigured ? 'success' : 'warning', detail: '已写入用户环境变量 MINIMAX_API_KEY，未记录密钥明文。' });
+      const preferences = await saveModeModelPreferences(pushToTalkModel, toggleDictationModel);
+      setPushToTalkModel(preferences.pushToTalkModel ?? pushToTalkModel);
+      setToggleDictationModel(preferences.toggleDictationModel ?? toggleDictationModel);
+      addDiagnostic({ title: '默认模型偏好已保存', result: 'success', detail: `按住说话：${pushToTalkModel}；连续输入：${toggleDictationModel}` });
     } catch (error) {
-      const detail = formatError(error);
-      setCloudMessage(detail);
-      addDiagnostic({ title: 'MiniMax API Key 保存失败', result: 'error', detail });
+      addDiagnostic({ title: '默认模型偏好保存失败', result: 'error', detail: formatError(error) });
     }
   }
+
 
   async function handleSaveBaiduAsrApiKey() {
     const apiKey = cloudApiKeyInput.trim();
@@ -678,7 +705,7 @@ export function App() {
     try {
       const nextStatus = await getCloudAsrConfigStatus();
       applyCloudAsrConfigStatus(nextStatus);
-      const providerName = cloudProviderRef.current === 'baidu' ? '百度配置' : 'MiniMax 配置';
+      const providerName = '百度配置';
       const message = `${providerName}检测完成：${nextStatus.message}`;
       setCloudMessage(message);
       addDiagnostic({ title: nextStatus.ready ? `${providerName}检测通过` : `${providerName}未就绪`, result: nextStatus.ready ? 'success' : 'warning', detail: message });
@@ -801,6 +828,17 @@ export function App() {
   }
 
   async function handleStartLiveToggleRecording() {
+    const selectedModel = toggleDictationModelRef.current;
+    const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current);
+    try {
+      assertModelUsable(model);
+    } catch (error) {
+      const detail = formatError(error);
+      setStatus({ phase: 'failed', message: `连续输入模型不可用：${detail}`, lastTranscript: null });
+      setHistoryMessage(`连续输入模型不可用：${detail}`);
+      addDiagnostic({ title: '连续输入模型不可用', result: 'error', detail });
+      return;
+    }
     const started = await handleStartRecording();
     if (!started) {
       return;
@@ -810,11 +848,16 @@ export function App() {
     liveSessionTextsRef.current = [];
     liveSessionDurationMsRef.current = 0;
     stopLiveTranscriptionTimer();
-    setStatus({ phase: 'recording', message: '实验实时输入中：会每隔几秒分段转写并上屏', lastTranscript: null });
-    addDiagnostic({ title: '实验实时输入已启动', result: 'info', detail: '当前不是 whisper.cpp 真流式 partial，而是录音中定时切片、转写新增片段并上屏。' });
-    liveTimerRef.current = window.setInterval(() => {
-      void processLiveTranscriptionChunk({ quietShortChunk: true });
-    }, LIVE_TRANSCRIPTION_INTERVAL_MS);
+    if (selectedModel === 'local-whisper') {
+      setStatus({ phase: 'recording', message: '实验实时输入中：会每隔几秒分段转写并上屏', lastTranscript: null });
+      addDiagnostic({ title: '实验实时输入已启动', result: 'info', detail: '当前不是 whisper.cpp 真流式 partial，而是录音中定时切片、转写新增片段并上屏。' });
+      liveTimerRef.current = window.setInterval(() => {
+        void processLiveTranscriptionChunk({ quietShortChunk: true });
+      }, LIVE_TRANSCRIPTION_INTERVAL_MS);
+    } else {
+      setStatus({ phase: 'recording', message: '连续输入录音中，停止后使用默认模型整段识别', lastTranscript: null });
+      addDiagnostic({ title: '连续输入已启动', result: 'info', detail: `当前连续输入模型为 ${selectedModel}，V7 会停止后整段识别。` });
+    }
   }
 
   async function handleStopLiveToggleRecording() {
@@ -828,18 +871,21 @@ export function App() {
         addDiagnostic({ title: '桌面转写浮窗显示失败', result: 'error', detail: formatError(error) });
       });
 
-      await processFinalLiveTranscriptionChunk();
+      const selectedModel = toggleDictationModelRef.current;
+      if (selectedModel === 'local-whisper') {
+        await processFinalLiveTranscriptionChunk();
+      }
       if (!liveInsertedTextRef.current) {
-        setStatus({ phase: 'transcribing', message: '实时片段未产生文本，正在用整段录音兜底转写', lastTranscript: null });
-        const transcript = await transcribeLastRecording();
+        setStatus({ phase: 'transcribing', message: '正在用连续输入默认模型识别整段录音', lastTranscript: null });
+        const transcript = await transcribeLastRecording(selectedModel);
         await insertTextWithClipboard(transcript.text);
-        addTranscriptRecord(transcript.text, audio.asrDurationMs, 'toggle');
+        addTranscriptRecord(transcript.text, audio.asrDurationMs, 'toggle-dictation', selectedModel);
         setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: transcript.text });
         addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
       } else {
         const sessionText = combinedLiveSessionText();
         if (sessionText) {
-          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || audio.asrDurationMs, 'toggle');
+          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || audio.asrDurationMs, 'toggle-dictation', toggleDictationModel);
         }
         setStatus({ phase: 'succeeded', message: '实验实时输入已停止', lastTranscript: sessionText || null });
         addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: sessionText ? '尾段处理完成，已合并为一条识别记录。' : '尾段处理完成，本次仅产生疑似噪声片段，未写入识别记录。' });
@@ -875,10 +921,13 @@ export function App() {
       await showTranscribingOverlay().catch((error: unknown) => {
         addDiagnostic({ title: '桌面转写浮窗显示失败', result: 'error', detail: formatError(error) });
       });
-      const transcript = await transcribeLastRecording();
+      const selectedModel = pushToTalkModelRef.current;
+      const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current);
+      assertModelUsable(model);
+      const transcript = await transcribeLastRecording(selectedModel);
       setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: transcript.text });
       await insertTextWithClipboard(transcript.text);
-      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'push-to-talk');
+      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'push-to-talk', selectedModel);
       setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${transcript.text}` });
     } catch (error) {
@@ -946,7 +995,7 @@ export function App() {
     try {
       setStatus({ phase: 'transcribing', message: '正在调用 whisper.cpp 转写最近录音', lastTranscript: null });
       const transcript = await transcribeLastRecording();
-      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual');
+      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
       setStatus({ phase: 'succeeded', message: '真实转写完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实转写成功', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
     } catch (error) {
@@ -968,7 +1017,7 @@ export function App() {
       addDiagnostic({ title: '真实转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
-      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual');
+      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
       setStatus({ phase: 'succeeded', message: '真实语音输入闭环完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实闭环上屏请求已发送', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1016,7 +1065,7 @@ export function App() {
       addDiagnostic({ title: '主界面转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
-      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual');
+      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual', 'baidu-short');
       setStatus({ phase: 'succeeded', message: '语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '主界面语音输入完成', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1115,11 +1164,11 @@ export function App() {
       <>
       <MainWindow
         status={status}
-        asrConfigStatus={asrConfigStatus}
-        cloudAsrConfigStatus={cloudAsrConfigStatus}
         hotkeyStatus={hotkeyStatus}
         pushToTalkHotkey={pushToTalkHotkey}
         toggleDictationHotkey={toggleDictationHotkeyInput}
+        pushToTalkModelReadiness={getModelReadiness(pushToTalkModel)}
+        toggleDictationModelReadiness={getModelReadiness(toggleDictationModel)}
         recorderInfo={recorderInfo}
         records={transcriptRecords}
         stats={transcriptStats}
@@ -1154,14 +1203,22 @@ export function App() {
       <ModelSettingsView
         asrConfigStatus={asrConfigStatus}
         cloudAsrConfigStatus={cloudAsrConfigStatus}
-        cloudProvider={cloudProvider}
-        cloudGroupId={cloudGroupId}
+        pushToTalkModel={pushToTalkModel}
+        toggleDictationModel={toggleDictationModel}
+        modelReadiness={{ 'local-whisper': getModelReadiness('local-whisper'), 'baidu-short': getModelReadiness('baidu-short'), 'baidu-realtime': getModelReadiness('baidu-realtime') }}
         cloudBaseUrl={cloudBaseUrl}
         cloudModel={cloudModel}
         cloudLanguage={cloudLanguage}
         cloudBaiduCuid={cloudBaiduCuid}
         cloudBaiduFormat={cloudBaiduFormat}
         cloudBaiduSampleRate={cloudBaiduSampleRate}
+        cloudBaiduLmId={cloudBaiduLmId}
+        cloudBaiduRealtimeEndpoint={cloudBaiduRealtimeEndpoint}
+        cloudBaiduRealtimeDevPid={cloudBaiduRealtimeDevPid}
+        cloudBaiduRealtimeCuid={cloudBaiduRealtimeCuid}
+        cloudBaiduRealtimeFormat={cloudBaiduRealtimeFormat}
+        cloudBaiduRealtimeSampleRate={cloudBaiduRealtimeSampleRate}
+        cloudBaiduRealtimeUser={cloudBaiduRealtimeUser}
         cloudApiKeyInput={cloudApiKeyInput}
         cloudSecretKeyInput={cloudSecretKeyInput}
         cloudMessage={cloudMessage}
@@ -1173,21 +1230,28 @@ export function App() {
         onWhisperBinaryPathChange={setWhisperBinaryPath}
         onWhisperModelPathChange={setWhisperModelPath}
         onAsrLanguageChange={setAsrLanguage}
-        onCloudProviderChange={handleCloudProviderChange}
-        onCloudGroupIdChange={setCloudGroupId}
+        onPushToTalkModelChange={setPushToTalkModel}
+        onToggleDictationModelChange={setToggleDictationModel}
+        onSaveModeModelPreferences={() => void handleSaveModeModelPreferences()}
         onCloudBaseUrlChange={setCloudBaseUrl}
         onCloudModelChange={setCloudModel}
         onCloudLanguageChange={setCloudLanguage}
         onCloudBaiduCuidChange={setCloudBaiduCuid}
         onCloudBaiduFormatChange={setCloudBaiduFormat}
         onCloudBaiduSampleRateChange={setCloudBaiduSampleRate}
+        onCloudBaiduLmIdChange={setCloudBaiduLmId}
+        onCloudBaiduRealtimeEndpointChange={setCloudBaiduRealtimeEndpoint}
+        onCloudBaiduRealtimeDevPidChange={setCloudBaiduRealtimeDevPid}
+        onCloudBaiduRealtimeCuidChange={setCloudBaiduRealtimeCuid}
+        onCloudBaiduRealtimeFormatChange={setCloudBaiduRealtimeFormat}
+        onCloudBaiduRealtimeSampleRateChange={setCloudBaiduRealtimeSampleRate}
+        onCloudBaiduRealtimeUserChange={setCloudBaiduRealtimeUser}
         onCloudApiKeyInputChange={setCloudApiKeyInput}
         onCloudSecretKeyInputChange={setCloudSecretKeyInput}
         onInstallManagedAsr={() => void handleInstallManagedAsr()}
         onSaveAsrConfig={() => void handleSaveAsrConfig()}
         onRefreshAsrConfig={() => void handleRefreshAsrConfig()}
         onSaveCloudAsrConfig={() => void handleSaveCloudAsrConfig()}
-        onSaveMinimaxApiKey={() => void handleSaveMinimaxApiKey()}
         onSaveBaiduAsrApiKey={() => void handleSaveBaiduAsrApiKey()}
         onSaveBaiduAsrSecretKey={() => void handleSaveBaiduAsrSecretKey()}
         onTestCloudAsrConfig={() => void handleTestCloudAsrConfig()}

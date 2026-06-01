@@ -47,12 +47,30 @@ export interface Transcript {
   engine: string;
 }
 
+export type InputModeId = 'push-to-talk' | 'toggle-dictation' | 'manual';
+export type TranscriptionModelId = 'local-whisper' | 'baidu-short' | 'baidu-realtime';
+
+export interface ModeModelPreferences {
+  pushToTalkModel: TranscriptionModelId;
+  toggleDictationModel: TranscriptionModelId;
+}
+
+export interface ModelReadiness {
+  id: TranscriptionModelId;
+  label: string;
+  ready: boolean;
+  message: string;
+  availableInV7: boolean;
+}
+
 export interface TranscriptRecord {
   id: number;
   time: string;
   text: string;
   durationMs: number;
-  source: 'push-to-talk' | 'toggle' | 'manual';
+  inputMode: InputModeId;
+  modelId: TranscriptionModelId;
+  charCount: number;
 }
 
 export interface TranscriptStats {
@@ -89,6 +107,8 @@ export interface UserPreferences {
   selectedInputDeviceName: string | null;
   pushToTalkHotkey: string | null;
   toggleDictationHotkey: string | null;
+  pushToTalkModel: TranscriptionModelId | null;
+  toggleDictationModel: TranscriptionModelId | null;
 }
 
 export interface HotkeyRegistrationStatus {
@@ -106,6 +126,13 @@ export interface CloudAsrConfig {
   baiduCuid: string | null;
   baiduFormat: string | null;
   baiduSampleRate: number | null;
+  baiduLmId: string | null;
+  baiduRealtimeEndpoint: string | null;
+  baiduRealtimeDevPid: string | null;
+  baiduRealtimeCuid: string | null;
+  baiduRealtimeFormat: string | null;
+  baiduRealtimeSampleRate: number | null;
+  baiduRealtimeUser: string | null;
 }
 
 export interface CloudAsrConfigStatus {
