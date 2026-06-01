@@ -2050,3 +2050,42 @@ Maintainer confirmed the V7 visual style is basically acceptable. User-visible m
 ## Verification
 
 Verification: npm test -- --run src/App.test.tsx passed with 17 tests; npm run typecheck passed; npm run build passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed; control-character scan passed. V7 is marked passing in docs/harness/feature_list.json; V8 will handle real Baidu realtime WebSocket API integration.
+
+
+## 2026-06-01 V8 realtime WebSocket stop path did not call finish
+
+### Symptom
+
+In the V8 frontend regression test, continuous input with Baidu Realtime WebSocket API could call `startBaiduRealtimeSession` and insert a final event, but the second `Ctrl+Alt+V` did not call `finishBaiduRealtimeSession`. The transcript record also showed the previous short-speech model. The test file also had stale mojibake assertions.
+
+### Impact
+
+A real continuous-input session could start but fail to run the WebSocket `FINISH` and summary merge path on stop. That could leave stale session state, record the wrong model, or miss tail text.
+
+### Root Cause
+
+- `handleStopLiveToggleRecording` called local `stopRecording()` before checking the selected model. Realtime recording is owned by `BaiduRealtimeSessionManager`, so it must call `finishBaiduRealtimeSession()` first.
+- Model selection updated React state but did not immediately sync `pushToTalkModelRef` and `toggleDictationModelRef`, which are read by global hotkey callbacks.
+- Tests still asserted the old V8 placeholder text and had corrupted statistic text.
+
+### Fix
+
+- Sync model refs when model preferences change and again when saved preferences return.
+- Route `baidu-realtime` stop through `finishBaiduRealtimeSession()` before local recorder stop logic, and explicitly write transcript records with `modelId: 'baidu-realtime'`.
+- Drain currently available complete 160 ms PCM frames before sending WebSocket `FINISH`.
+- Replace stale placeholder assertions and mojibake assertions.
+- Restore the corrupted missing `BAIDU_ASR_API_KEY` error message in `src-tauri/src/lib.rs`.
+
+### Verification
+
+- `npm test -- --run src/App.test.tsx`: passed, 20 tests.
+- `npm run typecheck`: passed.
+- `npm run build`: passed.
+- `cargo fmt --all --manifest-path src-tauri/Cargo.toml --check`: passed.
+- `cargo check --manifest-path src-tauri/Cargo.toml --lib`: passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml baidu_realtime --no-run`: passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run`: passed.
+
+### Residual Risk
+
+Real Baidu WebSocket streaming still needs maintainer manual verification. Automated tests do not use a real API key and do not connect to Baidu.

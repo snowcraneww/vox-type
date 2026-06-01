@@ -2,6 +2,7 @@ pub mod asr;
 pub mod asr_config;
 pub mod asr_installer;
 pub mod audio;
+pub mod baidu_realtime;
 pub mod cloud_asr;
 pub mod cloud_asr_config;
 pub mod config;
@@ -210,6 +211,42 @@ fn save_baidu_asr_secret_key(
     secret_key: String,
 ) -> Result<cloud_asr_config::CloudAsrConfigStatus, error::VoxError> {
     cloud_asr_config::save_baidu_asr_secret_key_to_user_env(app_config_dir(&app)?, secret_key)
+}
+
+#[tauri::command]
+fn start_baidu_realtime_session(
+    app: AppHandle,
+    recorder: State<'_, RecorderManager>,
+    manager: State<'_, baidu_realtime::BaiduRealtimeSessionManager>,
+) -> Result<baidu_realtime::BaiduRealtimeSessionStatus, error::VoxError> {
+    let cloud_status = cloud_asr_config::get_cloud_asr_config_status(app_config_dir(&app)?);
+    let api_key = cloud_asr_config::baidu_asr_api_key_from_env()
+        .ok_or_else(|| error::VoxError::Config("未配置 BAIDU_ASR_API_KEY 环境变量".to_string()))?;
+    let config = baidu_realtime::config_from_cloud_status(&cloud_status, api_key)?;
+    manager.start(app, &recorder, config)
+}
+
+#[tauri::command]
+fn finish_baidu_realtime_session(
+    recorder: State<'_, RecorderManager>,
+    manager: State<'_, baidu_realtime::BaiduRealtimeSessionManager>,
+) -> Result<baidu_realtime::BaiduRealtimeSessionSummary, error::VoxError> {
+    manager.finish(&recorder)
+}
+
+#[tauri::command]
+fn cancel_baidu_realtime_session(
+    recorder: State<'_, RecorderManager>,
+    manager: State<'_, baidu_realtime::BaiduRealtimeSessionManager>,
+) -> Result<baidu_realtime::BaiduRealtimeSessionStatus, error::VoxError> {
+    manager.cancel(&recorder)
+}
+
+#[tauri::command]
+fn get_baidu_realtime_session_status(
+    manager: State<'_, baidu_realtime::BaiduRealtimeSessionManager>,
+) -> Result<baidu_realtime::BaiduRealtimeSessionStatus, error::VoxError> {
+    manager.status()
 }
 
 #[tauri::command]
@@ -516,6 +553,7 @@ fn register_runtime_hotkeys(
 pub fn run() {
     tauri::Builder::default()
         .manage(RecorderManager::default())
+        .manage(baidu_realtime::BaiduRealtimeSessionManager::default())
         .manage(Mutex::new(hotkey::HotkeyRegistrationStatus::failed(
             hotkey::HotkeyBinding::default().accelerator,
             "全局快捷键尚未初始化".to_string(),
@@ -556,6 +594,10 @@ pub fn run() {
             save_minimax_api_key,
             save_baidu_asr_api_key,
             save_baidu_asr_secret_key,
+            start_baidu_realtime_session,
+            finish_baidu_realtime_session,
+            cancel_baidu_realtime_session,
+            get_baidu_realtime_session_status,
             install_managed_asr,
             transcribe_last_recording,
             transcribe_active_recording_chunk,

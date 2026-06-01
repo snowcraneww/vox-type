@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptionModelId, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptionModelId, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -112,6 +112,23 @@ export async function installManagedAsr(): Promise<AsrConfigStatus> {
   return invoke<AsrConfigStatus>('install_managed_asr');
 }
 
+
+export async function startBaiduRealtimeSession(): Promise<BaiduRealtimeSessionStatus> {
+  return invoke<BaiduRealtimeSessionStatus>('start_baidu_realtime_session');
+}
+
+export async function finishBaiduRealtimeSession(): Promise<BaiduRealtimeSessionSummary> {
+  return invoke<BaiduRealtimeSessionSummary>('finish_baidu_realtime_session');
+}
+
+export async function cancelBaiduRealtimeSession(): Promise<BaiduRealtimeSessionStatus> {
+  return invoke<BaiduRealtimeSessionStatus>('cancel_baidu_realtime_session');
+}
+
+export async function getBaiduRealtimeSessionStatus(): Promise<BaiduRealtimeSessionStatus> {
+  return invoke<BaiduRealtimeSessionStatus>('get_baidu_realtime_session_status');
+}
+
 export async function insertTextWithClipboard(text: string): Promise<void> {
   return invoke('insert_text_with_clipboard', { text });
 }
@@ -134,6 +151,11 @@ export async function getOverlayBackendStatus(): Promise<OverlayBackendStatus> {
 
 export async function listenToPushToTalk(handler: (payload: PushToTalkPayload) => void): Promise<() => void> {
   return listen<PushToTalkPayload>('voxtype-push-to-talk', (event) => handler(event.payload));
+}
+
+
+export async function listenToBaiduRealtimeResults(handler: (payload: BaiduRealtimeResultEvent) => void): Promise<() => void> {
+  return listen<BaiduRealtimeResultEvent>('voxtype-baidu-realtime-result', (event) => handler(event.payload));
 }
 
 export function isTauriRuntime(): boolean {

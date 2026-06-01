@@ -142,11 +142,11 @@ VoxType now uses Baidu's `access_token` auth path for the short speech JSON requ
 
 Do not put the raw API Key or Secret Key into the ASR `server_api` URL or JSON body. Do not write either real value to project config, diagnostics, docs, or tests.
 
-## 2026-06-01 V8 realtime WebSocket planning update
+## 2026-06-01 V8 realtime WebSocket implementation update
 
 Official realtime WebSocket API source: https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i
 
-V8 planning treats Baidu Realtime WebSocket API as a continuous-input feature, not as the default push-to-talk path.
+V8 implementation treats Baidu Realtime WebSocket API as a continuous-input feature, not as the default push-to-talk path.
 
 Key protocol details recorded for implementation:
 
@@ -163,3 +163,20 @@ Design and implementation plan:
 
 - `docs/superpowers/specs/2026-06-01-v8-baidu-realtime-websocket-design.md`
 - `docs/superpowers/plans/2026-06-01-v8-baidu-realtime-websocket.md`
+
+
+### V8 implementation
+
+- Backend adds `src-tauri/src/baidu_realtime.rs` and uses `tungstenite` to connect to `wss://vop.baidu.com/realtime_asr`.
+- START frames follow the official Baidu shape: top-level `type: "START"` with nested `data` containing `appid`, `appkey`, `dev_pid`, optional `lm_id`, `cuid`, optional `user`, `format`, and `sample`.
+- `appid` is non-secret config. `appkey` is read from `BAIDU_ASR_API_KEY` and must not be logged or saved to project files.
+- Audio is 16 kHz, 16-bit mono PCM. Full 160 ms / 5120-byte frames are sent; before `FINISH`, the worker drains any currently available complete frames.
+- Control frames support `FINISH`, `CANCEL`, and `HEARTBEAT`.
+- Frontend continuous input with model `baidu-realtime` starts `start_baidu_realtime_session`, inserts final text events through the existing clipboard path, then calls `finish_baidu_realtime_session` and records one merged transcript row.
+- Push-to-talk rejects Baidu Realtime WebSocket API with a clear unsupported-mode error in V8.
+
+### V8 residual risks
+
+- Automated tests cover protocol serialization, PCM chunking, config validation, frontend routing, and transcript merging. Real WebSocket streaming still requires maintainer verification with real Baidu credentials, network, and microphone input.
+- The frontend inserts final text only. Partial text is shown as transient status so unstable partial hypotheses do not rewrite the target app.
+- Finish uses a bounded wait. If Baidu does not return final text in time, the transcript row can only include final fragments already received.

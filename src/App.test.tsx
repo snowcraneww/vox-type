@@ -1,10 +1,11 @@
 import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { getOverlayBackendStatus, hideDictationOverlay, insertTextWithClipboard, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, showTranscribingOverlay, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { getOverlayBackendStatus, hideDictationOverlay, insertTextWithClipboard, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
+let baiduRealtimeHandler: ((payload: import('./types').BaiduRealtimeResultEvent) => void) | null = null;
 
 vi.mock('./tauriClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./tauriClient')>();
@@ -13,16 +14,20 @@ vi.mock('./tauriClient', async (importOriginal) => {
     isTauriRuntime: () => true,
     getConfig: vi.fn().mockResolvedValue({ hotkey: 'Ctrl+Alt+Space', language: 'zh-CN', asrEngine: 'whisper.cpp', insertionStrategy: 'clipboard', showStatusIndicator: true }),
     getAsrConfigStatus: vi.fn().mockResolvedValue({ whisperBinaryPath: null, whisperModelPath: null, language: 'zh', binaryConfigured: false, modelConfigured: false, binaryExists: false, modelExists: false, ready: false, source: 'default', message: 'ASR 未就绪' }),
-    getCloudAsrConfigStatus: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' }),
+    getCloudAsrConfigStatus: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeAppId: '10500017', baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' }),
     saveCloudAsrConfig: vi.fn().mockImplementation((config) => Promise.resolve({ config, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' })),
     saveModeModelPreferences: vi.fn().mockImplementation((pushToTalkModel, toggleDictationModel) => Promise.resolve({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel, toggleDictationModel })),
-    saveBaiduAsrApiKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: false, secretKeySource: 'missing', secretKeyPreview: null, ready: false, message: 'Missing BAIDU_ASR_SECRET_KEY.' }),
-    saveBaiduAsrSecretKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: 'Baidu ready.' }),
+    saveBaiduAsrApiKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeAppId: '10500017', baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: false, secretKeySource: 'missing', secretKeyPreview: null, ready: false, message: 'Missing BAIDU_ASR_SECRET_KEY.' }),
+    saveBaiduAsrSecretKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeAppId: '10500017', baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: 'Baidu ready.' }),
     getDefaultInputInfo: vi.fn().mockResolvedValue({ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }),
     getUserPreferences: vi.fn().mockResolvedValue({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short' }),
     getHotkeyStatus: vi.fn().mockResolvedValue({ accelerator: 'Ctrl+Alt+Space', registered: true, message: '全局快捷键已注册：Ctrl+Alt+Space' }),
     getOverlayBackendStatus: vi.fn().mockResolvedValue({ backend: 'native-win32', lastError: null }),
     listInputDevices: vi.fn().mockResolvedValue([{ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }]),
+    startBaiduRealtimeSession: vi.fn().mockResolvedValue({ state: 'streaming', message: 'Baidu realtime WebSocket session started.', startedAtMs: 1000, durationMs: 0, finalText: '' }),
+    finishBaiduRealtimeSession: vi.fn().mockResolvedValue({ status: { state: 'finished', message: 'stopped', startedAtMs: 1000, durationMs: 1800, finalText: 'realtime final text' }, text: 'realtime final text', durationMs: 1800, charCount: 6 }),
+    cancelBaiduRealtimeSession: vi.fn().mockResolvedValue({ state: 'idle', message: 'cancelled', startedAtMs: null, durationMs: 0, finalText: '' }),
+    getBaiduRealtimeSessionStatus: vi.fn().mockResolvedValue({ state: 'idle', message: 'idle', startedAtMs: null, durationMs: 0, finalText: '' }),
     startRecording: vi.fn().mockResolvedValue({ state: 'recording', sampleRate: 44100, channels: 1, sampleCount: 0, durationMs: 0 }),
     stopRecording: vi.fn().mockResolvedValue({ sampleRate: 44100, channels: 1, sampleCount: 32000, durationMs: 2000, asrSampleRate: 16000, asrSampleCount: 32000, asrDurationMs: 2000, peakAmplitude: 12000, rmsAmplitude: 1600 }),
     transcribeLastRecording: vi.fn().mockResolvedValue({ engine: 'whisper.cpp', text: '测试文本' }),
@@ -35,6 +40,10 @@ vi.mock('./tauriClient', async (importOriginal) => {
       pushToTalkHandler = handler;
       return Promise.resolve(() => { pushToTalkHandler = null; });
     }),
+    listenToBaiduRealtimeResults: vi.fn().mockImplementation((handler: (payload: import('./types').BaiduRealtimeResultEvent) => void) => {
+      baiduRealtimeHandler = handler;
+      return Promise.resolve(() => { baiduRealtimeHandler = null; });
+    }),
   };
 });
 describe('App', () => {
@@ -44,10 +53,13 @@ describe('App', () => {
 
   beforeEach(() => {
     pushToTalkHandler = null;
+    baiduRealtimeHandler = null;
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
+    vi.mocked(startBaiduRealtimeSession).mockClear();
+    vi.mocked(finishBaiduRealtimeSession).mockClear();
     vi.mocked(startRecording).mockClear();
     vi.mocked(stopRecording).mockClear();
     vi.mocked(transcribeLastRecording).mockClear();
@@ -100,7 +112,7 @@ describe('App', () => {
 
   it('shows Baidu cloud readiness on the main window when Baidu is configured', async () => {
     const { getCloudAsrConfigStatus } = await import('./tauriClient');
-    vi.mocked(getCloudAsrConfigStatus).mockResolvedValueOnce({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' });
+    vi.mocked(getCloudAsrConfigStatus).mockResolvedValueOnce({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeAppId: '10500017', baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' });
 
     render(<App />);
 
@@ -243,7 +255,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('tab', { name: /百度短语音 API/ }));
     expect(screen.getByLabelText('百度 ASR Endpoint')).toHaveValue('http://vop.baidu.com/server_api');
     fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
-    expect(screen.getByText('V8 接入，当前版本不可用。')).toBeInTheDocument();
+    expect(screen.getByLabelText('百度 WebSocket AppID')).toHaveValue('10500017');
 
     fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
     expect(screen.queryByRole('button', { name: '保存默认模型' })).not.toBeInTheDocument();
@@ -296,6 +308,7 @@ describe('App', () => {
       baiduFormat: 'pcm',
       baiduSampleRate: 16000,
       baiduLmId: null,
+      baiduRealtimeAppId: '10500017',
       baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr',
       baiduRealtimeDevPid: '15372',
       baiduRealtimeCuid: 'voxtype-local',
@@ -432,6 +445,59 @@ describe('App', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+
+  it('starts Baidu realtime WebSocket session for continuous input model', async () => {
+    render(<App />);
+
+    await waitForBaiduReadiness();
+    fireEvent.click(screen.getByRole('button', { name: /\u6a21\u578b\u9009\u62e9\u914d\u7f6e/ }));
+    fireEvent.click(within(screen.getByRole('group', { name: /\u8fde\u7eed\u8f93\u5165/ })).getByRole('button', { name: /WebSocket/ }));
+    await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
+    fireEvent.click(screen.getByRole('button', { name: /\u8fd4\u56de\u4e3b\u754c\u9762/ }));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(startBaiduRealtimeSession).toHaveBeenCalledTimes(1));
+    expect(startRecording).not.toHaveBeenCalled();
+  });
+
+  it('inserts realtime final events and records one merged continuous input row on finish', async () => {
+    render(<App />);
+
+    await waitForBaiduReadiness();
+    fireEvent.click(screen.getByRole('button', { name: /\u6a21\u578b\u9009\u62e9\u914d\u7f6e/ }));
+    fireEvent.click(within(screen.getByRole('group', { name: /\u8fde\u7eed\u8f93\u5165/ })).getByRole('button', { name: /WebSocket/ }));
+    await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
+    fireEvent.click(screen.getByRole('button', { name: /\u8fd4\u56de\u4e3b\u754c\u9762/ }));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+    await waitFor(() => expect(startBaiduRealtimeSession).toHaveBeenCalledTimes(1));
+    baiduRealtimeHandler?.({ text: 'realtime final text', isFinal: true, sequence: 1, startedAtMs: 1000, durationMs: 1800 });
+    await waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('realtime final text'));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
+
+    await waitFor(() => expect(finishBaiduRealtimeSession).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('realtime final text')).toBeInTheDocument();
+    expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
+  });
+
+  it('rejects Baidu realtime WebSocket API for push-to-talk mode in V8', async () => {
+    render(<App />);
+
+    await waitForBaiduReadiness();
+    fireEvent.click(screen.getByRole('button', { name: /\u6a21\u578b\u9009\u62e9\u914d\u7f6e/ }));
+    fireEvent.click(within(screen.getByRole('group', { name: /\u6309\u4f4f\u8bf4\u8bdd/ })).getByRole('button', { name: /WebSocket/ }));
+    await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-realtime', 'baidu-short'));
+    fireEvent.click(screen.getByRole('button', { name: /\u8fd4\u56de\u4e3b\u754c\u9762/ }));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    expect(await screen.findByRole('status')).toHaveTextContent(/WebSocket API/);
   });
 
   it('opens the diagnostic workbench on request', async () => {

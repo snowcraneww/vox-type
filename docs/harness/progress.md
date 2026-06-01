@@ -12,6 +12,18 @@
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
+
+## 2026-06-01 V8 Baidu Realtime WebSocket API integration
+
+- V8 scope: Baidu Realtime WebSocket API is implemented as a continuous-input model. Push-to-talk remains stop-then-transcribe and rejects the realtime model with a clear error.
+- Official source: implementation follows `https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i` for `wss://vop.baidu.com/realtime_asr`, START frame, 160 ms / 5120-byte PCM frames, and `FINISH` / `CANCEL` / `HEARTBEAT` control frames.
+- Backend added `src-tauri/src/baidu_realtime.rs` for START/control serialization, partial/final/error parsing, PCM chunking, single active session management, recorder polling, WebSocket worker, and Tauri event emit.
+- Config added `baiduRealtimeAppId`; default AppID uses official sample `10500017`. `appkey` is read only from `BAIDU_ASR_API_KEY` and is not written to config, docs, diagnostics, or tests.
+- Frontend added realtime session client and event listener. When continuous input uses `baidu-realtime`, `Ctrl+Alt+V` starts the session, final fragments are inserted via clipboard, and stop creates one merged transcript record labeled `Baidu Realtime WebSocket API`.
+- Bugs fixed during implementation: model preference changes now sync refs used by hotkey handlers; realtime stop now calls `finish_baidu_realtime_session` before any local recorder stop path; stale V8 placeholder assertions and mojibake test assertions were removed.
+- Automated verification: `npm test -- --run src/App.test.tsx` passed with 20 tests; `npm run typecheck` passed; `npm run build` passed; `cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` passed; `cargo check --manifest-path src-tauri/Cargo.toml --lib` passed; `cargo test --manifest-path src-tauri/Cargo.toml baidu_realtime --no-run` passed; `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` passed.
+- Status: `v8-001` remains `in_progress` until maintainer manually verifies real streaming in the Tauri desktop app.
+
 ## 2026-05-28 V4 原生浮窗视觉恢复
 
 - V4 收尾：维护者确认原生浮窗外层白/灰矩形框已经消失，当前浮窗视觉先保持现状；V4 标记为 `passing`，下一阶段不继续盲调浮窗和主界面样式。

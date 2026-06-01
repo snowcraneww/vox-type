@@ -45,12 +45,14 @@ const text = {
   realtimeConfig: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u914d\u7f6e',
   v8Only: 'V8 \u63a5\u5165\uff0c\u5f53\u524d\u7248\u672c\u4e0d\u53ef\u7528\u3002',
   v8Reserved: 'V8 \u9884\u7559',
+  wsAppId: 'AppID',
   wsEndpoint: 'WebSocket Endpoint',
   wsDevPid: 'dev_pid',
   wsCuid: 'cuid',
   wsFormat: '\u97f3\u9891\u683c\u5f0f',
   wsSampleRate: '\u91c7\u6837\u7387',
   wsUser: 'user\uff08\u53ef\u9009\uff09',
+  baiduRealtimeAppIdLabel: '\u767e\u5ea6 WebSocket AppID',
   baiduRealtimeEndpointLabel: '\u767e\u5ea6 WebSocket Endpoint',
   baiduRealtimeDevPidLabel: '\u767e\u5ea6 WebSocket dev_pid',
   baiduRealtimeCuidLabel: '\u767e\u5ea6 WebSocket cuid',
@@ -75,6 +77,7 @@ interface ModelSettingsViewProps {
   cloudBaiduFormat: string;
   cloudBaiduSampleRate: string;
   cloudBaiduLmId: string;
+  cloudBaiduRealtimeAppId: string;
   cloudBaiduRealtimeEndpoint: string;
   cloudBaiduRealtimeDevPid: string;
   cloudBaiduRealtimeCuid: string;
@@ -101,6 +104,7 @@ interface ModelSettingsViewProps {
   onCloudBaiduFormatChange: (value: string) => void;
   onCloudBaiduSampleRateChange: (value: string) => void;
   onCloudBaiduLmIdChange: (value: string) => void;
+  onCloudBaiduRealtimeAppIdChange: (value: string) => void;
   onCloudBaiduRealtimeEndpointChange: (value: string) => void;
   onCloudBaiduRealtimeDevPidChange: (value: string) => void;
   onCloudBaiduRealtimeCuidChange: (value: string) => void;
@@ -198,9 +202,10 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
           </section> : null}
           {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
-            <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>{text.v8Reserved}</strong></div><span className="ready-dot" data-ready={false} /></div>
-            <p className="runtime-message">{text.v8Only}</p>
+            <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>{props.modelReadiness['baidu-realtime'].ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.modelReadiness['baidu-realtime'].ready} /></div>
+            <p className="runtime-message">{props.modelReadiness['baidu-realtime'].message}</p>
             <div className="compact-field-grid">
+              <label className="field"><span>{text.wsAppId}</span><input aria-label={text.baiduRealtimeAppIdLabel} value={props.cloudBaiduRealtimeAppId} onChange={(event) => props.onCloudBaiduRealtimeAppIdChange(event.target.value)} /></label>
               <label className="field wide"><span>{text.wsEndpoint}</span><input aria-label={text.baiduRealtimeEndpointLabel} value={props.cloudBaiduRealtimeEndpoint} onChange={(event) => props.onCloudBaiduRealtimeEndpointChange(event.target.value)} /></label>
               <label className="field"><span>{text.wsDevPid}</span><input aria-label={text.baiduRealtimeDevPidLabel} value={props.cloudBaiduRealtimeDevPid} onChange={(event) => props.onCloudBaiduRealtimeDevPidChange(event.target.value)} /></label>
               <label className="field"><span>{text.wsCuid}</span><input aria-label={text.baiduRealtimeCuidLabel} value={props.cloudBaiduRealtimeCuid} onChange={(event) => props.onCloudBaiduRealtimeCuidChange(event.target.value)} /></label>
@@ -208,6 +213,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
               <label className="field"><span>{text.wsSampleRate}</span><input aria-label={text.baiduRealtimeSampleRateLabel} type="number" value={props.cloudBaiduRealtimeSampleRate} onChange={(event) => props.onCloudBaiduRealtimeSampleRateChange(event.target.value)} /></label>
               <label className="field"><span>{text.wsUser}</span><input aria-label={text.baiduRealtimeUserLabel} value={props.cloudBaiduRealtimeUser} onChange={(event) => props.onCloudBaiduRealtimeUserChange(event.target.value)} /></label>
             </div>
+            <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
           </section> : null}
         </section> : null}
       </section>

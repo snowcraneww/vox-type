@@ -127,6 +127,7 @@ export interface CloudAsrConfig {
   baiduFormat: string | null;
   baiduSampleRate: number | null;
   baiduLmId: string | null;
+  baiduRealtimeAppId: string | null;
   baiduRealtimeEndpoint: string | null;
   baiduRealtimeDevPid: string | null;
   baiduRealtimeCuid: string | null;
@@ -145,4 +146,28 @@ export interface CloudAsrConfigStatus {
   secretKeyPreview: string | null;
   ready: boolean;
   message: string;
+}
+
+
+export interface BaiduRealtimeResultEvent {
+  text: string;
+  isFinal: boolean;
+  sequence: number;
+  startedAtMs: number;
+  durationMs: number;
+}
+
+export interface BaiduRealtimeSessionStatus {
+  state: 'idle' | 'streaming' | 'finished' | 'failed' | string;
+  message: string;
+  startedAtMs: number | null;
+  durationMs: number;
+  finalText: string;
+}
+
+export interface BaiduRealtimeSessionSummary {
+  status: BaiduRealtimeSessionStatus;
+  text: string;
+  durationMs: number;
+  charCount: number;
 }

@@ -5,9 +5,9 @@ import { HotkeySettingsDialog } from './HotkeySettingsDialog';
 import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, RecorderRuntimeStatus, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -73,6 +73,7 @@ const initialCloudAsrConfigStatus: CloudAsrConfigStatus = {
     baiduFormat: null,
     baiduSampleRate: 16000,
     baiduLmId: null,
+    baiduRealtimeAppId: '10500017',
     baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr',
     baiduRealtimeDevPid: '15372',
     baiduRealtimeCuid: 'voxtype-local',
@@ -120,6 +121,7 @@ export function App() {
   const [cloudBaiduFormat, setCloudBaiduFormat] = useState('pcm');
   const [cloudBaiduSampleRate, setCloudBaiduSampleRate] = useState('16000');
   const [cloudBaiduLmId, setCloudBaiduLmId] = useState('');
+  const [cloudBaiduRealtimeAppId, setCloudBaiduRealtimeAppId] = useState('10500017');
   const [cloudBaiduRealtimeEndpoint, setCloudBaiduRealtimeEndpoint] = useState('wss://vop.baidu.com/realtime_asr');
   const [cloudBaiduRealtimeDevPid, setCloudBaiduRealtimeDevPid] = useState('15372');
   const [cloudBaiduRealtimeCuid, setCloudBaiduRealtimeCuid] = useState('voxtype-local');
@@ -180,17 +182,23 @@ export function App() {
       return { id: modelId, label: 'whisper.cpp', ready: asrStatus.ready, message: asrStatus.message, availableInV7: true };
     }
     if (modelId === 'baidu-short') {
-      return { id: modelId, label: '百度短语音 API', ready: cloudStatus.config.provider === 'baidu' && cloudStatus.ready, message: cloudStatus.message, availableInV7: true };
+      return { id: modelId, label: '\u767e\u5ea6\u77ed\u8bed\u97f3 API', ready: cloudStatus.config.provider === 'baidu' && cloudStatus.ready, message: cloudStatus.message, availableInV7: true };
     }
-    return { id: modelId, label: '百度实时 WebSocket API', ready: false, message: 'V8 接入，当前版本不可用。', availableInV7: false };
+    const cfg = cloudStatus.config;
+    const realtimeReady = cloudStatus.apiKeyConfigured
+      && Boolean(cfg.baiduRealtimeAppId?.trim())
+      && cfg.baiduRealtimeEndpoint === 'wss://vop.baidu.com/realtime_asr'
+      && Boolean(cfg.baiduRealtimeDevPid?.trim())
+      && Boolean(cfg.baiduRealtimeCuid?.trim())
+      && cfg.baiduRealtimeFormat === 'pcm'
+      && cfg.baiduRealtimeSampleRate === 16000;
+    const message = realtimeReady ? '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u914d\u7f6e\u5b8c\u6574\u3002' : '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u9700\u8981 BAIDU_ASR_API_KEY\u3001AppID\u3001Endpoint\u3001dev_pid\u3001cuid\u3001pcm \u548c 16000 Hz\u3002';
+    return { id: modelId, label: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API', ready: realtimeReady, message, availableInV7: true };
   }
 
   function assertModelUsable(model: ModelReadiness) {
-    if (!model.availableInV7) {
-      throw new Error('百度实时 WebSocket API 将在 V8 接入，当前版本不可用于转写。');
-    }
     if (!model.ready) {
-      throw new Error(`${model.label} 未就绪：${model.message}`);
+      throw new Error(`${model.label} \u672a\u5c31\u7eea\uff1a${model.message}`);
     }
   }
 
@@ -222,6 +230,7 @@ export function App() {
     setCloudBaiduFormat(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'pcm' : nextStatus.config.baiduFormat ?? 'pcm');
     setCloudBaiduSampleRate(String(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 16000 : nextStatus.config.baiduSampleRate ?? 16000));
     setCloudBaiduLmId(nextStatus.config.baiduLmId ?? '');
+    setCloudBaiduRealtimeAppId(nextStatus.config.baiduRealtimeAppId ?? '');
     setCloudBaiduRealtimeEndpoint(nextStatus.config.baiduRealtimeEndpoint ?? 'wss://vop.baidu.com/realtime_asr');
     setCloudBaiduRealtimeDevPid(nextStatus.config.baiduRealtimeDevPid ?? '15372');
     setCloudBaiduRealtimeCuid(nextStatus.config.baiduRealtimeCuid ?? 'voxtype-local');
@@ -616,6 +625,7 @@ export function App() {
         baiduFormat: cloudBaiduFormat.trim() || null,
         baiduSampleRate: Number.isFinite(baiduSampleRate) ? baiduSampleRate : null,
         baiduLmId: cloudBaiduLmId.trim() || null,
+        baiduRealtimeAppId: cloudBaiduRealtimeAppId.trim() || null,
         baiduRealtimeEndpoint: cloudBaiduRealtimeEndpoint.trim() || null,
         baiduRealtimeDevPid: cloudBaiduRealtimeDevPid.trim() || null,
         baiduRealtimeCuid: cloudBaiduRealtimeCuid.trim() || null,
@@ -638,14 +648,20 @@ export function App() {
     const nextToggleDictationModel = mode === 'toggle-dictation' ? nextModel : toggleDictationModel;
     setPushToTalkModel(nextPushToTalkModel);
     setToggleDictationModel(nextToggleDictationModel);
+    pushToTalkModelRef.current = nextPushToTalkModel;
+    toggleDictationModelRef.current = nextToggleDictationModel;
     if (!isTauriRuntime()) {
       addDiagnostic({ title: '默认模型仅在预览中切换', result: 'warning', detail: '浏览器预览模式不能写入 Tauri 用户偏好。' });
       return;
     }
     try {
       const preferences = await saveModeModelPreferences(nextPushToTalkModel, nextToggleDictationModel);
-      setPushToTalkModel(preferences.pushToTalkModel ?? nextPushToTalkModel);
-      setToggleDictationModel(preferences.toggleDictationModel ?? nextToggleDictationModel);
+      const savedPushToTalkModel = preferences.pushToTalkModel ?? nextPushToTalkModel;
+      const savedToggleDictationModel = preferences.toggleDictationModel ?? nextToggleDictationModel;
+      setPushToTalkModel(savedPushToTalkModel);
+      setToggleDictationModel(savedToggleDictationModel);
+      pushToTalkModelRef.current = savedPushToTalkModel;
+      toggleDictationModelRef.current = savedToggleDictationModel;
       addDiagnostic({ title: '默认模型偏好已保存', result: 'success', detail: `按住说话：${preferences.pushToTalkModel ?? nextPushToTalkModel}；连续输入：${preferences.toggleDictationModel ?? nextToggleDictationModel}` });
     } catch (error) {
       addDiagnostic({ title: '默认模型偏好保存失败', result: 'error', detail: formatError(error) });
@@ -844,15 +860,34 @@ export function App() {
       addDiagnostic({ title: '连续输入模型不可用', result: 'error', detail });
       return;
     }
-    const started = await handleStartRecording();
-    if (!started) {
-      return;
-    }
     liveCursorRef.current = 0;
     liveInsertedTextRef.current = false;
     liveSessionTextsRef.current = [];
     liveSessionDurationMsRef.current = 0;
     stopLiveTranscriptionTimer();
+    if (selectedModel === 'baidu-realtime') {
+      if (!isTauriRuntime()) {
+        addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u8f93\u5165\u672a\u542f\u52a8', result: 'warning', detail: '\u6d4f\u89c8\u5668\u9884\u89c8\u6a21\u5f0f\u4e0d\u80fd\u8fde\u63a5\u767e\u5ea6\u5b9e\u65f6 WebSocket API\u3002' });
+        return;
+      }
+      try {
+        const realtimeStatus = await startBaiduRealtimeSession();
+        isRecordingRef.current = true;
+        setRecordingStatus({ state: 'recording', sampleRate: 16000, channels: 1, sampleCount: 0, durationMs: realtimeStatus.durationMs });
+        setStatus({ phase: 'recording', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u4e2d\uff0c\u6700\u7ec8\u7ed3\u679c\u4f1a\u5b9e\u65f6\u4e0a\u5c4f', lastTranscript: null });
+        addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5df2\u542f\u52a8', result: 'success', detail: realtimeStatus.message });
+      } catch (error) {
+        const detail = formatError(error);
+        setStatus({ phase: 'failed', message: `\u767e\u5ea6\u5b9e\u65f6\u8f93\u5165\u542f\u52a8\u5931\u8d25\uff1a${detail}`, lastTranscript: null });
+        setHistoryMessage(`\u767e\u5ea6\u5b9e\u65f6\u8f93\u5165\u542f\u52a8\u5931\u8d25\uff1a${detail}`);
+        addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u542f\u52a8\u5931\u8d25', result: 'error', detail });
+      }
+      return;
+    }
+    const started = await handleStartRecording();
+    if (!started) {
+      return;
+    }
     if (selectedModel === 'local-whisper') {
       setStatus({ phase: 'recording', message: '实验实时输入中：会每隔几秒分段转写并上屏', lastTranscript: null });
       addDiagnostic({ title: '实验实时输入已启动', result: 'info', detail: '当前不是 whisper.cpp 真流式 partial，而是录音中定时切片、转写新增片段并上屏。' });
@@ -867,6 +902,43 @@ export function App() {
 
   async function handleStopLiveToggleRecording() {
     stopLiveTranscriptionTimer();
+    const selectedModel = toggleDictationModelRef.current;
+    if (selectedModel === 'baidu-realtime') {
+      try {
+        setStatus({ phase: 'transcribing', message: '\u6b63\u5728\u7ed3\u675f\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165', lastTranscript: null });
+        const summary = await finishBaiduRealtimeSession();
+        isRecordingRef.current = false;
+        setRecordingStatus({ state: 'idle', sampleRate: 16000, channels: 1, sampleCount: 0, durationMs: summary.durationMs });
+        const summaryText = summary.text.trim();
+        let sessionText = combinedLiveSessionText();
+        if (!sessionText && summaryText) {
+          if (!liveInsertedTextRef.current) {
+            await insertTextWithClipboard(summaryText);
+            liveInsertedTextRef.current = true;
+          }
+          rememberLiveSessionText(summaryText, summary.durationMs);
+          sessionText = combinedLiveSessionText();
+        }
+        if (sessionText) {
+          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || summary.durationMs, 'toggle-dictation', 'baidu-realtime');
+        }
+        setStatus({ phase: 'succeeded', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5df2\u505c\u6b62', lastTranscript: sessionText || summaryText || null });
+        addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5df2\u505c\u6b62', result: 'success', detail: sessionText ? '\u6700\u7ec8\u7247\u6bb5\u5df2\u5408\u5e76\u4e3a\u4e00\u6761\u8bc6\u522b\u8bb0\u5f55\u3002' : '\u672c\u6b21\u6ca1\u6709\u53ef\u5199\u5165\u8bc6\u522b\u8bb0\u5f55\u7684\u6700\u7ec8\u6587\u672c\u3002' });
+      } catch (error) {
+        const detail = formatError(error);
+        isRecordingRef.current = false;
+        setRecordingStatus((current) => ({ ...current, state: 'idle' }));
+        setStatus({ phase: 'failed', message: `\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5931\u8d25\uff1a${detail}`, lastTranscript: null });
+        addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5931\u8d25', result: 'error', detail });
+      } finally {
+        liveSessionTextsRef.current = [];
+        liveSessionDurationMsRef.current = 0;
+        await hideDictationOverlay().catch((hideError: unknown) => {
+          addDiagnostic({ title: '\u684c\u9762\u6d6e\u7a97\u9690\u85cf\u5931\u8d25', result: 'error', detail: formatError(hideError) });
+        });
+      }
+      return;
+    }
     try {
       const audio = await stopRecording();
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
@@ -876,7 +948,6 @@ export function App() {
         addDiagnostic({ title: '桌面转写浮窗显示失败', result: 'error', detail: formatError(error) });
       });
 
-      const selectedModel = toggleDictationModelRef.current;
       if (selectedModel === 'local-whisper') {
         await processFinalLiveTranscriptionChunk();
       }
@@ -890,7 +961,7 @@ export function App() {
       } else {
         const sessionText = combinedLiveSessionText();
         if (sessionText) {
-          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || audio.asrDurationMs, 'toggle-dictation', toggleDictationModel);
+          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || audio.asrDurationMs, 'toggle-dictation', selectedModel);
         }
         setStatus({ phase: 'succeeded', message: '实验实时输入已停止', lastTranscript: sessionText || null });
         addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: sessionText ? '尾段处理完成，已合并为一条识别记录。' : '尾段处理完成，本次仅产生疑似噪声片段，未写入识别记录。' });
@@ -927,6 +998,9 @@ export function App() {
         addDiagnostic({ title: '桌面转写浮窗显示失败', result: 'error', detail: formatError(error) });
       });
       const selectedModel = pushToTalkModelRef.current;
+      if (selectedModel === 'baidu-realtime') {
+        throw new Error('\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u4ec5\u652f\u6301\u8fde\u7eed\u8f93\u5165\u6a21\u5f0f\u3002');
+      }
       const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current);
       assertModelUsable(model);
       const transcript = await transcribeLastRecording(selectedModel);
@@ -1081,6 +1155,52 @@ export function App() {
     }
   }
 
+
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    let disposed = false;
+    let unlisten: (() => void) | null = null;
+    void listenToBaiduRealtimeResults((payload: BaiduRealtimeResultEvent) => {
+      if (disposed) {
+        return;
+      }
+      const text = payload.text.trim();
+      if (!text) {
+        return;
+      }
+      if (payload.isFinal) {
+        liveInsertedTextRef.current = true;
+        rememberLiveSessionText(text, payload.durationMs);
+        setStatus({ phase: 'recording', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u6700\u7ec8\u7247\u6bb5\u5df2\u4e0a\u5c4f', lastTranscript: text });
+        void insertTextWithClipboard(text).catch((error: unknown) => {
+          addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u7247\u6bb5\u4e0a\u5c4f\u5931\u8d25', result: 'error', detail: formatError(error) });
+        });
+        addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u6700\u7ec8\u7247\u6bb5', result: 'success', detail: text });
+      } else {
+        setStatus({ phase: 'recording', message: `\u767e\u5ea6\u5b9e\u65f6\u8bc6\u522b\u4e2d\uff1a${text}`, lastTranscript: text });
+      }
+    })
+      .then((nextUnlisten) => {
+        if (disposed) {
+          nextUnlisten();
+          return;
+        }
+        unlisten = nextUnlisten;
+      })
+      .catch((error: unknown) => {
+        if (!disposed) {
+          addDiagnostic({ title: '\u6ce8\u518c\u767e\u5ea6\u5b9e\u65f6\u7ed3\u679c\u76d1\u542c\u5931\u8d25', result: 'error', detail: formatError(error) });
+        }
+      });
+    return () => {
+      disposed = true;
+      unlisten?.();
+      void cancelBaiduRealtimeSession().catch(() => undefined);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isTauriRuntime()) {
       return;
@@ -1218,6 +1338,7 @@ export function App() {
         cloudBaiduFormat={cloudBaiduFormat}
         cloudBaiduSampleRate={cloudBaiduSampleRate}
         cloudBaiduLmId={cloudBaiduLmId}
+        cloudBaiduRealtimeAppId={cloudBaiduRealtimeAppId}
         cloudBaiduRealtimeEndpoint={cloudBaiduRealtimeEndpoint}
         cloudBaiduRealtimeDevPid={cloudBaiduRealtimeDevPid}
         cloudBaiduRealtimeCuid={cloudBaiduRealtimeCuid}
@@ -1244,6 +1365,7 @@ export function App() {
         onCloudBaiduFormatChange={setCloudBaiduFormat}
         onCloudBaiduSampleRateChange={setCloudBaiduSampleRate}
         onCloudBaiduLmIdChange={setCloudBaiduLmId}
+        onCloudBaiduRealtimeAppIdChange={setCloudBaiduRealtimeAppId}
         onCloudBaiduRealtimeEndpointChange={setCloudBaiduRealtimeEndpoint}
         onCloudBaiduRealtimeDevPidChange={setCloudBaiduRealtimeDevPid}
         onCloudBaiduRealtimeCuidChange={setCloudBaiduRealtimeCuid}
