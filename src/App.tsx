@@ -87,7 +87,7 @@ const initialCloudAsrConfigStatus: CloudAsrConfigStatus = {
   secretKeySource: 'missing',
   secretKeyPreview: null,
   ready: false,
-  message: '等待 Tauri 读取百度短语音识别配置。',
+  message: '等待 Tauri 读取百度短语音 API 配置。',
 };
 
 export function App() {
@@ -180,14 +180,14 @@ export function App() {
       return { id: modelId, label: 'whisper.cpp', ready: asrStatus.ready, message: asrStatus.message, availableInV7: true };
     }
     if (modelId === 'baidu-short') {
-      return { id: modelId, label: '百度短语音', ready: cloudStatus.config.provider === 'baidu' && cloudStatus.ready, message: cloudStatus.message, availableInV7: true };
+      return { id: modelId, label: '百度短语音 API', ready: cloudStatus.config.provider === 'baidu' && cloudStatus.ready, message: cloudStatus.message, availableInV7: true };
     }
-    return { id: modelId, label: '百度实时 WebSocket', ready: false, message: 'V8 接入，当前版本不可用。', availableInV7: false };
+    return { id: modelId, label: '百度实时 WebSocket API', ready: false, message: 'V8 接入，当前版本不可用。', availableInV7: false };
   }
 
   function assertModelUsable(model: ModelReadiness) {
     if (!model.availableInV7) {
-      throw new Error('百度实时 WebSocket 将在 V8 接入，当前版本不可用于转写。');
+      throw new Error('百度实时 WebSocket API 将在 V8 接入，当前版本不可用于转写。');
     }
     if (!model.ready) {
       throw new Error(`${model.label} 未就绪：${model.message}`);
@@ -354,6 +354,7 @@ export function App() {
     if (!normalizedText) {
       return;
     }
+    setHistoryMessage(null);
     const record: TranscriptRecord = {
       id: nextTranscriptRecordIdRef.current++,
       time: new Date().toLocaleTimeString(),
@@ -623,7 +624,7 @@ export function App() {
         baiduRealtimeUser: cloudBaiduRealtimeUser.trim() || null,
       });
       applyCloudAsrConfigStatus(nextStatus);
-      const providerName = '百度短语音';
+      const providerName = '百度短语音 API';
       addDiagnostic({ title: nextStatus.ready ? `${providerName} 配置已保存并就绪` : `${providerName} 配置已保存但未就绪`, result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
     } catch (error) {
       const detail = formatError(error);
@@ -632,16 +633,20 @@ export function App() {
     }
   }
 
-  async function handleSaveModeModelPreferences() {
+  async function handleChangeModeModelPreference(mode: 'push-to-talk' | 'toggle-dictation', nextModel: TranscriptionModelId) {
+    const nextPushToTalkModel = mode === 'push-to-talk' ? nextModel : pushToTalkModel;
+    const nextToggleDictationModel = mode === 'toggle-dictation' ? nextModel : toggleDictationModel;
+    setPushToTalkModel(nextPushToTalkModel);
+    setToggleDictationModel(nextToggleDictationModel);
     if (!isTauriRuntime()) {
-      addDiagnostic({ title: '默认模型未保存', result: 'warning', detail: '浏览器预览模式不能写入 Tauri 用户偏好。' });
+      addDiagnostic({ title: '默认模型仅在预览中切换', result: 'warning', detail: '浏览器预览模式不能写入 Tauri 用户偏好。' });
       return;
     }
     try {
-      const preferences = await saveModeModelPreferences(pushToTalkModel, toggleDictationModel);
-      setPushToTalkModel(preferences.pushToTalkModel ?? pushToTalkModel);
-      setToggleDictationModel(preferences.toggleDictationModel ?? toggleDictationModel);
-      addDiagnostic({ title: '默认模型偏好已保存', result: 'success', detail: `按住说话：${pushToTalkModel}；连续输入：${toggleDictationModel}` });
+      const preferences = await saveModeModelPreferences(nextPushToTalkModel, nextToggleDictationModel);
+      setPushToTalkModel(preferences.pushToTalkModel ?? nextPushToTalkModel);
+      setToggleDictationModel(preferences.toggleDictationModel ?? nextToggleDictationModel);
+      addDiagnostic({ title: '默认模型偏好已保存', result: 'success', detail: `按住说话：${preferences.pushToTalkModel ?? nextPushToTalkModel}；连续输入：${preferences.toggleDictationModel ?? nextToggleDictationModel}` });
     } catch (error) {
       addDiagnostic({ title: '默认模型偏好保存失败', result: 'error', detail: formatError(error) });
     }
@@ -1230,9 +1235,8 @@ export function App() {
         onWhisperBinaryPathChange={setWhisperBinaryPath}
         onWhisperModelPathChange={setWhisperModelPath}
         onAsrLanguageChange={setAsrLanguage}
-        onPushToTalkModelChange={setPushToTalkModel}
-        onToggleDictationModelChange={setToggleDictationModel}
-        onSaveModeModelPreferences={() => void handleSaveModeModelPreferences()}
+        onPushToTalkModelChange={(value) => void handleChangeModeModelPreference('push-to-talk', value)}
+        onToggleDictationModelChange={(value) => void handleChangeModeModelPreference('toggle-dictation', value)}
         onCloudBaseUrlChange={setCloudBaseUrl}
         onCloudModelChange={setCloudModel}
         onCloudLanguageChange={setCloudLanguage}

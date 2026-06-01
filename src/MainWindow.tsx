@@ -3,7 +3,7 @@ import type { AppStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo,
 
 const text = {
   controlCenter: '\u8bed\u97f3\u8f93\u5165\u63a7\u5236\u4e2d\u5fc3',
-  modelSettings: '\u6a21\u578b\u9009\u62e9',
+  modelSettings: '\u6a21\u578b\u9009\u62e9\u914d\u7f6e',
   diagnostic: '\u8bca\u65ad',
   inputMode: '\u8f93\u5165\u6a21\u5f0f',
   hotkeyStatus: '\u5feb\u6377\u952e\u72b6\u6001',
@@ -36,8 +36,8 @@ const text = {
   speedTitle: '\u672c\u6b21\u8fd0\u884c\u5e73\u5747\u8bc6\u522b\u901f\u5ea6',
   charUnit: '\u5b57',
   localModel: 'whisper.cpp',
-  baiduShort: '\u767e\u5ea6\u77ed\u8bed\u97f3',
-  baiduRealtime: '\u767e\u5ea6\u5b9e\u65f6 WebSocket',
+  baiduShort: '\u767e\u5ea6\u77ed\u8bed\u97f3 API',
+  baiduRealtime: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API',
   manual: '\u624b\u52a8',
 };
 
@@ -133,7 +133,7 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
           </section>
         </div>
         <section className="transcript-history" aria-label={text.history}>
-          <header className="history-header" data-testid="history-toolbar"><div className="history-title"><span>{text.history}</span></div><div className="history-stats"><StatPill icon="count" value={stats.count} title={text.countTitle} tone="count" /><StatPill icon="duration" value={formatDuration(stats.totalDurationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={stats.totalChars} title={text.charsTitle} tone="chars" /><StatPill icon="speed" value={`${stats.charsPerMinute}/m`} title={text.speedTitle} tone="speed" /></div><div className="history-actions"><button type="button" onClick={onClearRecords} disabled={records.length === 0} aria-label={text.clearAll} title={text.clearAll}>{text.clear}</button><button type="button" onClick={onExportRecords} disabled={records.length === 0} aria-label={text.exportAll} title={text.exportAll}>{text.export}</button></div></header>
+          <header className="history-header" data-testid="history-toolbar"><div className="history-title"><span>{text.history}</span></div><div className="history-stats"><StatPill icon="count" value={`${stats.count} ${text.itemUnit}`} title={text.countTitle} tone="count" /><StatPill icon="duration" value={formatDuration(stats.totalDurationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${stats.totalChars} ${text.charUnit}`} title={text.charsTitle} tone="chars" /><StatPill icon="speed" value={`${stats.charsPerMinute}/m`} title={text.speedTitle} tone="speed" /></div><div className="history-actions"><button type="button" onClick={onClearRecords} disabled={records.length === 0} aria-label={text.clearAll} title={text.clearAll}>{text.clear}</button><button type="button" onClick={onExportRecords} disabled={records.length === 0} aria-label={text.exportAll} title={text.exportAll}>{text.export}</button></div></header>
           {historyMessage ? <p className="history-message" role="status">{historyMessage}</p> : null}
           {records.length === 0 ? <div className="empty-history"><span>{text.empty}</span><strong>{text.emptyDetail}</strong></div> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`${text.history} ${record.time}`}><div className="record-head"><time>{record.time}</time><p>{record.text}</p></div><footer className="record-footer"><div className="record-meta"><StatPill icon="mode" value={formatInputMode(record.inputMode)} title={text.inputMode} tone="mode" /><StatPill icon="model" value={formatModelLabel(record.modelId)} title={text.modelSettings} tone="model" /><StatPill icon="duration" value={formatDuration(record.durationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${record.charCount} ${text.charUnit}`} title={text.charsTitle} tone="chars" /></div><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label={text.copy} title={text.copy}><Icon name="copy" /></button><button type="button" onClick={() => onReinsertRecord(record)} aria-label={text.reinsert} title={text.reinsert}><Icon name="reinsert" /></button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label={text.delete} title={text.delete}><Icon name="delete" /></button></div></footer></article></li>)}</ol>}
         </section>

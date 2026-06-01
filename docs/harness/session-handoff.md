@@ -144,24 +144,9 @@
 - JSON 检查：`python -m json.tool docs/harness/feature_list.json`
 - 文件清单：`rg --files`
 
-## 2026-06-01 V7 交接
+## 2026-06-01 V7 Closeout And V8 Handoff
 
-- V7 代码实现、UI polish 和自动验证已完成，当前工作区包含未提交实现改动。
-- 主界面准备状态已改为麦克风、上屏、按住说话模型、连续输入模型。
-- 模型选择页已改为两块：输入模式默认模型、模型配置。
-- 按住说话和连续输入可分别选择 `local-whisper`、`baidu-short`、`baidu-realtime`，默认都是 `baidu-short`，并通过 `save_mode_model_preferences` 持久化。
-- MiniMax 已从用户配置界面移除；后端历史占位代码仍保留，后续可单独清理。
-- 百度短语音配置增加可选 `lm_id`，请求 JSON 会在配置存在时发送 `lm_id`。
-- 百度实时 WebSocket 只作为 V8 预留配置入口，当前选择后不能真实转写。
-- 已修复快捷键监听 stale state：全局快捷键事件处理会读取最新 ASR/cloud/model 状态。
-- 已修复 V7 UI 回归：主界面可见问号图标改为本地 inline SVG；模型选择页重新分层为输入模式默认模型、模型配置、密钥区和参数区；统计缩写改为中文标签。
-- 已通过：`npm test -- --run src/App.test.tsx`、`npm run typecheck`、`npm run build`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check`、`cargo check --manifest-path src-tauri/Cargo.toml --lib`、`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run`、`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run`、`python -m json.tool docs/harness/feature_list.json`、`git diff --check`。
-- `v7-001` 暂保持 `in_progress`：还需要维护者运行 Tauri 桌面环境，手动验收准备状态、模型选择持久化、MiniMax UI 移除、百度短语音真实转写、百度实时 WebSocket V8 占位和识别记录 metadata。
-- 下一步：提交 V7 当前改动；维护者之后执行桌面手动验收，通过后再把 `v7-001` 标记为 `passing`。
-- V7.1 追加视觉调整已完成：统计区恢复彩色图标胶囊，识别记录 metadata 拆成小胶囊，记录动作按钮放到每条记录右下角。
-- V7.2 追加视觉调整已完成：识别记录标题去掉重复条数，总统计胶囊去掉内部嵌套胶囊；单条记录时间和正文同一行显示，正文换行时继续对齐正文列并留出时间列。
-- V7.3 追加视觉调整已完成：单条识别记录内时间和上屏文本改为垂直居中对齐，避免一个偏上一个偏下。
-- V7.4 追加视觉调整已完成：每条识别记录最后一行 metadata 胶囊和动作按钮整体右对齐并缩小尺寸，降低短文本记录里工具区喧宾夺主的问题。
-- 模型页已从单页重构为“模型选择”和“模型配置”两个页签；模型选择页只负责按住说话模型和连续输入模型默认值，模型配置页只显示本地 whisper.cpp、百度短语音、百度实时 WebSocket 的配置切换和当前配置面板。
-- 最新已通过：`npm test -- --run src/App.test.tsx`、`npm run typecheck`、`npm run build`、`git diff --check`。
-- 下一步：提交 V7.4 当前改动；维护者之后执行 Tauri 桌面手动验收，通过后再把 `v7-001` 标记为 `passing`。
+- V7 is closed and v7-001 is marked passing. Verification: npm test -- --run src/App.test.tsx passed with 17 tests; npm run typecheck passed; npm run build passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed; control-character scan passed.
+- User-visible Baidu model names now include API.
+- V8 will focus on real Baidu realtime WebSocket API integration, mainly for continuous input mode.
+- Before implementation, document protocol, auth, audio frame format, lifecycle, errors, and UI states.

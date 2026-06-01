@@ -2464,8 +2464,18 @@ kbd {
   justify-content: space-between;
 }
 
+.model-title-line {
+  align-items: baseline;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+}
+
 .model-header h1 {
-  font-size: 24px;
+  color: rgba(31, 54, 41, 0.64);
+  font-size: 12px;
+  font-weight: 660;
+  margin: 0;
 }
 
 .model-routing-section {
@@ -2518,35 +2528,6 @@ kbd {
   gap: 4px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 4px;
-}
-
-.model-panel .segmented-models button {
-  background: transparent;
-  border-color: transparent;
-  border-radius: 999px;
-  box-shadow: none;
-  color: rgba(43, 70, 53, 0.70);
-  gap: 7px;
-  min-height: 34px;
-  overflow: hidden;
-  padding: 6px 10px;
-  text-overflow: ellipsis;
-}
-
-.model-panel .segmented-models button[data-active="true"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(210, 241, 202, 0.90));
-  border-color: rgba(49, 139, 61, 0.20);
-  box-shadow: 0 8px 18px rgba(56, 106, 72, 0.10), inset 0 1px 0 rgba(255,255,255,0.88);
-  color: #0b2812;
-}
-
-.model-panel .segmented-models button[data-available="false"] {
-  color: rgba(54, 78, 63, 0.46);
-}
-
-.model-route-actions {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .model-config-heading {
@@ -3104,6 +3085,7 @@ kbd {
   flex-wrap: wrap;
   gap: 4px;
   justify-content: flex-end;
+  margin-left: auto;
   min-width: 0;
 }
 
@@ -3125,7 +3107,7 @@ kbd {
 .record-actions {
   gap: 3px;
   justify-content: flex-end;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .record-actions button,
@@ -3141,6 +3123,10 @@ kbd {
 
 .model-shell {
   max-width: 1160px;
+  align-content: start;
+  align-items: start;
+  padding-top: 18px;
+  place-items: start center;
 }
 
 .model-panel {
@@ -3148,7 +3134,12 @@ kbd {
     radial-gradient(ellipse at 50% 0%, rgba(84, 184, 89, 0.18), rgba(173, 222, 151, 0.10) 42%, rgba(255,255,255,0) 76%),
     linear-gradient(180deg, rgba(253,255,250,0.90), rgba(247,252,242,0.82)),
     rgba(255,255,255,0.78);
-  gap: 13px;
+  align-self: start;
+  border-color: rgba(50, 116, 62, 0.16);
+  border-radius: 18px;
+  box-shadow: 0 22px 58px rgba(54, 96, 58, 0.16), inset 0 1px 0 rgba(255,255,255,0.82);
+  gap: 12px;
+  padding: 16px;
 }
 
 .model-routing-section,
@@ -3321,101 +3312,67 @@ kbd {
   padding: 0;
 }
 
-.model-page-tabs {
-  background: rgba(238, 248, 231, 0.78);
+.model-page-tabs,
+.config-model-switch,
+.segmented-models.route-models {
+  margin-bottom: 2px;
+  background:
+    radial-gradient(ellipse at 50% 8%, rgba(93, 174, 86, 0.15), rgba(188, 226, 172, 0.10) 46%, rgba(251, 255, 248, 0.46) 82%),
+    linear-gradient(180deg, rgba(240, 251, 235, 0.78), rgba(251, 255, 248, 0.86));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.78);
   border: 1px solid rgba(53, 107, 74, 0.12);
   border-radius: 999px;
+  display: grid;
+  gap: 7px;
+  padding: 7px;
+}
+
+.model-page-tabs {
   display: inline-grid;
-  gap: 4px;
   grid-template-columns: repeat(2, minmax(112px, 1fr));
   justify-self: start;
-  padding: 4px;
 }
 
-.model-panel .model-page-tabs button {
-  background: transparent;
-  border-color: transparent;
+.config-model-switch,
+.segmented-models.route-models {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.model-panel .model-page-tabs button,
+.model-panel .route-model-button,
+.model-panel .config-switch-button {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(253, 255, 251, 0.90), rgba(241, 250, 236, 0.78));
+  border: 1px solid rgba(54, 107, 75, 0.18);
   border-radius: 999px;
-  box-shadow: none;
-  color: rgba(43, 70, 53, 0.68);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+  color: rgba(31, 75, 45, 0.78);
+  display: inline-flex;
   font-size: 12px;
   font-weight: 820;
-  min-height: 32px;
-  padding: 6px 14px;
+  gap: 7px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 16px;
 }
 
-.model-panel .model-page-tabs button[data-active="true"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(210, 241, 202, 0.90));
-  border-color: rgba(49, 139, 61, 0.18);
-  box-shadow: 0 8px 18px rgba(56, 106, 72, 0.08), inset 0 1px 0 rgba(255,255,255,0.88);
+.model-panel .model-page-tabs button[data-active="true"],
+.model-panel .route-model-button[data-active="true"],
+.model-panel .config-switch-button[data-active="true"] {
+  background: linear-gradient(180deg, rgba(210, 244, 201, 0.96), rgba(236, 250, 230, 0.90));
+  border-color: rgba(43, 137, 61, 0.28);
+  box-shadow: 0 8px 18px rgba(47, 125, 52, 0.12), inset 0 1px 0 rgba(255,255,255,0.88);
   color: #0b2812;
 }
 
-.route-models {
-  border-radius: 14px;
-}
-
 .model-panel .route-model-button {
-  align-items: center;
-  background: transparent;
-  border-color: transparent;
-  border-radius: 11px;
-  box-shadow: none;
-  color: rgba(43, 70, 53, 0.70);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 760;
-  gap: 7px;
-  justify-content: center;
-  min-height: 34px;
   overflow: hidden;
-  padding: 6px 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.model-panel .route-model-button[data-active="true"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(210, 241, 202, 0.90));
-  border-color: rgba(49, 139, 61, 0.20);
-  box-shadow: 0 8px 18px rgba(56, 106, 72, 0.10), inset 0 1px 0 rgba(255,255,255,0.88);
-  color: #0b2812;
-}
-
 .model-panel .route-model-button[data-available="false"] {
   color: rgba(54, 78, 63, 0.46);
-}
-
-.config-model-switch {
-  background: rgba(238, 248, 231, 0.78);
-  border: 1px solid rgba(53, 107, 74, 0.12);
-  border-radius: 14px;
-  display: grid;
-  gap: 5px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 5px;
-}
-
-.model-panel .config-switch-button {
-  align-items: center;
-  background: transparent;
-  border-color: transparent;
-  border-radius: 10px;
-  box-shadow: none;
-  color: rgba(43, 70, 53, 0.70);
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 780;
-  gap: 7px;
-  justify-content: center;
-  min-height: 34px;
-  padding: 7px 10px;
-}
-
-.model-panel .config-switch-button[data-active="true"] {
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(210, 241, 202, 0.90));
-  border-color: rgba(49, 139, 61, 0.20);
-  box-shadow: 0 8px 18px rgba(56, 106, 72, 0.10), inset 0 1px 0 rgba(255,255,255,0.88);
-  color: #0b2812;
 }
 
 .model-config-section,
@@ -3456,4 +3413,244 @@ kbd {
     column-gap: 8px;
     grid-template-columns: 68px minmax(0, 1fr);
   }
+}
+
+/* V7.6 selection page polish: make default model routing feel like main-window setting cards. */
+.model-routing-section {
+  align-self: start;
+  gap: 14px;
+  padding: 14px;
+}
+
+.model-routing-section .section-heading {
+  margin: 0 2px;
+}
+
+.mode-routing-card {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mode-model-row {
+  align-items: start;
+  background:
+    radial-gradient(ellipse at 50% 10%, rgba(93, 174, 86, 0.16), rgba(184, 225, 168, 0.10) 48%, rgba(252, 255, 249, 0.56) 84%),
+    linear-gradient(180deg, rgba(241, 252, 236, 0.80), rgba(255,255,255,0.78));
+  border: 1px solid rgba(54, 107, 75, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(54, 116, 62, 0.08), inset 0 1px 0 rgba(255,255,255,0.82);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  padding: 15px;
+}
+
+.mode-model-label {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.mode-model-label > span {
+  align-items: center;
+  color: rgba(19, 116, 45, 0.78);
+  display: inline-flex;
+  flex: 1 1 auto;
+  font-size: 12px;
+  gap: 6px;
+  font-weight: 840;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mode-label-pill {
+  background: rgba(232, 247, 224, 0.78);
+  border: 1px solid rgba(54, 107, 75, 0.10);
+  border-radius: 999px;
+  color: rgba(24, 70, 37, 0.76);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1;
+  overflow: hidden;
+  padding: 4px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-panel .route-model-button,
+.model-panel .config-switch-button {
+  min-height: 38px;
+  min-width: 0;
+  padding: 8px 16px;
+}
+
+.model-panel .route-model-button .ready-dot {
+  flex: 0 0 auto;
+}
+
+.model-panel .route-model-button span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  .mode-routing-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* V7.15 model config typography polish: keep the config page quiet and consistent. */
+.model-panel .model-config-section {
+  color: rgba(16, 40, 24, 0.88);
+  font-size: 12px;
+}
+
+.model-panel .model-config-heading span {
+  color: rgba(19, 116, 45, 0.76);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.2;
+}
+
+.model-panel .model-config-heading strong {
+  color: rgba(45, 79, 54, 0.58);
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1.25;
+}
+
+.model-panel .active-config-panel {
+  gap: 11px;
+}
+
+.model-panel .model-config-title span:first-child {
+  color: rgba(17, 91, 37, 0.82);
+  font-size: 13px;
+  font-weight: 840;
+  line-height: 1.2;
+}
+
+.model-panel .model-config-title strong {
+  color: rgba(45, 79, 54, 0.60);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.2;
+}
+
+.model-panel .field {
+  gap: 5px;
+}
+
+.model-panel .field span,
+.model-panel .model-config .field span {
+  color: rgba(31, 88, 47, 0.72);
+  font-size: 11px;
+  font-weight: 780;
+  line-height: 1.2;
+}
+
+.model-panel input,
+.model-panel select {
+  background: rgba(255,255,255,0.74);
+  border-color: rgba(54, 107, 75, 0.15);
+  border-radius: 9px;
+  color: rgba(16, 36, 26, 0.90);
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1.25;
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.model-panel input::placeholder {
+  color: rgba(54, 78, 63, 0.36);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.model-panel .secret-block {
+  gap: 9px;
+}
+
+.model-panel .cloud-key-status {
+  gap: 4px;
+  padding: 9px;
+}
+
+.model-panel .cloud-key-status span {
+  color: rgba(31, 88, 47, 0.72);
+  font-size: 11px;
+  font-weight: 780;
+  line-height: 1.2;
+}
+
+.model-panel .cloud-key-status strong {
+  color: rgba(16, 40, 24, 0.88);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.model-panel .cloud-key-status code {
+  color: rgba(43, 70, 53, 0.74);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.model-panel .cloud-key-status small {
+  color: rgba(45, 79, 54, 0.54);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.25;
+}
+
+.model-panel .runtime-message {
+  color: rgba(43, 70, 53, 0.66);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.model-panel .button-row {
+  gap: 8px;
+}
+
+.model-panel .button-row button,
+.model-panel .secret-block button {
+  font-size: 12px;
+  font-weight: 760;
+  min-height: 34px;
+  padding: 7px 12px;
+}
+
+
+/* V7.15 button color correction: no radial fill inside buttons, but keep the active green strong. */
+.model-panel .model-page-tabs button,
+.model-panel .route-model-button,
+.model-panel .config-switch-button {
+  background: linear-gradient(180deg, rgba(248, 255, 244, 0.96), rgba(224, 244, 216, 0.88));
+  border-color: rgba(54, 107, 75, 0.22);
+  color: rgba(22, 79, 39, 0.84);
+}
+
+.model-panel .model-page-tabs button[data-active="true"],
+.model-panel .route-model-button[data-active="true"],
+.model-panel .config-switch-button[data-active="true"] {
+  background: linear-gradient(180deg, rgba(199, 239, 189, 0.96), rgba(112, 197, 105, 0.88));
+  border-color: rgba(49, 139, 61, 0.30);
+  box-shadow: 0 8px 18px rgba(56, 106, 72, 0.12), inset 0 1px 0 rgba(255,255,255,0.86);
+  color: #0b2812;
 }

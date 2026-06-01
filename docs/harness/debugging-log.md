@@ -1810,3 +1810,243 @@ V7.1 将 metadata 和动作按钮结构化后，底部 footer 仍按左右分布
 ## 残余风险
 
 真实 Tauri 桌面窗口里的视觉比例仍需要维护者手动验收。
+# 2026-06-01 V7.5 model page polish and stale history error cleanup
+
+## 现象
+
+维护者复核 V7.4 后反馈：
+
+- 模型选择页默认内容垂直居中，顶部空白过大；页面命名更适合叫“模型选择配置”。
+- 模型选择配置页整体还不像主界面，未选中按钮存在感太弱，文本颜色、字号、padding 和 margin 不够统一。
+- 一次快捷键识别失败后，下一次快捷键识别可以成功上屏，但旧错误提示仍停留在识别记录区域。
+- 识别记录 footer 声称右对齐，但 metadata 胶囊仍靠左。
+
+## 根因
+
+- 模型页沿用早期 `.model-shell { place-items: center; }` 的居中策略，内容少时会被推到视口中间。
+- V7.2 的模型页按钮把未选中态做得过透明，和主界面的浅绿实体面按钮层级不一致。
+- 成功识别路径只调用 `addTranscriptRecord` 和更新 `status`，没有清空 `historyMessage`。
+- `.record-actions { margin-left: auto; }` 只把动作按钮推到右侧，metadata 自身仍停在左侧自然宽度位置。
+
+## 修复
+
+- 主界面入口和模型页标题改为“模型选择配置”，内部页签继续保留“模型选择”和“模型配置”。
+- 模型页改为顶部对齐，panel 阴影、圆角、padding 和浅绿色层次向主界面靠拢。
+- 模型页页签、模型选择按钮和模型配置按钮补强未选中态实体背景；选中态改为更深的绿色径向渐变。
+- `addTranscriptRecord` 在成功写入非空识别记录时清空 `historyMessage`，防止旧错误提示残留。
+- 识别记录 `.record-meta` 获得 `margin-left: auto`，动作按钮取消 auto margin，让 metadata 和 actions 作为一组靠右。
+
+## 验证
+
+- `bash init.sh` 通过。
+- 新增回归测试 `npm test -- --run src/App.test.tsx -t "clears a previous shortcut transcription error"` 修复后通过。
+- `npm test -- --run src/App.test.tsx` 通过，1 个测试文件、17 个测试。
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+- `python -m json.tool docs/harness/feature_list.json` 通过。
+- `git diff --check` 通过，仅有既有 CRLF/LF 提示，无 whitespace error。
+
+## 残余风险
+
+本轮自动验证覆盖 React 行为和 CSS 静态检查前的结构性改动；模型页最终视觉比例和记录 footer 的真实桌面观感仍需要维护者在 Tauri 桌面窗口手动验收。
+# 2026-06-01 V7.6 model selection page card layout
+
+## 现象
+
+维护者确认模型配置页样式已有明显改善，但模型选择页仍显得很丑。
+
+## 根因
+
+模型选择页仍沿用两行横向 segmented 控件：模式名、当前模型和三个模型按钮挤在同一行，视觉上不像主界面的设置卡，也缺少明确的选择容器层级。
+
+## 修复
+
+- 模型选择页改为两张并列的输入模式设置卡：按住说话和连续输入各自独立成块。
+- 每张卡顶部显示模式名和当前模型小状态胶囊，下方保留三个可选模型按钮。
+- 模型按钮从透明 segmented 风格改成卡片内实体按钮，未选中态和选中态都有明确绿色层次。
+
+## 验证
+
+- `npm test -- --run src/App.test.tsx` 通过，1 个测试文件、17 个测试。
+- `npm run typecheck` 通过。
+
+## 残余风险
+
+本轮仍属于 CSS 视觉修正；真实 Tauri 桌面窗口中的最终比例需要维护者手动验收。
+# 2026-06-01 V7.7 history total statistic units
+
+## 现象
+
+维护者反馈主界面总统计区里，条数需要显示单位“条”，数字统计需要显示单位“字”。
+
+## 根因
+
+V7 统计胶囊只显示裸数字，虽然 tooltip 有说明，但视觉上缺少单位，容易和其它数值混淆。
+
+## 修复
+
+- 总统计“识别次数”显示为数量加“条”单位。
+- 总统计“累计识别字数”显示为数量加“字”单位。
+- 同步更新前端回归测试断言。
+
+## 验证
+
+- `npm test -- --run src/App.test.tsx` 通过。
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+- `python -m json.tool docs/harness/feature_list.json` 通过。
+- `git diff --check` 通过，仅有既有 CRLF/LF 提示，无 whitespace error。
+
+# 2026-06-01 V7.8 model selection click-to-save and button visual alignment
+
+## 现象
+
+维护者反馈模型选择页的按钮选中态和未选中态应参考模型配置页；“保存默认模型”按钮显得多余，期望点击某个模型后直接切换并保存。
+
+## 根因
+
+模型选择页仍保留早期显式保存交互：点击模型按钮只更新 React state，必须再点“保存默认模型”才调用 `save_mode_model_preferences`。同时 V7.6 卡片化后覆盖了 `.route-model-button` 的布局和背景，使它和模型配置页的 `.config-switch-button` 视觉规则不完全一致。
+
+## 修复
+
+- 移除模型选择页的“保存默认模型”按钮和对应 prop。
+- 点击按住说话或连续输入的模型按钮时，立即更新本地选中态并调用 `saveModeModelPreferences` 持久化两种模式的默认模型。
+- 浏览器预览模式只更新本地状态并写诊断提示；Tauri 模式保存失败时写入诊断日志。
+- 模型选择页按钮容器、未选中态和选中态对齐模型配置页的三按钮风格，避免未选中按钮像不存在。
+- 清理已无 DOM 使用的 `.model-route-actions` 样式。
+
+## 验证
+
+- TDD 红灯：`npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"` 先失败于仍找到“保存默认模型”按钮。
+- 修复后同一目标测试通过，并验证点击连续输入 WebSocket 按钮会自动调用 `saveModeModelPreferences('baidu-short', 'baidu-realtime')`。
+
+## 残余风险
+
+自动测试覆盖点击即保存的行为；最终按钮视觉仍需要维护者在 Tauri 桌面窗口中按实际尺寸手动验收。
+
+# 2026-06-01 V7.9 model selection copy and tab-style buttons
+
+## 现象
+
+维护者反馈模型选择配置页仍有多余文字和层级问题：“分别选择”没有必要；“按住说话模型”应改成“选择 按住说话 模型”，其中输入模式名称用胶囊表达；已选中的模型不需要在标题行重复显示；三模型按钮应改成类似“模型选择 / 模型配置”页签的按钮样式；页面标题字体偏大，需参考主界面。
+
+## 根因
+
+V7.6/V7.8 仍保留了“标题 + 当前模型胶囊 + 选择按钮”的双重表达，导致每张卡里信息重复。模型页标题继承旧配置页的大号 `h1`，没有跟主界面 `VoxType + 小号页面说明` 的层级对齐。三模型按钮虽然可点击，但视觉上还是偏普通配置按钮，没有和顶部页签形成统一控件语言。
+
+## 修复
+
+- 删除“分别选择”辅助文字。
+- 将模式标题改为“选择 [按住说话] 模型”和“选择 [连续输入] 模型”，输入模式名称使用浅绿胶囊。
+- 删除标题行里重复显示的当前已选模型，仅用三模型按钮的选中态表达当前选择。
+- 三模型按钮容器和按钮改为顶部页签同类的浅绿胶囊 segmented 样式；选中态和未选中态都有明确按钮外观。
+- 将模型选择配置页 `h1` 调小为主界面副标题级别，颜色和字重跟主界面标题层级靠齐。
+
+## 验证
+
+- `npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"` 通过。
+- `npm run typecheck` 通过。
+
+## 残余风险
+
+本轮仍是 React/CSS 层面的自动验证；最终字号、间距和按钮质感需要维护者在 Tauri 桌面窗口里继续目测验收。
+
+# 2026-06-01 V7.10 model option button groups aligned with page tabs
+
+## 现象
+
+维护者继续反馈：本地模型、百度短语音、百度实时 WebSocket 三个模型选项的按钮组，应和“模型选择 / 模型配置”两个按钮组的样式一样。
+
+## 根因
+
+顶部页签 `.model-page-tabs` 已经形成比较清楚的浅绿胶囊 segmented 风格，但三模型组仍有两套历史样式：模型选择页的 `.route-models` 有部分覆盖，模型配置页的 `.config-model-switch` 仍使用较方的 14px 圆角和更厚的按钮背景。两者没有真正共用同一套容器和按钮规则。
+
+## 修复
+
+- 将 `.model-page-tabs`、`.config-model-switch`、`.segmented-models.route-models` 合并到同一套容器样式：浅绿背景、999px 圆角、4px gap/padding 和内高光。
+- 将 `.model-page-tabs button`、`.route-model-button`、`.config-switch-button` 合并到同一套按钮样式：未选中浅白胶囊、选中绿色径向渐变、相同边框/阴影/字号/高度。
+- 保留三模型组的三列布局，顶部页签继续是两列布局。
+
+## 验证
+
+- `npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"` 通过。
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+
+## 残余风险
+
+自动验证只能覆盖结构和构建；按钮组最终视觉一致性仍需要维护者在真实桌面窗口中确认。
+
+# 2026-06-01 V7.11 model option buttons CSS override root cause
+
+## Symptom
+
+The three model option buttons still looked unchanged: inactive buttons had no visible border and active buttons did not show the expected green background.
+
+## Root Cause
+
+The remaining `.model-panel .segmented-models button` rule still applied to `.segmented-models.route-models .route-model-button`, forcing transparent background and border values over the newer button styling.
+
+## Fix
+
+- Removed the stale segmented-model button override.
+- Unified `.model-page-tabs button`, `.route-model-button`, and `.config-switch-button` under one visible inactive state and one green active state.
+- Kept the selection page section accessible with aria-label while removing the visible redundant heading.
+
+## Verification
+
+- `npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"` passed.
+
+## Residual Risk
+
+Automated tests cover structure and behavior. Final visual acceptance still needs a Tauri desktop check.
+
+# 2026-06-01 V7.12 model selection panel gradient spacing polish
+
+## Change
+
+The two model selection panels now use a stronger green radial gradient treatment. Inactive model buttons also use a subtle radial gradient instead of a flat fill, and the route model button group has larger gap and padding so the buttons have more room inside the panel.
+
+## Verification
+
+`npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"` passed; `npm run typecheck` passed; `python -m json.tool docs/harness/feature_list.json` passed.
+
+# 2026-06-01 V7.13 model tab spacing alignment
+
+## Change
+
+The top model page tabs now use the same container gap and padding as the three-model button groups. The model configuration page's three model buttons also share the same height and padding as the model selection page buttons, keeping the two pages visually consistent.
+
+## Verification
+
+`npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"` passed; `npm run typecheck` passed; `python -m json.tool docs/harness/feature_list.json` passed.
+
+# 2026-06-01 V7.14 radial gradient direction polish
+
+## Change
+
+Model selection panels and segmented outer capsules now use a softer upper-center green radial gradient with lighter edges and lower areas. Individual model buttons no longer use radial gradients; inactive and active buttons use restrained linear green surfaces so the transition is less abrupt.
+
+## Verification
+
+Fresh verification passed: `npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"`, `npm run typecheck`, `npm run build`, `python -m json.tool docs/harness/feature_list.json`, and `git diff --check` (only existing CRLF/LF warnings).
+
+# 2026-06-01 V7.15 model config typography and button color polish
+
+## Change
+
+Model configuration page typography is now normalized under `.model-panel`: section headings, model config titles, field labels, input values, placeholders, secret status cards, runtime messages, and action buttons use consistent small green UI type. The three model option buttons still avoid radial gradients internally, but their selected state now matches the stronger green linear style used by the primary save buttons.
+
+## Verification
+
+Fresh verification passed: `npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"`, `npm run typecheck`, `npm run build`, `python -m json.tool docs/harness/feature_list.json`, and `git diff --check`.
+
+# 2026-06-01 V7.16 closeout and Baidu API naming
+
+## Change
+
+Maintainer confirmed the V7 visual style is basically acceptable. User-visible model names now consistently read `百度短语音 API` and `百度实时 WebSocket API` across the main readiness state, model selection buttons, and model configuration tabs.
+
+## Verification
+
+Verification: npm test -- --run src/App.test.tsx passed with 17 tests; npm run typecheck passed; npm run build passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed; control-character scan passed. V7 is marked passing in docs/harness/feature_list.json; V8 will handle real Baidu realtime WebSocket API integration.

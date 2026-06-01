@@ -2,15 +2,15 @@ import { useState } from 'react';
 import type { AsrConfigStatus, CloudAsrConfigStatus, ModelReadiness, TranscriptionModelId } from './types';
 
 const text = {
-  title: '\u6a21\u578b\u9009\u62e9',
+  title: '\u6a21\u578b\u9009\u62e9\u914d\u7f6e',
   back: '\u8fd4\u56de\u4e3b\u754c\u9762',
   defaultModels: '\u8f93\u5165\u6a21\u5f0f\u9ed8\u8ba4\u6a21\u578b',
   selectionPage: '\u6a21\u578b\u9009\u62e9',
   configPage: '\u6a21\u578b\u914d\u7f6e',
-  chooseSeparately: '\u5206\u522b\u9009\u62e9',
-  pushToTalkModel: '\u6309\u4f4f\u8bf4\u8bdd\u6a21\u578b',
-  toggleDictationModel: '\u8fde\u7eed\u8f93\u5165\u6a21\u578b',
-  saveDefaults: '\u4fdd\u5b58\u9ed8\u8ba4\u6a21\u578b',
+  pushToTalk: '\u6309\u4f4f\u8bf4\u8bdd',
+  toggleDictation: '\u8fde\u7eed\u8f93\u5165',
+  selectPrefix: '\u9009\u62e9',
+  selectSuffix: '\u6a21\u578b',
   modelConfig: '\u6a21\u578b\u914d\u7f6e',
   configDetail: '\u9009\u62e9\u4e00\u4e2a\u6a21\u578b\u540e\u7f16\u8f91\u5bf9\u5e94\u914d\u7f6e',
   local: '\u672c\u5730 whisper.cpp',
@@ -21,9 +21,9 @@ const text = {
   install: '\u4e00\u952e\u5b89\u88c5 whisper.cpp',
   checkAsr: '\u68c0\u6d4b ASR \u914d\u7f6e',
   saveAsr: '\u4fdd\u5b58 ASR \u914d\u7f6e',
-  baiduShort: '\u767e\u5ea6\u4e91\u7aef API \u77ed\u8bed\u97f3',
-  baiduShortLabel: '\u767e\u5ea6\u77ed\u8bed\u97f3',
-  baiduShortConfig: '\u767e\u5ea6\u77ed\u8bed\u97f3\u8bc6\u522b\u914d\u7f6e',
+  baiduShort: '\u767e\u5ea6\u77ed\u8bed\u97f3 API',
+  baiduShortLabel: '\u767e\u5ea6\u77ed\u8bed\u97f3 API',
+  baiduShortConfig: '\u767e\u5ea6\u77ed\u8bed\u97f3 API \u914d\u7f6e',
   apiKey: '\u767e\u5ea6 ASR API Key',
   apiKeyInput: '\u767e\u5ea6 ASR API Key \u8f93\u5165',
   secretKey: '\u767e\u5ea6 ASR Secret Key',
@@ -41,8 +41,8 @@ const text = {
   waitingEnv: '\u7b49\u5f85\u73af\u5883\u53d8\u91cf',
   pasteSecret: '\u7c98\u8d34\u540e\u4fdd\u5b58\u5230\u7528\u6237\u73af\u5883\u53d8\u91cf',
   baiduRealtime: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API',
-  baiduRealtimeLabel: '\u767e\u5ea6\u5b9e\u65f6 WebSocket',
-  realtimeConfig: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u914d\u7f6e',
+  baiduRealtimeLabel: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API',
+  realtimeConfig: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u914d\u7f6e',
   v8Only: 'V8 \u63a5\u5165\uff0c\u5f53\u524d\u7248\u672c\u4e0d\u53ef\u7528\u3002',
   v8Reserved: 'V8 \u9884\u7559',
   wsEndpoint: 'WebSocket Endpoint',
@@ -91,7 +91,6 @@ interface ModelSettingsViewProps {
   onBack: () => void;
   onPushToTalkModelChange: (value: TranscriptionModelId) => void;
   onToggleDictationModelChange: (value: TranscriptionModelId) => void;
-  onSaveModeModelPreferences: () => void;
   onWhisperBinaryPathChange: (value: string) => void;
   onWhisperModelPathChange: (value: string) => void;
   onAsrLanguageChange: (value: string) => void;
@@ -131,11 +130,11 @@ function ModelButton({ id, active, readiness, onClick }: { id: TranscriptionMode
   return <button className="route-model-button" type="button" data-active={active} data-available={readiness.availableInV7} onClick={onClick} title={readiness.message} aria-pressed={active}><span className="ready-dot" data-ready={readiness.ready} aria-hidden="true" /><span>{displayModelLabel(id)}</span></button>;
 }
 
-function ModeModelSelector({ label, value, onChange, readiness }: { label: string; value: TranscriptionModelId; onChange: (value: TranscriptionModelId) => void; readiness: Record<TranscriptionModelId, ModelReadiness> }) {
+function ModeModelSelector({ modeName, value, onChange, readiness }: { modeName: string; value: TranscriptionModelId; onChange: (value: TranscriptionModelId) => void; readiness: Record<TranscriptionModelId, ModelReadiness> }) {
   return (
     <div className="mode-model-row">
-      <div className="mode-model-label"><span>{label}</span><strong>{readiness[value].label}</strong></div>
-      <div className="segmented-models route-models" role="group" aria-label={`${label}\u9ed8\u8ba4\u6a21\u578b`}>
+      <div className="mode-model-label"><span>{text.selectPrefix}<span className="mode-label-pill">{modeName}</span>{text.selectSuffix}</span></div>
+      <div className="segmented-models route-models" role="group" aria-label={`${modeName}\u6a21\u578b\u9ed8\u8ba4\u6a21\u578b`}>
         {modelOptions.map((id) => <ModelButton key={id} id={id} active={value === id} readiness={readiness[id]} onClick={() => onChange(id)} />)}
       </div>
     </div>
@@ -154,7 +153,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
     <main className="app-shell model-shell">
       <section className="model-panel" aria-labelledby="model-title">
         <header className="model-header">
-          <div><span className="product-mark">VoxType</span><h1 id="model-title">{text.title}</h1></div>
+          <div className="model-title-line"><span className="product-mark">VoxType</span><h1 id="model-title">{text.title}</h1></div>
           <button className="secondary-button" type="button" onClick={props.onBack}>{text.back}</button>
         </header>
         <nav className="model-page-tabs" aria-label={text.title}>
@@ -162,12 +161,10 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
           <button type="button" data-active={activePage === 'config'} onClick={() => setActivePage('config')}>{text.configPage}</button>
         </nav>
         {activePage === 'selection' ? <section className="model-routing-section" aria-label={text.defaultModels}>
-          <div className="section-heading"><span>{text.defaultModels}</span><strong>{text.chooseSeparately}</strong></div>
           <div className="mode-routing-card">
-            <ModeModelSelector label={text.pushToTalkModel} value={props.pushToTalkModel} onChange={props.onPushToTalkModelChange} readiness={props.modelReadiness} />
-            <ModeModelSelector label={text.toggleDictationModel} value={props.toggleDictationModel} onChange={props.onToggleDictationModelChange} readiness={props.modelReadiness} />
+            <ModeModelSelector modeName={text.pushToTalk} value={props.pushToTalkModel} onChange={props.onPushToTalkModelChange} readiness={props.modelReadiness} />
+            <ModeModelSelector modeName={text.toggleDictation} value={props.toggleDictationModel} onChange={props.onToggleDictationModelChange} readiness={props.modelReadiness} />
           </div>
-          <div className="model-route-actions"><button type="button" onClick={props.onSaveModeModelPreferences}>{text.saveDefaults}</button></div>
         </section> : null}
         {activePage === 'config' ? <section className="model-config-section" aria-label={text.modelConfig}>
           <div className="section-heading model-config-heading"><span>{text.modelConfig}</span><strong>{text.configDetail}</strong></div>

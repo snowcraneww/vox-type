@@ -13,9 +13,9 @@ vi.mock('./tauriClient', async (importOriginal) => {
     isTauriRuntime: () => true,
     getConfig: vi.fn().mockResolvedValue({ hotkey: 'Ctrl+Alt+Space', language: 'zh-CN', asrEngine: 'whisper.cpp', insertionStrategy: 'clipboard', showStatusIndicator: true }),
     getAsrConfigStatus: vi.fn().mockResolvedValue({ whisperBinaryPath: null, whisperModelPath: null, language: 'zh', binaryConfigured: false, modelConfigured: false, binaryExists: false, modelExists: false, ready: false, source: 'default', message: 'ASR 未就绪' }),
-    getCloudAsrConfigStatus: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音识别配置完整。' }),
-    saveCloudAsrConfig: vi.fn().mockImplementation((config) => Promise.resolve({ config, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音识别配置完整。' })),
-    saveModeModelPreferences: vi.fn().mockResolvedValue({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short' }),
+    getCloudAsrConfigStatus: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' }),
+    saveCloudAsrConfig: vi.fn().mockImplementation((config) => Promise.resolve({ config, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' })),
+    saveModeModelPreferences: vi.fn().mockImplementation((pushToTalkModel, toggleDictationModel) => Promise.resolve({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel, toggleDictationModel })),
     saveBaiduAsrApiKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: false, secretKeySource: 'missing', secretKeyPreview: null, ready: false, message: 'Missing BAIDU_ASR_SECRET_KEY.' }),
     saveBaiduAsrSecretKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: 'Baidu ready.' }),
     getDefaultInputInfo: vi.fn().mockResolvedValue({ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }),
@@ -39,7 +39,7 @@ vi.mock('./tauriClient', async (importOriginal) => {
 });
 describe('App', () => {
   async function waitForBaiduReadiness() {
-    await waitFor(() => expect(screen.getAllByTitle('百度短语音识别配置完整。').length).toBeGreaterThanOrEqual(2));
+    await waitFor(() => expect(screen.getAllByTitle('百度短语音 API 配置完整。').length).toBeGreaterThanOrEqual(2));
   }
 
   beforeEach(() => {
@@ -72,11 +72,11 @@ describe('App', () => {
     expect(screen.getAllByText('连续输入').length).toBeGreaterThan(0);
     expect(screen.getByText('Ctrl+Alt+Space')).toBeInTheDocument();
     expect(screen.getByText('Ctrl+Alt+V')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '模型选择' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '模型选择配置' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: '准备状态' })).toBeInTheDocument();
     expect(screen.getByText('麦克风')).toBeInTheDocument();
     expect(screen.getByText('上屏')).toBeInTheDocument();
-    expect(screen.getAllByText('百度短语音').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('百度短语音 API').length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText('本地识别')).not.toBeInTheDocument();
     expect(screen.queryByText('云端 API')).not.toBeInTheDocument();
     expect(screen.queryByText('快捷键')).not.toBeInTheDocument();
@@ -87,9 +87,9 @@ describe('App', () => {
     expect(screen.getByText('等待第一次识别')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '清空全部识别记录' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '导出识别记录' })).toBeInTheDocument();
-    expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('0');
+    expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('0 条');
     expect(screen.getByTitle('本次运行累计录音时长')).toHaveTextContent('0:00');
-    expect(screen.getByTitle('本次运行累计识别字数')).toHaveTextContent('0');
+    expect(screen.getByTitle('本次运行累计识别字数')).toHaveTextContent('0 字');
     expect(await screen.findByText('Test Microphone')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '诊断' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '开始一次语音输入' })).not.toBeInTheDocument();
@@ -100,11 +100,11 @@ describe('App', () => {
 
   it('shows Baidu cloud readiness on the main window when Baidu is configured', async () => {
     const { getCloudAsrConfigStatus } = await import('./tauriClient');
-    vi.mocked(getCloudAsrConfigStatus).mockResolvedValueOnce({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音识别配置完整。' });
+    vi.mocked(getCloudAsrConfigStatus).mockResolvedValueOnce({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' });
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getAllByText('百度短语音').length).toBeGreaterThanOrEqual(2));
+    await waitFor(() => expect(screen.getAllByText('百度短语音 API').length).toBeGreaterThanOrEqual(2));
     expect(screen.queryByText('MiniMax 未就绪')).not.toBeInTheDocument();
   });
 
@@ -120,6 +120,28 @@ describe('App', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent('百度 ASR HTTP 404 Not Found');
     expect(screen.queryByText('测试文本')).not.toBeInTheDocument();
+  });
+
+  it('clears a previous shortcut transcription error after the next successful transcription', async () => {
+    vi.mocked(transcribeLastRecording)
+      .mockRejectedValueOnce({ code: 'asr_failed', message: '语音识别失败：百度 ASR HTTP 404 Not Found：404 page not found' })
+      .mockResolvedValueOnce({ engine: 'whisper.cpp', text: '恢复成功文本' });
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    await waitForBaiduReadiness();
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    expect(await screen.findByRole('status')).toHaveTextContent('百度 ASR HTTP 404 Not Found');
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(2));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    expect(await screen.findByText('恢复成功文本')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
   });
 
 
@@ -186,9 +208,9 @@ describe('App', () => {
     await screen.findByText('第二段文本');
     const firstRecord = screen.getAllByRole('article', { name: /识别记录/ })[0];
     expect(firstRecord).toHaveTextContent('第二段文本');
-    expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('2');
+    expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('2 条');
     expect(within(screen.getByTestId('history-toolbar')).getByTitle('本次运行累计录音时长')).toHaveTextContent('0:04');
-    expect(within(screen.getByTestId('history-toolbar')).getByTitle('本次运行累计识别字数')).toHaveTextContent('9');
+    expect(within(screen.getByTestId('history-toolbar')).getByTitle('本次运行累计识别字数')).toHaveTextContent('9 字');
 
     fireEvent.click(screen.getAllByRole('button', { name: '重新上屏此记录' })[0]);
     expect(insertTextWithClipboard).toHaveBeenLastCalledWith('第二段文本');
@@ -204,26 +226,28 @@ describe('App', () => {
   it('shows V7 mode model routing and removes MiniMax from model selection', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
 
-    expect(screen.getByRole('heading', { name: '模型选择' })).toBeInTheDocument();
-    expect(screen.getByText('输入模式默认模型')).toBeInTheDocument();
-    expect(screen.getByText('按住说话模型')).toBeInTheDocument();
-    expect(screen.getByText('连续输入模型')).toBeInTheDocument();
-    expect(screen.getAllByText('百度短语音').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('百度实时 WebSocket').length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: '模型选择配置' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '输入模式默认模型' })).toBeInTheDocument();
+    expect(screen.queryByText('输入模式默认模型')).not.toBeInTheDocument();
+    expect(screen.getByText('按住说话')).toBeInTheDocument();
+    expect(screen.getByText('连续输入')).toBeInTheDocument();
+    expect(screen.queryByText('分别选择')).not.toBeInTheDocument();
+    expect(screen.getAllByText('百度短语音 API').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('百度实时 WebSocket API').length).toBeGreaterThan(0);
     expect(screen.queryByText('MiniMax')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
     fireEvent.click(screen.getByRole('tab', { name: /本地 whisper\.cpp/ }));
     expect(screen.getByLabelText('whisper.cpp 可执行文件')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab', { name: /百度短语音/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /百度短语音 API/ }));
     expect(screen.getByLabelText('百度 ASR Endpoint')).toHaveValue('http://vop.baidu.com/server_api');
-    fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
     expect(screen.getByText('V8 接入，当前版本不可用。')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    expect(screen.queryByRole('button', { name: '保存默认模型' })).not.toBeInTheDocument();
     fireEvent.click(within(screen.getByRole('group', { name: '连续输入模型默认模型' })).getByRole('button', { name: /WebSocket/ }));
-    fireEvent.click(screen.getByRole('button', { name: '保存默认模型' }));
 
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
   });
@@ -247,10 +271,10 @@ describe('App', () => {
   it('configures Baidu short speech ASR without rendering the API key secret', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
     fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
 
-    expect(screen.getByRole('region', { name: '百度短语音识别配置' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '百度短语音 API 配置' })).toBeInTheDocument();
     expect(screen.getByText('BAIDU_ASR_API_KEY')).toBeInTheDocument();
     expect(screen.getByLabelText('百度 ASR API Key 输入')).toHaveAttribute('type', 'password');
     expect(screen.getByText('BAIDU_ASR_SECRET_KEY')).toBeInTheDocument();
@@ -286,7 +310,7 @@ describe('App', () => {
 
     await waitFor(() => expect(saveBaiduAsrApiKey).toHaveBeenCalledWith('baidu-secret-key'));
     expect(await screen.findByText('ba***ey')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: '百度短语音识别配置' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '百度短语音 API 配置' })).toBeInTheDocument();
     expect(screen.queryByText('MiniMax')).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('baidu-secret-key')).not.toBeInTheDocument();
     expect(screen.queryByText('baidu-secret-key')).not.toBeInTheDocument();
@@ -304,12 +328,12 @@ describe('App', () => {
   it('shows explicit feedback when testing Baidu ASR settings', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
     fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
     fireEvent.click(screen.getByRole('button', { name: '检测百度配置' }));
 
     expect(await screen.findByText(/百度配置检测/)).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: '百度短语音识别配置' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '百度短语音 API 配置' })).toBeInTheDocument();
   });
 
   it('lets the user reinsert and clear the latest transcript from the control center', async () => {
@@ -404,7 +428,7 @@ describe('App', () => {
       await vi.waitFor(() => expect(transcribeLastRecording).toHaveBeenCalledWith('baidu-short'));
       await vi.waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本'));
       expect(screen.getByText('测试文本')).toBeInTheDocument();
-      expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1');
+      expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
     } finally {
       vi.useRealTimers();
     }
