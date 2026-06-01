@@ -146,7 +146,7 @@
 
 ## 2026-06-01 V7 交接
 
-- V7 代码实现和自动验证已完成，当前工作区包含未提交实现改动。
+- V7 代码实现、UI polish 和自动验证已完成，当前工作区包含未提交实现改动。
 - 主界面准备状态已改为麦克风、上屏、按住说话模型、连续输入模型。
 - 模型选择页已改为两块：输入模式默认模型、模型配置。
 - 按住说话和连续输入可分别选择 `local-whisper`、`baidu-short`、`baidu-realtime`，默认都是 `baidu-short`，并通过 `save_mode_model_preferences` 持久化。
@@ -154,6 +154,7 @@
 - 百度短语音配置增加可选 `lm_id`，请求 JSON 会在配置存在时发送 `lm_id`。
 - 百度实时 WebSocket 只作为 V8 预留配置入口，当前选择后不能真实转写。
 - 已修复快捷键监听 stale state：全局快捷键事件处理会读取最新 ASR/cloud/model 状态。
+- 已修复 V7 UI 回归：主界面可见问号图标改为本地 inline SVG；模型选择页重新分层为输入模式默认模型、模型配置、密钥区和参数区；统计缩写改为中文标签。
 - 已通过：`npm test -- --run src/App.test.tsx`、`npm run typecheck`、`npm run build`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check`、`cargo check --manifest-path src-tauri/Cargo.toml --lib`、`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run`、`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run`、`python -m json.tool docs/harness/feature_list.json`、`git diff --check`。
 - `v7-001` 暂保持 `in_progress`：还需要维护者运行 Tauri 桌面环境，手动验收准备状态、模型选择持久化、MiniMax UI 移除、百度短语音真实转写、百度实时 WebSocket V8 占位和识别记录 metadata。
 - 下一步：提交 V7 当前改动；维护者之后执行桌面手动验收，通过后再把 `v7-001` 标记为 `passing`。

@@ -5,11 +5,14 @@ const text = {
   title: '\u6a21\u578b\u9009\u62e9',
   back: '\u8fd4\u56de\u4e3b\u754c\u9762',
   defaultModels: '\u8f93\u5165\u6a21\u5f0f\u9ed8\u8ba4\u6a21\u578b',
-  chooseSeparately: '\u5206\u522b\u9009\u62e9',
+  chooseSeparately: '\u5f53\u524d\u8def\u7531',
   pushToTalk: '\u6309\u4f4f\u8bf4\u8bdd',
+  pushToTalkModel: '\u6309\u4f4f\u8bf4\u8bdd\u6a21\u578b',
   toggleDictation: '\u8fde\u7eed\u8f93\u5165',
+  toggleDictationModel: '\u8fde\u7eed\u8f93\u5165\u6a21\u578b',
   saveDefaults: '\u4fdd\u5b58\u9ed8\u8ba4\u6a21\u578b',
   modelConfig: '\u6a21\u578b\u914d\u7f6e',
+  configDetail: '\u672c\u5730\u548c\u4e91\u7aef\u80fd\u529b',
   local: '\u672c\u5730 whisper.cpp',
   executable: 'whisper.cpp \u53ef\u6267\u884c\u6587\u4ef6',
   modelFile: 'Whisper \u6a21\u578b\u6587\u4ef6',
@@ -115,10 +118,10 @@ function ModeModelSelector({ label, value, onChange, readiness }: { label: strin
   const options: TranscriptionModelId[] = ['local-whisper', 'baidu-short', 'baidu-realtime'];
   return (
     <div className="mode-model-row">
-      <span>{label}</span>
+      <div className="mode-model-label"><span>{label}</span><strong>{readiness[value].label}</strong></div>
       <div className="segmented-models" role="group" aria-label={`${label}\u9ed8\u8ba4\u6a21\u578b`}>
         {options.map((id) => (
-          <button key={id} type="button" data-active={value === id} onClick={() => onChange(id)} title={readiness[id].message}>
+          <button key={id} type="button" data-active={value === id} data-available={readiness[id].availableInV7} onClick={() => onChange(id)} title={readiness[id].message}>
             <span className="ready-dot" data-ready={readiness[id].ready} aria-hidden="true" />
             {readiness[id].label}
           </button>
@@ -143,13 +146,16 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
         </header>
         <section className="model-routing-section" aria-label={text.defaultModels}>
           <div className="section-heading"><span>{text.defaultModels}</span><strong>{text.chooseSeparately}</strong></div>
-          <ModeModelSelector label={text.pushToTalk} value={props.pushToTalkModel} onChange={props.onPushToTalkModelChange} readiness={props.modelReadiness} />
-          <ModeModelSelector label={text.toggleDictation} value={props.toggleDictationModel} onChange={props.onToggleDictationModelChange} readiness={props.modelReadiness} />
-          <div className="button-row"><button type="button" onClick={props.onSaveModeModelPreferences}>{text.saveDefaults}</button></div>
+          <div className="mode-routing-card">
+            <ModeModelSelector label={text.pushToTalkModel} value={props.pushToTalkModel} onChange={props.onPushToTalkModelChange} readiness={props.modelReadiness} />
+            <ModeModelSelector label={text.toggleDictationModel} value={props.toggleDictationModel} onChange={props.onToggleDictationModelChange} readiness={props.modelReadiness} />
+          </div>
+          <div className="model-route-actions"><button type="button" onClick={props.onSaveModeModelPreferences}>{text.saveDefaults}</button></div>
         </section>
+        <div className="section-heading model-config-heading"><span>{text.modelConfig}</span><strong>{text.configDetail}</strong></div>
         <section className="model-config-grid" aria-label={text.modelConfig}>
           <section className="model-config" aria-label={`${text.local} \u914d\u7f6e`}>
-            <div className="section-heading"><span>{text.local}</span><strong><span className="ready-dot" data-ready={props.asrConfigStatus.ready} /></strong></div>
+            <div className="model-config-title"><div><span>{text.local}</span><strong>{props.asrConfigStatus.ready ? '\u5df2\u5c31\u7eea' : '\u672a\u5c31\u7eea'}</strong></div><span className="ready-dot" data-ready={props.asrConfigStatus.ready} /></div>
             <label className="field"><span>{text.executable}</span><input aria-label={text.executable} value={props.whisperBinaryPath} onChange={(event) => props.onWhisperBinaryPathChange(event.target.value)} placeholder="C:\\tools\\whisper.cpp\\whisper-cli.exe" /></label>
             <label className="field"><span>{text.modelFile}</span><input aria-label={text.modelFile} value={props.whisperModelPath} onChange={(event) => props.onWhisperModelPathChange(event.target.value)} placeholder="C:\\models\\ggml-small.bin" /></label>
             <label className="field"><span>{text.language}</span><input aria-label={text.language} value={props.asrLanguage} onChange={(event) => props.onAsrLanguageChange(event.target.value)} placeholder="zh" /></label>
@@ -157,32 +163,34 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             <div className="button-row"><button type="button" onClick={props.onInstallManagedAsr} disabled={props.isInstallingAsr}>{props.isInstallingAsr ? text.installing : text.install}</button><button type="button" onClick={props.onRefreshAsrConfig}>{text.checkAsr}</button><button type="button" onClick={props.onSaveAsrConfig}>{text.saveAsr}</button></div>
           </section>
           <section className="model-config cloud-config" aria-label={text.baiduShortConfig}>
-            <div className="section-heading"><span>{text.baiduShort}</span><strong><span className="ready-dot" data-ready={props.cloudAsrConfigStatus.ready} /></strong></div>
-            <div className="cloud-key-status"><span>{text.apiKey}</span><strong>{apiKeyState}</strong><code>BAIDU_ASR_API_KEY</code><small>{apiKeyDetail}</small></div>
-            <label className="field"><span>{text.apiKey}</span><input aria-label={text.apiKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudApiKeyInput} onChange={(event) => props.onCloudApiKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label>
-            <div className="button-row"><button type="button" onClick={props.onSaveBaiduAsrApiKey} disabled={!props.cloudApiKeyInput.trim()}>{text.saveApiKey}</button></div>
-            <div className="cloud-key-status"><span>{text.secretKey}</span><strong>{secretKeyState}</strong><code>BAIDU_ASR_SECRET_KEY</code><small>{secretKeyDetail}</small></div>
-            <label className="field"><span>{text.secretKey}</span><input aria-label={text.secretKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudSecretKeyInput} onChange={(event) => props.onCloudSecretKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label>
-            <div className="button-row"><button type="button" onClick={props.onSaveBaiduAsrSecretKey} disabled={!props.cloudSecretKeyInput.trim()}>{text.saveSecretKey}</button></div>
-            <label className="field"><span>{text.endpoint}</span><input aria-label={text.endpoint} value={props.cloudBaseUrl} onChange={(event) => props.onCloudBaseUrlChange(event.target.value)} /></label>
-            <label className="field"><span>{text.devPid}</span><input aria-label={text.devPid} value={props.cloudModel} onChange={(event) => props.onCloudModelChange(event.target.value)} /></label>
-            <label className="field"><span>{text.cuid}</span><input aria-label={text.cuid} value={props.cloudBaiduCuid} onChange={(event) => props.onCloudBaiduCuidChange(event.target.value)} /></label>
-            <label className="field"><span>{text.format}</span><input aria-label={text.format} value={props.cloudBaiduFormat} onChange={(event) => props.onCloudBaiduFormatChange(event.target.value)} /></label>
-            <label className="field"><span>{text.sampleRate}</span><input aria-label={text.sampleRate} type="number" value={props.cloudBaiduSampleRate} onChange={(event) => props.onCloudBaiduSampleRateChange(event.target.value)} /></label>
-            <label className="field"><span>{text.lmId}</span><input aria-label={text.lmId} value={props.cloudBaiduLmId} onChange={(event) => props.onCloudBaiduLmIdChange(event.target.value)} placeholder={text.lmPlaceholder} /></label>
-            <label className="field"><span>{text.language}</span><input aria-label={text.language} value={props.cloudLanguage} onChange={(event) => props.onCloudLanguageChange(event.target.value)} /></label>
+            <div className="model-config-title"><div><span>{text.baiduShort}</span><strong>{props.cloudAsrConfigStatus.ready ? '\u5df2\u5c31\u7eea' : '\u672a\u5c31\u7eea'}</strong></div><span className="ready-dot" data-ready={props.cloudAsrConfigStatus.ready} /></div>
+            <div className="secret-grid">
+              <div className="secret-block"><div className="cloud-key-status"><span>{text.apiKey}</span><strong>{apiKeyState}</strong><code>BAIDU_ASR_API_KEY</code><small>{apiKeyDetail}</small></div><label className="field"><span>{text.apiKey}</span><input aria-label={text.apiKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudApiKeyInput} onChange={(event) => props.onCloudApiKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrApiKey} disabled={!props.cloudApiKeyInput.trim()}>{text.saveApiKey}</button></div>
+              <div className="secret-block"><div className="cloud-key-status"><span>{text.secretKey}</span><strong>{secretKeyState}</strong><code>BAIDU_ASR_SECRET_KEY</code><small>{secretKeyDetail}</small></div><label className="field"><span>{text.secretKey}</span><input aria-label={text.secretKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudSecretKeyInput} onChange={(event) => props.onCloudSecretKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrSecretKey} disabled={!props.cloudSecretKeyInput.trim()}>{text.saveSecretKey}</button></div>
+            </div>
+            <div className="compact-field-grid">
+              <label className="field wide"><span>{text.endpoint}</span><input aria-label={text.endpoint} value={props.cloudBaseUrl} onChange={(event) => props.onCloudBaseUrlChange(event.target.value)} /></label>
+              <label className="field"><span>{text.devPid}</span><input aria-label={text.devPid} value={props.cloudModel} onChange={(event) => props.onCloudModelChange(event.target.value)} /></label>
+              <label className="field"><span>{text.cuid}</span><input aria-label={text.cuid} value={props.cloudBaiduCuid} onChange={(event) => props.onCloudBaiduCuidChange(event.target.value)} /></label>
+              <label className="field"><span>{text.format}</span><input aria-label={text.format} value={props.cloudBaiduFormat} onChange={(event) => props.onCloudBaiduFormatChange(event.target.value)} /></label>
+              <label className="field"><span>{text.sampleRate}</span><input aria-label={text.sampleRate} type="number" value={props.cloudBaiduSampleRate} onChange={(event) => props.onCloudBaiduSampleRateChange(event.target.value)} /></label>
+              <label className="field"><span>{text.lmId}</span><input aria-label={text.lmId} value={props.cloudBaiduLmId} onChange={(event) => props.onCloudBaiduLmIdChange(event.target.value)} placeholder={text.lmPlaceholder} /></label>
+              <label className="field"><span>{text.language}</span><input aria-label={text.language} value={props.cloudLanguage} onChange={(event) => props.onCloudLanguageChange(event.target.value)} /></label>
+            </div>
             <p className="runtime-message">{props.cloudMessage ?? props.cloudAsrConfigStatus.message}</p>
             <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
           </section>
-          <section className="model-config cloud-config" aria-label={text.realtimeConfig}>
-            <div className="section-heading"><span>{text.baiduRealtime}</span><strong><span className="ready-dot" data-ready={false} /></strong></div>
+          <section className="model-config cloud-config realtime-config" aria-label={text.realtimeConfig}>
+            <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>V8 预留</strong></div><span className="ready-dot" data-ready={false} /></div>
             <p className="runtime-message">{text.v8Only}</p>
-            <label className="field"><span>{text.wsEndpoint}</span><input aria-label={text.baiduRealtimeEndpointLabel} value={props.cloudBaiduRealtimeEndpoint} onChange={(event) => props.onCloudBaiduRealtimeEndpointChange(event.target.value)} /></label>
-            <label className="field"><span>{text.wsDevPid}</span><input aria-label={text.baiduRealtimeDevPidLabel} value={props.cloudBaiduRealtimeDevPid} onChange={(event) => props.onCloudBaiduRealtimeDevPidChange(event.target.value)} /></label>
-            <label className="field"><span>{text.wsCuid}</span><input aria-label={text.baiduRealtimeCuidLabel} value={props.cloudBaiduRealtimeCuid} onChange={(event) => props.onCloudBaiduRealtimeCuidChange(event.target.value)} /></label>
-            <label className="field"><span>{text.wsFormat}</span><input aria-label={text.baiduRealtimeFormatLabel} value={props.cloudBaiduRealtimeFormat} onChange={(event) => props.onCloudBaiduRealtimeFormatChange(event.target.value)} /></label>
-            <label className="field"><span>{text.wsSampleRate}</span><input aria-label={text.baiduRealtimeSampleRateLabel} type="number" value={props.cloudBaiduRealtimeSampleRate} onChange={(event) => props.onCloudBaiduRealtimeSampleRateChange(event.target.value)} /></label>
-            <label className="field"><span>{text.wsUser}</span><input aria-label={text.baiduRealtimeUserLabel} value={props.cloudBaiduRealtimeUser} onChange={(event) => props.onCloudBaiduRealtimeUserChange(event.target.value)} /></label>
+            <div className="compact-field-grid">
+              <label className="field wide"><span>{text.wsEndpoint}</span><input aria-label={text.baiduRealtimeEndpointLabel} value={props.cloudBaiduRealtimeEndpoint} onChange={(event) => props.onCloudBaiduRealtimeEndpointChange(event.target.value)} /></label>
+              <label className="field"><span>{text.wsDevPid}</span><input aria-label={text.baiduRealtimeDevPidLabel} value={props.cloudBaiduRealtimeDevPid} onChange={(event) => props.onCloudBaiduRealtimeDevPidChange(event.target.value)} /></label>
+              <label className="field"><span>{text.wsCuid}</span><input aria-label={text.baiduRealtimeCuidLabel} value={props.cloudBaiduRealtimeCuid} onChange={(event) => props.onCloudBaiduRealtimeCuidChange(event.target.value)} /></label>
+              <label className="field"><span>{text.wsFormat}</span><input aria-label={text.baiduRealtimeFormatLabel} value={props.cloudBaiduRealtimeFormat} onChange={(event) => props.onCloudBaiduRealtimeFormatChange(event.target.value)} /></label>
+              <label className="field"><span>{text.wsSampleRate}</span><input aria-label={text.baiduRealtimeSampleRateLabel} type="number" value={props.cloudBaiduRealtimeSampleRate} onChange={(event) => props.onCloudBaiduRealtimeSampleRateChange(event.target.value)} /></label>
+              <label className="field"><span>{text.wsUser}</span><input aria-label={text.baiduRealtimeUserLabel} value={props.cloudBaiduRealtimeUser} onChange={(event) => props.onCloudBaiduRealtimeUserChange(event.target.value)} /></label>
+            </div>
           </section>
         </section>
       </section>

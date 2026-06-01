@@ -208,8 +208,8 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: '模型选择' })).toBeInTheDocument();
     expect(screen.getByText('输入模式默认模型')).toBeInTheDocument();
-    expect(screen.getByText('按住说话')).toBeInTheDocument();
-    expect(screen.getByText('连续输入')).toBeInTheDocument();
+    expect(screen.getByText('按住说话模型')).toBeInTheDocument();
+    expect(screen.getByText('连续输入模型')).toBeInTheDocument();
     expect(screen.getAllByText('百度短语音').length).toBeGreaterThan(0);
     expect(screen.getAllByText('百度实时 WebSocket').length).toBeGreaterThan(0);
     expect(screen.queryByText('MiniMax')).not.toBeInTheDocument();
@@ -217,7 +217,7 @@ describe('App', () => {
     expect(screen.getByLabelText('百度 ASR Endpoint')).toHaveValue('http://vop.baidu.com/server_api');
     expect(screen.getByText('V8 接入，当前版本不可用。')).toBeInTheDocument();
 
-    fireEvent.click(within(screen.getByLabelText('连续输入默认模型')).getByRole('button', { name: /WebSocket/ }));
+    fireEvent.click(within(screen.getByLabelText('连续输入模型默认模型')).getByRole('button', { name: /WebSocket/ }));
     fireEvent.click(screen.getByRole('button', { name: '保存默认模型' }));
 
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));

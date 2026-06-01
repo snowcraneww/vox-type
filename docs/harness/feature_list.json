@@ -405,9 +405,10 @@
                 "2026-06-01: 维护者明确 V7 更新方向：按住说话和连续输入分别配置默认模型；百度实时 WebSocket 真实流式接入放到 V8；准备状态不再拆本地识别和云端 API，而是显示两种输入模式当前模型。",
                 "2026-06-01: 写入 V7 设计和计划：docs/superpowers/specs/2026-06-01-v7-model-routing-design.md 与 docs/superpowers/plans/2026-06-01-v7-model-routing.md。",
                 "2026-06-01: V7 当前实现已完成主界面准备状态重构、模型选择页结构重构、模式默认模型持久化、MiniMax UI 移除、百度 lm_id 配置、百度实时 WebSocket V8 占位、识别记录 metadata 和快捷键监听 stale state 修复。",
-                "2026-06-01: 已验证 npm test -- --run src/App.test.tsx 通过，16 个测试；npm run typecheck 通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；cargo check --manifest-path src-tauri/Cargo.toml --lib 通过；cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run 通过；cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；乱码标记扫描未发现 V7 相关文件存在 ???? 或 mojibake。"
+                "2026-06-01: 已验证 npm test -- --run src/App.test.tsx 通过，16 个测试；npm run typecheck 通过；npm run build 通过；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check 通过；cargo check --manifest-path src-tauri/Cargo.toml --lib 通过；cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run 通过；cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；乱码标记扫描未发现 V7 相关文件存在 ???? 或 mojibake。",
+                "2026-06-01: V7 UI polish 修复维护者反馈的可见问号图标和模型配置页杂乱问题：主界面动作按钮改为本地 inline SVG，模型页按输入模式默认模型、模型配置、密钥和参数分组重排，统计缩写改为中文标签；验证 npm test -- --run src/App.test.tsx、npm run typecheck、npm run build、python -m json.tool docs/harness/feature_list.json、git diff --check 通过，可见问号占位扫描无命中。"
             ],
-            "notes": "V7 代码和自动验证已完成，状态暂保持 in_progress，等待维护者在 Tauri 桌面环境手动验收准备状态、模型选择持久化、MiniMax UI 移除、百度短语音真实转写、百度实时 WebSocket V8 占位和识别记录 metadata 后再标记为 passing。"
+            "notes": "V7 代码、UI polish 和自动验证已完成，状态暂保持 in_progress，等待维护者在 Tauri 桌面环境手动验收准备状态、模型选择持久化、MiniMax UI 移除、百度短语音真实转写、百度实时 WebSocket V8 占位、识别记录 metadata 和 V7 UI polish 后再标记为 passing。"
         }
     ]
 }

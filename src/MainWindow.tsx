@@ -1,4 +1,5 @@
 
+import type { ReactNode } from 'react';
 import type { AppStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 const text = {
@@ -62,6 +63,18 @@ interface MainWindowProps {
   onOpenHotkeySettings: () => void;
 }
 
+type IconName = 'settings' | 'copy' | 'reinsert' | 'delete';
+
+function Icon({ name }: { name: IconName }) {
+  const paths: Record<IconName, ReactNode> = {
+    settings: <><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.05.05a2.2 2.2 0 0 1-3.11 3.11l-.05-.05a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66V21.5a2.2 2.2 0 0 1-4.4 0v-.08A1.8 1.8 0 0 0 8.05 19.75a1.8 1.8 0 0 0-1.98.36l-.05.05a2.2 2.2 0 0 1-3.11-3.11l.05-.05A1.8 1.8 0 0 0 3.32 15a1.8 1.8 0 0 0-1.66-1.1H1.6a2.2 2.2 0 0 1 0-4.4h.08A1.8 1.8 0 0 0 3.34 8.4a1.8 1.8 0 0 0-.36-1.98l-.05-.05a2.2 2.2 0 0 1 3.11-3.11l.05.05a1.8 1.8 0 0 0 1.98.36h.02A1.8 1.8 0 0 0 9.2 2.02V1.94a2.2 2.2 0 0 1 4.4 0v.08a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 1.98-.36l.05-.05a2.2 2.2 0 0 1 3.11 3.11l-.05.05a1.8 1.8 0 0 0-.36 1.98v.02a1.8 1.8 0 0 0 1.66 1.1h.08a2.2 2.2 0 0 1 0 4.4h-.08A1.8 1.8 0 0 0 19.4 15Z" /></>,
+    copy: <><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" /></>,
+    reinsert: <><path d="M9 14 5 10l4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-2" /></>,
+    delete: <><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></>,
+  };
+  return <svg className="ui-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
+}
+
 function formatDuration(ms: number) {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -99,7 +112,7 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
         </header>
         <div className="v51-top-grid">
           <section className="control-section mode-selector" aria-label={text.inputMode}>
-            <div className="section-heading"><span>{text.inputMode}</span><strong>{text.hotkeyStatus}</strong><button className="icon-only-button section-action" type="button" onClick={onOpenHotkeySettings} title={text.hotkeySettings} aria-label={text.hotkeySettings}>?</button></div>
+            <div className="section-heading"><span>{text.inputMode}</span><strong>{text.hotkeyStatus}</strong><button className="icon-only-button section-action" type="button" onClick={onOpenHotkeySettings} title={text.hotkeySettings} aria-label={text.hotkeySettings}><Icon name="settings" /></button></div>
             <article className="mode-card compact"><div className="mode-line"><h2>{text.pushToTalk}</h2><kbd>{pushToTalkHotkey}</kbd><span className="ready-dot" data-ready={hotkeysReady} title={hotkeysReady ? text.registered : text.unregistered} aria-label={hotkeysReady ? text.registered : text.unregistered} /></div></article>
             <article className="mode-card compact"><div className="mode-line"><h2>{text.toggleDictation}</h2><kbd>{toggleDictationHotkey}</kbd><span className="ready-dot" data-ready={hotkeysReady} title={hotkeysReady ? text.registered : text.unregistered} aria-label={hotkeysReady ? text.registered : text.unregistered} /></div></article>
           </section>
@@ -111,9 +124,9 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
           </section>
         </div>
         <section className="transcript-history" aria-label={text.history}>
-          <header className="history-header" data-testid="history-toolbar"><div className="history-title"><span>{text.history}</span><strong>{records.length} {text.itemUnit}</strong></div><div className="history-stats"><span title={text.countTitle}># {stats.count}</span><span title={text.durationTitle}>T {formatDuration(stats.totalDurationMs)}</span><span title={text.charsTitle}>W {stats.totalChars}</span><span title={text.speedTitle}>S {stats.charsPerMinute}/m</span></div><div className="history-actions"><button type="button" onClick={onClearRecords} disabled={records.length === 0} aria-label={text.clearAll} title={text.clearAll}>{text.clear}</button><button type="button" onClick={onExportRecords} disabled={records.length === 0} aria-label={text.exportAll} title={text.exportAll}>{text.export}</button></div></header>
+          <header className="history-header" data-testid="history-toolbar"><div className="history-title"><span>{text.history}</span><strong>{records.length} {text.itemUnit}</strong></div><div className="history-stats"><span title={text.countTitle}># {stats.count}</span><span title={text.durationTitle}>时长 {formatDuration(stats.totalDurationMs)}</span><span title={text.charsTitle}>字数 {stats.totalChars}</span><span title={text.speedTitle}>速度 {stats.charsPerMinute}/m</span></div><div className="history-actions"><button type="button" onClick={onClearRecords} disabled={records.length === 0} aria-label={text.clearAll} title={text.clearAll}>{text.clear}</button><button type="button" onClick={onExportRecords} disabled={records.length === 0} aria-label={text.exportAll} title={text.exportAll}>{text.export}</button></div></header>
           {historyMessage ? <p className="history-message" role="status">{historyMessage}</p> : null}
-          {records.length === 0 ? <div className="empty-history"><span>{text.empty}</span><strong>{text.emptyDetail}</strong></div> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`${text.history} ${record.time}`}><time>{record.time}</time><p>{record.text}</p><div className="record-meta"><span>{formatInputMode(record.inputMode)}</span><span>{formatModelLabel(record.modelId)}</span><span>{formatDuration(record.durationMs)}</span><span>{record.charCount} {text.charUnit}</span></div><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label={text.copy} title={text.copy}>?</button><button type="button" onClick={() => onReinsertRecord(record)} aria-label={text.reinsert} title={text.reinsert}>?</button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label={text.delete} title={text.delete}>?</button></div></article></li>)}</ol>}
+          {records.length === 0 ? <div className="empty-history"><span>{text.empty}</span><strong>{text.emptyDetail}</strong></div> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`${text.history} ${record.time}`}><time>{record.time}</time><p>{record.text}</p><div className="record-meta"><span>{formatInputMode(record.inputMode)}</span><span>{formatModelLabel(record.modelId)}</span><span>{formatDuration(record.durationMs)}</span><span>{record.charCount} {text.charUnit}</span></div><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label={text.copy} title={text.copy}><Icon name="copy" /></button><button type="button" onClick={() => onReinsertRecord(record)} aria-label={text.reinsert} title={text.reinsert}><Icon name="reinsert" /></button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label={text.delete} title={text.delete}><Icon name="delete" /></button></div></article></li>)}</ol>}
         </section>
       </section>
     </main>
