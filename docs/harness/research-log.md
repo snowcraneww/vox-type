@@ -84,3 +84,80 @@
 - Rust 用户论坛：Windows 透明 overlay 常见路线是 `WS_EX_LAYERED` 和 per-pixel alpha；点击穿透可评估 `WS_EX_TRANSPARENT`。
 
 当前结论：下一版只解决 overlay 外层白/灰框。先做低风险 Tauri `shadow: false` 和窗口刷新验证；如果维护者仍能看到白/灰框，再做 Windows-only 原生 layered overlay 原型，并保留 WebView overlay fallback。
+
+## MiniMax ASR 官方 endpoint 调研
+
+### 会话 2026-05-29
+
+目标：为 V6 Task 6 确认 MiniMax 官方 ASR / Speech-to-Text endpoint、认证头、音频上传字段、音频格式和返回文本字段。
+
+检索查询：
+
+- `MiniMax official speech to text ASR API documentation endpoint`
+- `site:minimax.io ASR speech recognition API MiniMax`
+- `site:platform.minimaxi.com speech to text API`
+
+查到的官方来源：
+
+- MiniMax API Overview: https://platform.minimax.io/docs/api-reference/api-overview
+- Text to Speech (T2A) HTTP: https://platform.minimax.io/docs/api-reference/speech-t2a-http
+- 中文开放平台异步语音合成: https://platform.minimaxi.com/docs/guides/speech-t2a-async
+- 中文开放平台同步语音合成 HTTP: https://platform.minimaxi.com/docs/api-reference/speech-t2a-http
+- 中文开放平台同步语音合成 WebSocket: https://platform.minimaxi.com/docs/api-reference/speech-t2a-websocket
+
+结论：本轮只确认到官方 TTS / T2A 文档和通用 API overview，没有找到官方 ASR / Speech-to-Text 文档页，也没有可靠确认 ASR endpoint、上传字段、音频格式和返回文本字段。Tavily 第三方结果中出现的 ASR endpoint 描述不作为实现依据。
+
+处理决定：V6 当前只保留 MiniMax 配置数据结构和 UI，不实现真实 MiniMax ASR 调用；Task 6 保持未完成，直到拿到官方 ASR 文档或维护者提供 endpoint 资料。
+
+### 会话 2026-06-01 Token Plan / MiniMax CLI 复核
+
+目标：复核维护者提供的 Token Plan 和 MiniMax CLI 官方入口，确认 Token Plan 中的 `Speech` 是否包含可用于 VoxType 听写的 ASR / Speech-to-Text 模型，以及是否存在官方调用方式。
+
+维护者提供入口：
+
+- Token Plan: https://platform.minimaxi.com/subscribe/token-plan
+- MiniMax CLI: https://platform.minimaxi.com/docs/token-plan/minimax-cli
+
+补充查到的官方来源：
+
+- Token Plan Overview: https://platform.minimax.io/docs/token-plan/intro
+- MiniMax CLI Guide: https://platform.minimax.io/docs/token-plan/minimax-cli
+- MiniMax API Overview: https://platform.minimax.io/docs/api-reference/api-overview
+- Text to Speech (T2A) HTTP: https://platform.minimax.io/docs/api-reference/speech-t2a-http
+- 官方 CLI 仓库: https://github.com/MiniMax-AI/cli
+
+官方证据：
+
+- Token Plan Overview 说明 Token Plan Key 可调用非 LLM 能力 `Speech, Image, Video, Music`，并引导通过 MiniMax CLI 使用。
+- MiniMax CLI 文档中的 speech 示例是 `mmx speech synthesize --text ...`，语义为语音合成。
+- 官方 T2A 文档 endpoint 是 `https://api.minimax.io/v1/t2a_v2`，模型示例包括 `speech-2.8-hd`、`speech-2.8-turbo`、`speech-2.6-hd`、`speech-2.6-turbo`、`speech-02-hd`、`speech-02-turbo`、`speech-01-hd`、`speech-01-turbo`，均为 Text-to-Speech 路径。
+- 官方 CLI 仓库中 speech 相关实现只确认到 `speech synthesize` 和 `speech voices`；源码路径包括 `src/commands/speech/synthesize.ts`、`src/commands/speech/voices.ts`、`src/sdk/speech/index.ts`。未找到 `asr`、`stt`、`transcribe`、`recognition` 等命令或 SDK 方法。
+
+结论：Token Plan 当前官方文档确实包含 `Speech` 能力，但已确认的调用路径是 TTS / 语音合成，不是 ASR / Speech-to-Text。没有找到可作为 VoxType 实现依据的官方 ASR 模型名、endpoint、上传字段、音频格式或返回文本字段。
+
+处理决定：V6 不切换到 MiniMax ASR；MiniMax 配置页继续只作为云端识别配置占位和 Key 管理入口。若后续要启用 MiniMax ASR，需要官方 ASR 文档，或维护者明确接受基于非官方接口做实验集成的风险。
+
+## 百度 ASR 官方接入调研
+
+### 会话 2026-06-01
+
+目标：根据维护者提供的百度智能云语音技术文档，确认是否存在可用于 VoxType 听写的 ASR API，并确定本轮配置页面应支持哪些字段。
+
+维护者提供入口：
+
+- 免费测试资源: https://cloud.baidu.com/doc/SPEECH/s/Wl9mh4doe
+- 短语音识别标准版 API: https://cloud.baidu.com/doc/SPEECH/s/Jlbxdezuf
+- 实时语音识别 WebSocket API: https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i
+
+官方证据：
+
+- 短语音识别标准版可将 60 秒以内语音识别为文字，适用于语音输入、语音交互、语音指令和语音搜索等短语音场景。
+- 短语音识别请求地址为 `POST http://vop.baidu.com/server_api`。
+- 音频支持 `pcm`、`wav`、`amr`、`m4a`，推荐 `pcm`；采样率支持 `16000` 和 `8000`，声道固定单声道，编码为 16bit。
+- JSON 上传字段包括 `format`、`rate`、`channel`、`cuid`、`token` 或 API Key 鉴权、`dev_pid`、`speech` 和 `len`。
+- 成功返回 JSON 中的 `result` 数组，通常取第一个候选文本。
+- 实时语音识别 WebSocket API 使用 `wss://vop.baidu.com/realtime_asr?sn=...`，适合后续真正流式识别，不适合作为当前停止后整段转写链路的第一步。
+
+处理决定：V6 增量支持百度短语音识别 provider 的配置和选择，默认 endpoint 为 `http://vop.baidu.com/server_api`、`dev_pid` 为 `1537`、`cuid` 为 `voxtype-local`、format 为 `pcm`、sample rate 为 `16000`。真实百度 ASR 调用不在本轮启用，后续应在独立任务中实现请求构造、鉴权验证、响应解析和端到端上屏验证。
+
+详细接入记录：`docs/integrations/baidu-asr.md`。

@@ -652,10 +652,10 @@ mod platform {
                 height,
                 radius,
                 Rgba {
-                    red: 3.0,
-                    green: 3.0,
-                    blue: 5.0,
-                    alpha: 0.94,
+                    red: 232.0,
+                    green: 247.0,
+                    blue: 226.0,
+                    alpha: 0.88,
                 },
             );
             self.fill_round_rect(
@@ -665,10 +665,10 @@ mod platform {
                 height - 2.4,
                 radius - 1.2,
                 Rgba {
-                    red: 2.0,
-                    green: 2.0,
-                    blue: 4.0,
-                    alpha: 0.98,
+                    red: 250.0,
+                    green: 255.0,
+                    blue: 244.0,
+                    alpha: 0.96,
                 },
             );
         }
@@ -820,10 +820,10 @@ mod platform {
 
     fn draw_recording_ghost_bars(canvas: &mut Canvas) {
         let ghost = Rgba {
-            red: 10.0,
-            green: 10.0,
-            blue: 14.0,
-            alpha: 0.42,
+            red: 112.0,
+            green: 163.0,
+            blue: 119.0,
+            alpha: 0.28,
         };
         let heights = [
             3.0, 5.0, 7.0, 4.0, 8.0, 6.0, 3.0, 7.0, 4.0, 8.0, 6.0, 3.0, 8.0, 5.0, 7.0, 4.0, 6.0,
@@ -839,12 +839,12 @@ mod platform {
     fn recording_palette(frame: u32) -> [Rgba; 6] {
         let phase = (frame % 6) as usize;
         let palette = [
-            rgb(90, 200, 250),
-            rgb(126, 231, 255),
-            rgb(52, 199, 89),
-            rgb(255, 214, 10),
-            rgb(255, 45, 146),
-            rgb(191, 90, 242),
+            rgb(44, 122, 63),
+            rgb(79, 184, 102),
+            rgb(123, 220, 139),
+            rgb(199, 239, 189),
+            rgb(104, 184, 118),
+            rgb(35, 107, 56),
         ];
         [
             palette[(6 - phase) % 6],

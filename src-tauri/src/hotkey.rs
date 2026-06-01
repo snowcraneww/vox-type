@@ -10,6 +10,12 @@ pub struct ToggleHotkeyBinding {
     pub accelerator: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeHotkeyBindings {
+    pub push_to_talk: String,
+    pub toggle_dictation: String,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct HotkeyRegistrationStatus {
@@ -50,6 +56,30 @@ impl Default for ToggleHotkeyBinding {
             accelerator: "Ctrl+Alt+V".to_string(),
         }
     }
+}
+
+pub fn runtime_bindings_from_preferences(
+    preferences: &crate::preferences::UserPreferences,
+) -> Result<RuntimeHotkeyBindings, String> {
+    let push_to_talk = preferences
+        .push_to_talk_hotkey
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(&HotkeyBinding::default().accelerator)
+        .to_string();
+    let toggle_dictation = preferences
+        .toggle_dictation_hotkey
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(&ToggleHotkeyBinding::default().accelerator)
+        .to_string();
+    validate_hotkey_pair(&push_to_talk, &toggle_dictation)?;
+    Ok(RuntimeHotkeyBindings {
+        push_to_talk,
+        toggle_dictation,
+    })
 }
 
 pub fn validate_hotkey_pair(push_to_talk: &str, toggle: &str) -> Result<(), String> {
@@ -250,6 +280,20 @@ mod tests {
             ToggleHotkeyBinding::default().accelerator,
             HotkeyBinding::default().accelerator
         );
+    }
+
+    #[test]
+    fn runtime_bindings_use_saved_preferences_with_defaults() {
+        let preferences = crate::preferences::UserPreferences {
+            selected_input_device_name: None,
+            push_to_talk_hotkey: Some("Ctrl+Shift+Space".to_string()),
+            toggle_dictation_hotkey: None,
+        };
+
+        let bindings = runtime_bindings_from_preferences(&preferences).unwrap();
+
+        assert_eq!(bindings.push_to_talk, "Ctrl+Shift+Space");
+        assert_eq!(bindings.toggle_dictation, "Ctrl+Alt+V");
     }
 
     #[test]

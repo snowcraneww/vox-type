@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -84,6 +84,26 @@ export async function getAsrConfigStatus(): Promise<AsrConfigStatus> {
   return invoke<AsrConfigStatus>('get_asr_config_status');
 }
 
+export async function getCloudAsrConfigStatus(): Promise<CloudAsrConfigStatus> {
+  return invoke<CloudAsrConfigStatus>('get_cloud_asr_config_status');
+}
+
+export async function saveCloudAsrConfig(config: CloudAsrConfig): Promise<CloudAsrConfigStatus> {
+  return invoke<CloudAsrConfigStatus>('save_cloud_asr_config', { config });
+}
+
+export async function saveMinimaxApiKey(apiKey: string): Promise<CloudAsrConfigStatus> {
+  return invoke<CloudAsrConfigStatus>('save_minimax_api_key', { apiKey });
+}
+
+export async function saveBaiduAsrApiKey(apiKey: string): Promise<CloudAsrConfigStatus> {
+  return invoke<CloudAsrConfigStatus>('save_baidu_asr_api_key', { apiKey });
+}
+
+export async function saveBaiduAsrSecretKey(secretKey: string): Promise<CloudAsrConfigStatus> {
+  return invoke<CloudAsrConfigStatus>('save_baidu_asr_secret_key', { secretKey });
+}
+
 export async function saveAsrConfig(config: AsrConfig): Promise<AsrConfigStatus> {
   return invoke<AsrConfigStatus>('save_asr_config', { config });
 }
@@ -98,6 +118,10 @@ export async function insertTextWithClipboard(text: string): Promise<void> {
 
 export async function showDictationOverlay(): Promise<void> {
   return invoke('show_dictation_overlay');
+}
+
+export async function showTranscribingOverlay(): Promise<void> {
+  return invoke('show_transcribing_overlay');
 }
 
 export async function hideDictationOverlay(): Promise<void> {

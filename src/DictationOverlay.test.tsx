@@ -32,6 +32,8 @@ describe('DictationOverlay', () => {
     expect(screen.getByRole('status', { name: '桌面语音输入状态：正在录音' })).toBeInTheDocument();
     expect(screen.queryByText('正在听')).not.toBeInTheDocument();
     expect(screen.queryByText('松开 Ctrl+Alt+Space 自动转写并上屏')).not.toBeInTheDocument();
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-theme', 'light-green');
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
     expect(document.querySelectorAll('.soundwave-bar')).toHaveLength(20);
     expect(document.querySelector('.ripple-capsule')).toBeInTheDocument();
     expect(document.querySelectorAll('.mini-wave-bar')).toHaveLength(0);
@@ -41,6 +43,7 @@ describe('DictationOverlay', () => {
     render(<DictationOverlay initialPayload={payload({ state: 'released', action: 'stopAndTranscribe' })} />);
 
     expect(screen.getByRole('status', { name: '桌面语音输入状态：正在识别' })).toBeInTheDocument();
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-theme', 'light-green');
     expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'transcribing');
     expect(document.querySelectorAll('.transcribing-dot')).toHaveLength(6);
     expect(document.querySelectorAll('.ripple-line')).toHaveLength(0);
@@ -53,12 +56,12 @@ describe('DictationOverlay', () => {
     expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
   });
 
-  it('keeps toggle stop in recording mode because live chunks already transcribe during recording', () => {
+  it('renders transcribing dots after toggle stop', () => {
     render(<DictationOverlay initialPayload={payload({ state: 'pressed', action: 'toggleStopAndTranscribe' })} />);
 
-    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在录音' })).toBeInTheDocument();
-    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'recording');
-    expect(document.querySelectorAll('.transcribing-dot')).toHaveLength(0);
+    expect(screen.getByRole('status', { name: '桌面语音输入状态：正在识别' })).toBeInTheDocument();
+    expect(document.querySelector('.wave-ripple')).toHaveAttribute('data-mode', 'transcribing');
+    expect(document.querySelectorAll('.transcribing-dot')).toHaveLength(6);
   });
 
   it('ignores key release events that do not change dictation state', async () => {

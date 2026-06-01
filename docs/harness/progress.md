@@ -3,12 +3,12 @@
 ## 当前已验证状态
 
 - 仓库根目录：当前 Git 工作树根目录
-- 当前阶段：MVP proof-of-life、V2 日常输入体验、V3 切换录音模式和 V4 原生无外框浮窗已完成；当前进入 V5 主窗体产品化重设计阶段。
+- 当前阶段：V6 已收尾；下一项为 V7 模型选择与配置页重构。
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`v5-001`，主窗体产品化重设计。
+- 当前最高优先级未完成项：`v7-001`，V7 模型选择与配置页重构。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
@@ -89,6 +89,24 @@
 - 2026-05-29 验证注意：`cargo test --manifest-path src-tauri/Cargo.toml preferences` 和既有 `hotkey` 测试均在运行测试二进制时报 `STATUS_ENTRYPOINT_NOT_FOUND`，已记录到 `docs/harness/debugging-log.md`；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 和 `npm run typecheck` 通过。
 - 2026-05-29 V6 Task 2 部分完成：新增快捷键成对校验，拒绝空快捷键和两个模式使用同一快捷键；新增 `save_hotkey_preferences` Tauri command 和前端 `saveHotkeyPreferences` client。当前保存后返回注册状态，但实际动态重新注册全局快捷键仍需后续补齐。
 - V6 Task 2 验证：`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo test --manifest-path src-tauri/Cargo.toml hotkey_validation --no-run` 通过；`npm run typecheck` 通过。
+- 2026-05-29 V6 Task 3 TDD：新增 `src/App.test.tsx` 前端测试，先确认 `npm test -- --run src/App.test.tsx` 失败于找不到 `快捷键设置` dialog。
+- 2026-05-29 V6 Task 3 实现：新增 `HotkeySettingsDialog`，主界面两个设置图标改为可点击；`App.tsx` 从用户偏好加载两个快捷键，并通过已有 `saveHotkeyPreferences` 调用保存。保存后显示状态并写入诊断日志；当前仍提示如系统响应旧快捷键，需重启 VoxType 验证。
+- V6 Task 3 验证：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、11 个测试；`npm run typecheck` 通过。
+- 2026-05-29 V6 Task 4 TDD：新增 `src-tauri/src/cloud_asr_config.rs` 配置测试，先确认 `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` 失败于 `save_cloud_asr_config_with_api_key` 未实现。
+- 2026-05-29 V6 Task 4 实现：新增 `cloud-asr-config.json` 配置读写、`CloudAsrConfig` / `CloudAsrConfigStatus`、MiniMax API Key 环境变量 `MINIMAX_API_KEY` 读取、脱敏预览和 ready 判定；真实 API Key 不写入配置文件。接入 `get_cloud_asr_config_status` / `save_cloud_asr_config` Tauri command 和前端 client/type。
+- V6 Task 4 验证：`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`npm run typecheck` 通过。本机完整 Rust 测试仍受 `STATUS_ENTRYPOINT_NOT_FOUND` 环境问题影响。
+- 2026-05-29 V6 Task 5 TDD：更新 `src/App.test.tsx`，先确认模型选择页云端 tab 仍是占位而找不到 `MINIMAX_API_KEY` 和 MiniMax 表单字段。
+- 2026-05-29 V6 Task 5 实现：`ModelSettingsView` 云端 tab 改为 MiniMax 配置表单，显示 `MINIMAX_API_KEY` 环境变量状态、Group ID、Base URL、模型和语言；`App.tsx` 接入读取、保存和本地完整性检测。真实 API Key 仍不提供明文输入和落盘。
+- V6 Task 5 验证：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、11 个测试；`npm run typecheck` 通过。
+- 2026-05-29 V6 Task 6 调研：使用 web-search 检索 MiniMax 官方 ASR / Speech-to-Text endpoint，仅找到官方 TTS / T2A 文档和 API overview，未找到可靠的官方 ASR endpoint、上传字段、音频格式或返回文本字段说明。结论已写入 `docs/harness/research-log.md`；Task 6 真实 ASR 调用暂不实现，避免硬编码非官方接口。
+- 2026-05-29 V6 快捷键 bugfix：根据维护者反馈，将两个模式卡片内的设置图标收敛为“快捷键状态”行的单个“自定义快捷键”按钮；快捷键对话框新增右上角关闭按钮；Rust 启动和保存后注册改为从用户偏好生成运行时绑定，保存后会 `unregister_all` 并重新注册新快捷键，不再假报成功。详情写入 `docs/harness/debugging-log.md`。
+- V6 快捷键 bugfix 验证：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、11 个测试；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml hotkey::tests::runtime_bindings_use_saved_preferences_with_defaults --no-run` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过。
+- 2026-06-01 V6 百度 ASR 配置 bugfix：修复保存 `BAIDU_ASR_API_KEY` 后 UI 回到 MiniMax 的问题；后端在保存百度 key 后会把磁盘云端 provider 切到百度短语音识别默认配置，前端保留用户当前 provider 选择；点击“检测百度配置”会显示明确的检测完成反馈。详情写入 `docs/harness/debugging-log.md`。
+- V6 百度 ASR 配置 bugfix 验证：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、15 个测试；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过。当前只完成百度配置保存/检测链路，真实百度 ASR 转写调用仍未接入。
+- 2026-06-01 V6 百度 ASR 真实调用增量：修复云端 provider 切换按钮选中态，避免 MiniMax 因为按钮行第一个按钮样式一直显示绿色；Windows 下读取 `BAIDU_ASR_API_KEY` 时新增 `HKCU\Environment` fallback，避免保存后因父进程环境块未刷新而重新运行仍显示 missing；`transcribe_last_recording` 在 provider 为 `baidu` 且配置 ready 时调用百度短语音识别 JSON API，配置未就绪时直接报错而不回退 whisper.cpp。详情写入 `docs/harness/debugging-log.md`。
+- V6 百度 ASR 真实调用增量验证：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、15 个测试；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run` 通过；`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过。真实网络效果仍需维护者在 Tauri 桌面环境用已保存的百度 key 和实际录音手动验证。
+- 2026-06-01 V6 百度 ASR 可见性 bugfix：主界面“云端 API”准备状态接入 `cloudAsrConfigStatus`，不再写死“未配置”；`Ctrl+Alt+Space` 快捷键闭环失败时会在识别记录区域显示错误，不再只写诊断日志；百度 endpoint 检测增加 `/server_api` 形状校验，减少错误 endpoint 直到真实调用才返回 404 的情况。详情写入 `docs/harness/debugging-log.md`。
+- V6 百度 ASR 可见性 bugfix 验证：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、17 个测试；`npm run typecheck` 通过；`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` 通过；`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过。
 
 - V5 实现进展：按计划拆出 `src/MainWindow.tsx` 和 `src/DiagnosticView.tsx`，`App.tsx` 主要保留运行时状态、Tauri command 调用和事件编排。
 - 默认主界面已改为“语音输入控制中心”：顶部状态、两种输入模式、四项准备状态、最近结果和诊断入口；不再把主窗体当作录音动效舞台。
@@ -634,3 +652,17 @@
 - 主界面不再过度空白：恢复一个轻量状态胶囊和最近文本预览，但不恢复系统信息卡片堆叠。
 - 主按钮图标从圆点改为小声波柱，与浮窗录音状态语言一致。
 - 验证：`npm test -- --run src/App.test.tsx src/VoiceOverlay.test.tsx` 通过；`npm run typecheck` 通过；`npm run build` 通过；`git diff --check` 通过。
+
+- 2026-05-30 V6 Task 7 实现：桌面 WebView fallback 浮窗和主窗体 `VoiceOverlay` 增加 `data-theme="light-green"`，CSS 将胶囊、声波、转写点和主窗体内嵌语音状态统一为浅绿体系；Windows native overlay 的软件像素绘制也改为浅绿胶囊和绿色波形 palette，保留每像素 alpha 与原有波形/六点动效算法。
+- 2026-05-30 V6 Task 6 收口：新增 `src-tauri/src/cloud_asr.rs` 作为 MiniMax 云端 ASR 抽象占位，能构造不含 API key 的请求配置并明确拒绝真实转写；因官方 ASR endpoint、上传字段和返回文本字段仍未确认，V6 不启用真实 MiniMax 转写，避免硬编码非官方接口。
+- V6 Task 6/7 验证：`npm test -- --run src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx` 通过，2 个测试文件、9 个测试；`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`npm run typecheck` 通过。
+- 2026-05-30 V6 维护者反馈修复：按住说话和连续输入停止后现在都会显式调用 `show_transcribing_overlay`，因此停止录音后保留六点转写动效直到处理完成；`DictationOverlay` 也将 `toggleStopAndTranscribe` 映射为 `transcribing`。连续输入的实时片段继续分段上屏，但识别记录只在停止后写入一条合并记录，并过滤常见短括号噪声片段。识别记录导出后在主界面显示“已复制 N 条记录到剪贴板”。
+- 2026-05-30 MiniMax API Key 输入策略更新：模型选择页增加 `type="password"` 的 MiniMax API Key 输入框，保存时写入 Windows 用户环境变量 `MINIMAX_API_KEY`；实现直接写 `HKCU\\Environment` 并广播环境变更，不通过命令行参数传递密钥。诊断日志、项目配置和文档仍不记录真实 Key。
+- 2026-05-30 V6 bugfix 自动验证通过：`npm test -- --run` 通过，6 个测试文件、28 个测试；`npm run typecheck` 通过；`npm run build` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` 通过；`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` 通过；`python -m json.tool docs/harness/feature_list.json` 通过；`git diff --check` 通过。`v6-001` 仍保持 `in_progress`，等待维护者手动验收真实快捷键、浮窗动效、连续输入历史合并、导出反馈和 MiniMax Key 写入。
+- 2026-06-01 MiniMax Token Plan / CLI 复核：根据维护者提供的 Token Plan 和 MiniMax CLI 官方入口补充调研。官方文档确认 Token Plan 的 `Speech` 能力可通过 MiniMax CLI 使用，但已确认路径是 `mmx speech synthesize`、T2A HTTP 和 voice 列表，属于 TTS / 语音合成；官方 CLI 仓库未发现 ASR/STT/transcribe/recognition 命令或 SDK 方法。因此 V6 仍不切换到 MiniMax ASR，真实转写继续使用本地 whisper.cpp，MiniMax 页保持 Key 管理和云端识别配置占位。结论已写入 `docs/harness/research-log.md`。
+- 2026-06-01 百度 ASR provider 配置增量：根据百度官方短语音识别标准版 API 文档新增 `docs/integrations/baidu-asr.md`，记录 `POST http://vop.baidu.com/server_api`、16 kHz mono PCM、JSON 字段、`dev_pid` 和 `result` 返回字段。V6 模型选择页云端 API 现在可在 MiniMax 和百度短语音识别之间切换；百度 provider 可保存 endpoint、dev_pid、cuid、format、sample rate 等非密钥字段，并通过密码输入框将 API Key 写入用户环境变量 `BAIDU_ASR_API_KEY`。本轮仍不启用真实百度 ASR 转写，默认真实转写继续走本地 whisper.cpp。
+
+- 2026-06-01 V6 Baidu ASR auth correction: official docs confirmed short speech endpoint `http://vop.baidu.com/server_api` and OAuth token endpoint `https://aip.baidubce.com/oauth/2.0/token`. VoxType now stores both `BAIDU_ASR_API_KEY` and `BAIDU_ASR_SECRET_KEY` in user environment variables, exchanges them for an access token, and sends only that access token as the ASR JSON `token`. Verification: `npm test -- --run src/App.test.tsx` passed; `npm run typecheck` passed; `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` passed; `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run` passed; `cargo check --manifest-path src-tauri/Cargo.toml --lib` passed.
+
+- 2026-06-01 V6 收尾：维护者手动验证百度短语音识别真实调用可用，endpoint 为 `http://vop.baidu.com/server_api`；配合已保存的 `BAIDU_ASR_API_KEY` 和 `BAIDU_ASR_SECRET_KEY` 可以准确识别。`v6-001` 已在 `docs/harness/feature_list.json` 标记为 `passing`。
+- 2026-06-01 V7 交接：新增 `v7-001`，下一版聚焦模型选择与配置页重构。本地 `whisper.cpp`、百度 API 和 MiniMax 需要并列作为转写引擎，选中状态要持久化，并区分“当前正在使用”和“配置是否完整”。

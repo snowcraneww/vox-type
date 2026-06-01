@@ -98,8 +98,14 @@ mod tests {
 
         let loaded = load_user_preferences(dir.path().to_path_buf());
 
-        assert_eq!(loaded.push_to_talk_hotkey.as_deref(), Some("Ctrl+Alt+Space"));
-        assert_eq!(loaded.toggle_dictation_hotkey.as_deref(), Some("Ctrl+Alt+V"));
+        assert_eq!(
+            loaded.push_to_talk_hotkey.as_deref(),
+            Some("Ctrl+Alt+Space")
+        );
+        assert_eq!(
+            loaded.toggle_dictation_hotkey.as_deref(),
+            Some("Ctrl+Alt+V")
+        );
     }
 
     #[test]
@@ -134,8 +140,17 @@ mod tests {
 
         let saved = save_user_preferences(dir.path().to_path_buf(), preferences).unwrap();
 
-        assert_eq!(saved.selected_input_device_name.as_deref(), Some("Remote Audio"));
-        assert_eq!(saved.push_to_talk_hotkey.as_deref(), Some("Ctrl+Shift+Space"));
-        assert_eq!(saved.toggle_dictation_hotkey.as_deref(), Some("Ctrl+Shift+V"));
+        assert_eq!(
+            saved.selected_input_device_name.as_deref(),
+            Some("Remote Audio")
+        );
+        assert_eq!(
+            saved.push_to_talk_hotkey.as_deref(),
+            Some("Ctrl+Shift+Space")
+        );
+        assert_eq!(
+            saved.toggle_dictation_hotkey.as_deref(),
+            Some("Ctrl+Shift+V")
+        );
     }
 }

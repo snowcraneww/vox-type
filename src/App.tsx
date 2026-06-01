@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DiagnosticView } from './DiagnosticView';
 import { formatDiagnosticsForCopy } from './diagnostics';
+import { HotkeySettingsDialog } from './HotkeySettingsDialog';
 import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
 import { formatError } from './errorFormat';
-import { exportLastRecordingWav, getAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, setInputDevice, showDictationOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { exportLastRecordingWav, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveMinimaxApiKey, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus, TranscriptRecord, TranscriptStats } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus, TranscriptRecord, TranscriptStats } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -28,7 +29,8 @@ const defaultConfig: AppConfig = {
   showStatusIndicator: true,
 };
 
-const toggleHotkey = 'Ctrl+Alt+V';
+const defaultPushToTalkHotkey = 'Ctrl+Alt+Space';
+const defaultToggleDictationHotkey = 'Ctrl+Alt+V';
 
 const initialStatus: AppStatus = {
   phase: 'idle',
@@ -50,7 +52,7 @@ const initialAsrConfigStatus: AsrConfigStatus = {
 };
 
 const initialHotkeyStatus: HotkeyRegistrationStatus = {
-  accelerator: 'Ctrl+Alt+Space',
+  accelerator: defaultPushToTalkHotkey,
   registered: false,
   message: '等待 Tauri 注册全局快捷键。',
 };
@@ -58,6 +60,27 @@ const initialHotkeyStatus: HotkeyRegistrationStatus = {
 const initialOverlayBackendStatus: OverlayBackendStatus = {
   backend: 'webview',
   lastError: null,
+};
+
+const initialCloudAsrConfigStatus: CloudAsrConfigStatus = {
+  config: {
+    provider: 'minimax',
+    groupId: null,
+    baseUrl: 'https://api.minimax.io',
+    model: 'speech-to-text',
+    language: 'zh',
+    baiduCuid: null,
+    baiduFormat: null,
+    baiduSampleRate: null,
+  },
+  apiKeyConfigured: false,
+  apiKeySource: 'missing',
+  apiKeyPreview: null,
+  secretKeyConfigured: true,
+  secretKeySource: 'not-required',
+  secretKeyPreview: null,
+  ready: false,
+  message: '等待 Tauri 读取 MiniMax 配置。',
 };
 
 export function App() {
@@ -77,13 +100,31 @@ export function App() {
   });
   const [runtimeMessage, setRuntimeMessage] = useState('浏览器预览模式：系统能力需要在 Tauri 中验证');
   const [asrConfigStatus, setAsrConfigStatus] = useState<AsrConfigStatus>(initialAsrConfigStatus);
+  const [cloudAsrConfigStatus, setCloudAsrConfigStatus] = useState<CloudAsrConfigStatus>(initialCloudAsrConfigStatus);
   const [hotkeyStatus, setHotkeyStatus] = useState<HotkeyRegistrationStatus>(initialHotkeyStatus);
   const [overlayBackendStatus, setOverlayBackendStatus] = useState<OverlayBackendStatus>(initialOverlayBackendStatus);
   const [whisperBinaryPath, setWhisperBinaryPath] = useState('');
   const [whisperModelPath, setWhisperModelPath] = useState('');
   const [asrLanguage, setAsrLanguage] = useState('zh');
+  const [cloudProvider, setCloudProvider] = useState('minimax');
+  const [cloudGroupId, setCloudGroupId] = useState('');
+  const [cloudBaseUrl, setCloudBaseUrl] = useState('https://api.minimax.io');
+  const [cloudModel, setCloudModel] = useState('speech-to-text');
+  const [cloudLanguage, setCloudLanguage] = useState('zh');
+  const [cloudBaiduCuid, setCloudBaiduCuid] = useState('voxtype-local');
+  const [cloudBaiduFormat, setCloudBaiduFormat] = useState('pcm');
+  const [cloudBaiduSampleRate, setCloudBaiduSampleRate] = useState('16000');
+  const [cloudApiKeyInput, setCloudApiKeyInput] = useState('');
+  const [cloudSecretKeyInput, setCloudSecretKeyInput] = useState('');
+  const [cloudMessage, setCloudMessage] = useState<string | null>(null);
   const [isInstallingAsr, setIsInstallingAsr] = useState(false);
+  const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
+  const [pushToTalkHotkey, setPushToTalkHotkey] = useState(defaultPushToTalkHotkey);
+  const [toggleDictationHotkeyInput, setToggleDictationHotkeyInput] = useState(defaultToggleDictationHotkey);
+  const [isSavingHotkeys, setIsSavingHotkeys] = useState(false);
+  const [hotkeySaveMessage, setHotkeySaveMessage] = useState<string | null>(null);
   const [transcriptRecords, setTranscriptRecords] = useState<TranscriptRecord[]>([]);
+  const [historyMessage, setHistoryMessage] = useState<string | null>(null);
   const didLoadRuntime = useRef(false);
   const nextDiagnosticIdRef = useRef(2);
   const nextTranscriptRecordIdRef = useRef(1);
@@ -92,6 +133,10 @@ export function App() {
   const liveCursorRef = useRef(0);
   const liveInFlightRef = useRef(false);
   const liveInsertedTextRef = useRef(false);
+  const liveSessionTextsRef = useRef<string[]>([]);
+  const liveSessionDurationMsRef = useRef(0);
+  const cloudProviderRef = useRef('minimax');
+  const cloudProviderTouchedRef = useRef(false);
   const diagnosticsEndRef = useRef<HTMLDivElement | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([
     {
@@ -121,6 +166,51 @@ export function App() {
     setAsrLanguage(nextStatus.language);
   }
 
+  function applyCloudAsrConfigStatus(nextStatus: CloudAsrConfigStatus) {
+    const provider = cloudProviderTouchedRef.current ? cloudProviderRef.current : nextStatus.config.provider || 'minimax';
+    const statusConfig = provider === nextStatus.config.provider
+      ? nextStatus.config
+      : {
+          ...nextStatus.config,
+          provider,
+          baseUrl: provider === 'baidu' ? 'http://vop.baidu.com/server_api' : 'https://api.minimax.io',
+          model: provider === 'baidu' ? '1537' : 'speech-to-text',
+          baiduCuid: provider === 'baidu' ? 'voxtype-local' : null,
+          baiduFormat: provider === 'baidu' ? 'pcm' : null,
+          baiduSampleRate: provider === 'baidu' ? 16000 : null,
+        };
+    setCloudAsrConfigStatus({ ...nextStatus, config: statusConfig });
+    setCloudProvider(provider);
+    cloudProviderRef.current = provider;
+    setCloudGroupId(nextStatus.config.groupId ?? '');
+    setCloudBaseUrl(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'http://vop.baidu.com/server_api' : nextStatus.config.baseUrl ?? (provider === 'baidu' ? 'http://vop.baidu.com/server_api' : 'https://api.minimax.io'));
+    setCloudModel(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? '1537' : nextStatus.config.model ?? (provider === 'baidu' ? '1537' : 'speech-to-text'));
+    setCloudLanguage(nextStatus.config.language ?? 'zh');
+    setCloudBaiduCuid(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'voxtype-local' : nextStatus.config.baiduCuid ?? 'voxtype-local');
+    setCloudBaiduFormat(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'pcm' : nextStatus.config.baiduFormat ?? 'pcm');
+    setCloudBaiduSampleRate(String(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 16000 : nextStatus.config.baiduSampleRate ?? 16000));
+    setCloudMessage(nextStatus.message);
+  }
+
+  function handleCloudProviderChange(provider: string) {
+    setCloudProvider(provider);
+    cloudProviderRef.current = provider;
+    cloudProviderTouchedRef.current = true;
+    setCloudApiKeyInput('');
+    setCloudSecretKeyInput('');
+    setCloudMessage(null);
+    if (provider === 'baidu') {
+      setCloudBaseUrl((value) => value && value !== 'https://api.minimax.io' ? value : 'http://vop.baidu.com/server_api');
+      setCloudModel((value) => value && value !== 'speech-to-text' ? value : '1537');
+      setCloudBaiduCuid((value) => value || 'voxtype-local');
+      setCloudBaiduFormat((value) => value || 'pcm');
+      setCloudBaiduSampleRate((value) => value || '16000');
+      return;
+    }
+    setCloudBaseUrl((value) => value && value !== 'http://vop.baidu.com/server_api' ? value : 'https://api.minimax.io');
+    setCloudModel((value) => value && value !== '1537' ? value : 'speech-to-text');
+  }
+
   useEffect(() => {
     if (didLoadRuntime.current) {
       return;
@@ -142,6 +232,10 @@ export function App() {
       setRuntimeMessage(`读取 ASR 配置失败：${detail}`);
       addDiagnostic({ title: '读取 ASR 配置失败', result: 'error', detail });
     });
+    void getCloudAsrConfigStatus().then(applyCloudAsrConfigStatus).catch((error: unknown) => {
+      const detail = formatError(error);
+      addDiagnostic({ title: '读取 MiniMax 配置失败', result: 'error', detail });
+    });
     void getDefaultInputInfo()
       .then((info) => {
         setRecorderInfo(info);
@@ -160,6 +254,8 @@ export function App() {
     void getUserPreferences()
       .then((preferences) => {
         setPreferredInputDeviceName(preferences.selectedInputDeviceName);
+        setPushToTalkHotkey(preferences.pushToTalkHotkey ?? defaultPushToTalkHotkey);
+        setToggleDictationHotkeyInput(preferences.toggleDictationHotkey ?? defaultToggleDictationHotkey);
       })
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取用户偏好失败', result: 'error', detail: formatError(error) });
@@ -242,6 +338,30 @@ export function App() {
     setTranscriptRecords((current) => [record, ...current]);
   }
 
+  function isLikelyNoiseTranscript(text: string) {
+    const normalizedText = text.trim().replace(/\s+/g, ' ');
+    if (!normalizedText) {
+      return true;
+    }
+    const unwrapped = normalizedText.replace(/^[（(]\s*/, '').replace(/\s*[）)]$/, '').trim();
+    const isWrapped = unwrapped !== normalizedText;
+    const knownNoise = ['字幕:J Chong', '字幕: J Chong', 'J Chong', '不知', '無法 寶寶', '无法 宝宝'];
+    return isWrapped && knownNoise.some((pattern) => unwrapped.includes(pattern));
+  }
+
+  function rememberLiveSessionText(text: string, durationMs: number) {
+    const normalizedText = text.trim();
+    if (!normalizedText || isLikelyNoiseTranscript(normalizedText)) {
+      return;
+    }
+    liveSessionTextsRef.current.push(normalizedText);
+    liveSessionDurationMsRef.current += Math.max(0, Math.round(durationMs));
+  }
+
+  function combinedLiveSessionText() {
+    return liveSessionTextsRef.current.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
   async function handleCopyRecord(record: TranscriptRecord) {
     try {
       await navigator.clipboard.writeText(record.text);
@@ -273,19 +393,24 @@ export function App() {
 
   function handleClearRecords() {
     setTranscriptRecords([]);
+    setHistoryMessage(null);
     addDiagnostic({ title: '识别记录已清空', result: 'info', detail: '本次运行期间的识别记录已清空。' });
   }
 
   async function handleExportRecords() {
     const text = transcriptRecords.map((record) => `[${record.time}] ${record.text}`).join('\n');
     if (!text) {
+      setHistoryMessage('没有可导出的识别记录');
       return;
     }
     try {
       await navigator.clipboard.writeText(text);
+      setHistoryMessage(`已复制 ${transcriptRecords.length} 条记录到剪贴板`);
       addDiagnostic({ title: '识别记录已导出', result: 'success', detail: `已复制 ${transcriptRecords.length} 条识别记录到剪贴板。` });
     } catch (error) {
-      addDiagnostic({ title: '导出识别记录失败', result: 'error', detail: formatError(error) });
+      const detail = formatError(error);
+      setHistoryMessage(`导出失败：${detail}`);
+      addDiagnostic({ title: '导出识别记录失败', result: 'error', detail });
     }
   }
 
@@ -403,6 +528,33 @@ export function App() {
       addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(error) });
     }
   }
+  async function handleSaveHotkeyPreferences() {
+    const nextPushToTalkHotkey = pushToTalkHotkey.trim();
+    const nextToggleDictationHotkey = toggleDictationHotkeyInput.trim();
+    if (!isTauriRuntime()) {
+      setHotkeySaveMessage('\u9700\u8981 Tauri \u684c\u9762\u73af\u5883\u4fdd\u5b58\u5feb\u6377\u952e\u3002');
+      addDiagnostic({ title: '\u5feb\u6377\u952e\u672a\u4fdd\u5b58', result: 'warning', detail: '\u6d4f\u89c8\u5668\u9884\u89c8\u6a21\u5f0f\u4e0d\u80fd\u5199\u5165 Tauri \u5e94\u7528\u914d\u7f6e\u3002' });
+      return;
+    }
+    setIsSavingHotkeys(true);
+    setHotkeySaveMessage(null);
+    try {
+      const nextStatus = await saveHotkeyPreferences(nextPushToTalkHotkey, nextToggleDictationHotkey);
+      setPushToTalkHotkey(nextPushToTalkHotkey);
+      setToggleDictationHotkeyInput(nextToggleDictationHotkey);
+      setHotkeyStatus(nextStatus);
+      const message = `${nextStatus.message}\u3002\u5df2\u5c1d\u8bd5\u7acb\u5373\u91cd\u65b0\u7ed1\u5b9a\u5168\u5c40\u5feb\u6377\u952e\u3002`;
+      setHotkeySaveMessage(message);
+      addDiagnostic({ title: nextStatus.registered ? '\u5feb\u6377\u952e\u504f\u597d\u5df2\u4fdd\u5b58' : '\u5feb\u6377\u952e\u504f\u597d\u4fdd\u5b58\u540e\u672a\u5c31\u7eea', result: nextStatus.registered ? 'success' : 'warning', detail: message });
+    } catch (error) {
+      const detail = formatError(error);
+      setHotkeySaveMessage(detail);
+      addDiagnostic({ title: '\u5feb\u6377\u952e\u504f\u597d\u4fdd\u5b58\u5931\u8d25', result: 'error', detail });
+    } finally {
+      setIsSavingHotkeys(false);
+    }
+  }
+
   async function handleRefreshHotkeyStatus() {
     if (!isTauriRuntime()) {
       addDiagnostic({ title: '全局快捷键状态未读取', result: 'warning', detail: '浏览器预览模式不能读取 Tauri 全局快捷键注册状态。' });
@@ -414,6 +566,126 @@ export function App() {
       addDiagnostic({ title: nextStatus.registered ? '全局快捷键已注册' : '全局快捷键未就绪', result: nextStatus.registered ? 'success' : 'warning', detail: nextStatus.message });
     } catch (error) {
       addDiagnostic({ title: '读取全局快捷键状态失败', result: 'error', detail: formatError(error) });
+    }
+  }
+
+  async function handleSaveCloudAsrConfig() {
+    if (!isTauriRuntime()) {
+      setCloudMessage('浏览器预览模式不能写入 Tauri 应用配置。');
+      addDiagnostic({ title: '云端 ASR 配置未保存', result: 'warning', detail: '浏览器预览模式不能写入 Tauri 应用配置。' });
+      return;
+    }
+    const baiduSampleRate = Number.parseInt(cloudBaiduSampleRate, 10);
+    try {
+      const nextStatus = await saveCloudAsrConfig({
+        provider: cloudProvider,
+        groupId: cloudGroupId.trim() || null,
+        baseUrl: cloudBaseUrl.trim() || null,
+        model: cloudModel.trim() || null,
+        language: cloudLanguage.trim() || 'zh',
+        baiduCuid: cloudBaiduCuid.trim() || null,
+        baiduFormat: cloudBaiduFormat.trim() || null,
+        baiduSampleRate: Number.isFinite(baiduSampleRate) ? baiduSampleRate : null,
+      });
+      applyCloudAsrConfigStatus(nextStatus);
+      const providerName = cloudProvider === 'baidu' ? '百度 ASR' : 'MiniMax';
+      addDiagnostic({ title: nextStatus.ready ? `${providerName} 配置已保存并就绪` : `${providerName} 配置已保存但未就绪`, result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
+    } catch (error) {
+      const detail = formatError(error);
+      setCloudMessage(detail);
+      addDiagnostic({ title: '云端 ASR 配置保存失败', result: 'error', detail });
+    }
+  }
+
+  async function handleSaveMinimaxApiKey() {
+    const apiKey = cloudApiKeyInput.trim();
+    if (!apiKey) {
+      setCloudMessage('请输入 MiniMax API Key。');
+      return;
+    }
+    if (!isTauriRuntime()) {
+      setCloudMessage('浏览器预览模式不能写入系统环境变量。');
+      addDiagnostic({ title: 'MiniMax API Key 未保存', result: 'warning', detail: '浏览器预览模式不能写入系统环境变量。' });
+      return;
+    }
+    try {
+      const nextStatus = await saveMinimaxApiKey(apiKey);
+      setCloudApiKeyInput('');
+      applyCloudAsrConfigStatus(nextStatus);
+      setCloudMessage('MiniMax API Key 已写入用户环境变量。重启 VoxType 后系统进程也会读取到新值。');
+      addDiagnostic({ title: 'MiniMax API Key 已保存', result: nextStatus.apiKeyConfigured ? 'success' : 'warning', detail: '已写入用户环境变量 MINIMAX_API_KEY，未记录密钥明文。' });
+    } catch (error) {
+      const detail = formatError(error);
+      setCloudMessage(detail);
+      addDiagnostic({ title: 'MiniMax API Key 保存失败', result: 'error', detail });
+    }
+  }
+
+  async function handleSaveBaiduAsrApiKey() {
+    const apiKey = cloudApiKeyInput.trim();
+    if (!apiKey) {
+      setCloudMessage('请输入百度 ASR API Key。');
+      return;
+    }
+    if (!isTauriRuntime()) {
+      setCloudMessage('浏览器预览模式不能写入系统环境变量。');
+      addDiagnostic({ title: '百度 ASR API Key 未保存', result: 'warning', detail: '浏览器预览模式不能写入系统环境变量。' });
+      return;
+    }
+    try {
+      const nextStatus = await saveBaiduAsrApiKey(apiKey);
+      setCloudApiKeyInput('');
+      applyCloudAsrConfigStatus(nextStatus);
+      setCloudMessage('百度 ASR API Key 已写入用户环境变量。重启 VoxType 后系统进程也会读取到新值。');
+      addDiagnostic({ title: '百度 ASR API Key 已保存', result: nextStatus.apiKeyConfigured ? 'success' : 'warning', detail: '已写入用户环境变量 BAIDU_ASR_API_KEY，未记录密钥明文。' });
+    } catch (error) {
+      const detail = formatError(error);
+      setCloudMessage(detail);
+      addDiagnostic({ title: '百度 ASR API Key 保存失败', result: 'error', detail });
+    }
+  }
+
+  async function handleSaveBaiduAsrSecretKey() {
+    const secretKey = cloudSecretKeyInput.trim();
+    if (!secretKey) {
+      setCloudMessage('请输入百度 ASR Secret Key。');
+      return;
+    }
+    if (!isTauriRuntime()) {
+      setCloudMessage('浏览器预览模式不能写入系统环境变量。');
+      addDiagnostic({ title: '百度 ASR Secret Key 未保存', result: 'warning', detail: '浏览器预览模式不能写入系统环境变量。' });
+      return;
+    }
+    try {
+      const nextStatus = await saveBaiduAsrSecretKey(secretKey);
+      setCloudSecretKeyInput('');
+      applyCloudAsrConfigStatus(nextStatus);
+      setCloudMessage('百度 ASR Secret Key 已写入用户环境变量。重启 VoxType 后系统进程也会读取到新值。');
+      addDiagnostic({ title: '百度 ASR Secret Key 已保存', result: nextStatus.secretKeyConfigured ? 'success' : 'warning', detail: '已写入用户环境变量 BAIDU_ASR_SECRET_KEY，未记录密钥明文。' });
+    } catch (error) {
+      const detail = formatError(error);
+      setCloudMessage(detail);
+      addDiagnostic({ title: '百度 ASR Secret Key 保存失败', result: 'error', detail });
+    }
+  }
+
+  async function handleTestCloudAsrConfig() {
+    if (!isTauriRuntime()) {
+      setCloudMessage('浏览器预览模式不能读取云端 ASR 配置。');
+      addDiagnostic({ title: '云端 ASR 配置未检测', result: 'warning', detail: '浏览器预览模式不能读取 Tauri 应用配置。' });
+      return;
+    }
+    try {
+      const nextStatus = await getCloudAsrConfigStatus();
+      applyCloudAsrConfigStatus(nextStatus);
+      const providerName = cloudProviderRef.current === 'baidu' ? '百度配置' : 'MiniMax 配置';
+      const message = `${providerName}检测完成：${nextStatus.message}`;
+      setCloudMessage(message);
+      addDiagnostic({ title: nextStatus.ready ? `${providerName}检测通过` : `${providerName}未就绪`, result: nextStatus.ready ? 'success' : 'warning', detail: message });
+    } catch (error) {
+      const detail = formatError(error);
+      setCloudMessage(detail);
+      addDiagnostic({ title: '云端 ASR 配置检测失败', result: 'error', detail });
     }
   }
 
@@ -493,7 +765,7 @@ export function App() {
       }
       setStatus({ phase: 'recording', message: '实验实时输入中，继续说话即可分段上屏', lastTranscript: text });
       await insertTextWithClipboard(text);
-      addTranscriptRecord(text, Math.round(chunk.asrSampleCount / 16), 'toggle');
+      rememberLiveSessionText(text, Math.round(chunk.asrSampleCount / 16));
       liveInsertedTextRef.current = true;
       addDiagnostic({ title: '实验实时片段已上屏', result: 'success', detail: `${chunk.transcript.engine} 返回 ${chunk.asrSampleCount} 个 ASR 样本的片段：${text}` });
     } catch (error) {
@@ -519,7 +791,7 @@ export function App() {
         return;
       }
       await insertTextWithClipboard(text);
-      addTranscriptRecord(text, Math.round(chunk.asrSampleCount / 16), 'toggle');
+      rememberLiveSessionText(text, Math.round(chunk.asrSampleCount / 16));
       liveInsertedTextRef.current = true;
       setStatus({ phase: 'succeeded', message: '实验实时输入尾段已上屏', lastTranscript: text });
       addDiagnostic({ title: '实验实时尾段已上屏', result: 'success', detail: `${chunk.transcript.engine} 返回 ${chunk.asrSampleCount} 个 ASR 样本的尾段：${text}` });
@@ -535,6 +807,8 @@ export function App() {
     }
     liveCursorRef.current = 0;
     liveInsertedTextRef.current = false;
+    liveSessionTextsRef.current = [];
+    liveSessionDurationMsRef.current = 0;
     stopLiveTranscriptionTimer();
     setStatus({ phase: 'recording', message: '实验实时输入中：会每隔几秒分段转写并上屏', lastTranscript: null });
     addDiagnostic({ title: '实验实时输入已启动', result: 'info', detail: '当前不是 whisper.cpp 真流式 partial，而是录音中定时切片、转写新增片段并上屏。' });
@@ -549,9 +823,9 @@ export function App() {
       const audio = await stopRecording();
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
       setStatus({ phase: 'transcribing', message: '录音已停止，正在处理最后一段', lastTranscript: null });
-      addDiagnostic({ title: '实验实时录音已停止', result: 'success', detail: `采集到 ${audio.sampleCount} 个 mono 样本，已立即停止录音流并隐藏浮窗。` });
-      await hideDictationOverlay().catch((error: unknown) => {
-        addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(error) });
+      addDiagnostic({ title: '实验实时录音已停止', result: 'success', detail: `采集到 ${audio.sampleCount} 个 mono 样本，已立即停止录音流并进入转写状态。` });
+      await showTranscribingOverlay().catch((error: unknown) => {
+        addDiagnostic({ title: '桌面转写浮窗显示失败', result: 'error', detail: formatError(error) });
       });
 
       await processFinalLiveTranscriptionChunk();
@@ -563,14 +837,24 @@ export function App() {
         setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: transcript.text });
         addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
       } else {
-        setStatus({ phase: 'succeeded', message: '实验实时输入已停止', lastTranscript: null });
-        addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: '尾段处理完成。' });
+        const sessionText = combinedLiveSessionText();
+        if (sessionText) {
+          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || audio.asrDurationMs, 'toggle');
+        }
+        setStatus({ phase: 'succeeded', message: '实验实时输入已停止', lastTranscript: sessionText || null });
+        addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: sessionText ? '尾段处理完成，已合并为一条识别记录。' : '尾段处理完成，本次仅产生疑似噪声片段，未写入识别记录。' });
       }
     } catch (error) {
       const detail = formatError(error);
       setRecordingStatus((current) => ({ ...current, state: 'idle' }));
       setStatus({ phase: 'failed', message: `实验实时输入失败：${detail}`, lastTranscript: null });
       addDiagnostic({ title: '实验实时输入失败', result: 'error', detail });
+      await hideDictationOverlay().catch((hideError: unknown) => {
+        addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(hideError) });
+      });
+    } finally {
+      liveSessionTextsRef.current = [];
+      liveSessionDurationMsRef.current = 0;
       await hideDictationOverlay().catch((hideError: unknown) => {
         addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(hideError) });
       });
@@ -588,6 +872,9 @@ export function App() {
       addDiagnostic({ title: '快捷键录音已停止', result: audio.sampleCount > 0 ? 'success' : 'warning', detail: `采集到 ${audio.sampleCount} 个 mono 样本，峰值音量 ${audio.peakAmplitude}，RMS 音量 ${audio.rmsAmplitude}。` });
 
       setStatus({ phase: 'transcribing', message: '正在识别刚才的语音', lastTranscript: null });
+      await showTranscribingOverlay().catch((error: unknown) => {
+        addDiagnostic({ title: '桌面转写浮窗显示失败', result: 'error', detail: formatError(error) });
+      });
       const transcript = await transcribeLastRecording();
       setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: transcript.text });
       await insertTextWithClipboard(transcript.text);
@@ -598,6 +885,7 @@ export function App() {
       const detail = formatError(error);
       setRecordingStatus((current) => ({ ...current, state: 'idle' }));
       setStatus({ phase: 'failed', message: `快捷键语音输入失败：${detail}`, lastTranscript: null });
+      setHistoryMessage(`语音识别失败：${detail}`);
       addDiagnostic({ title: '快捷键闭环失败', result: 'error', detail });
     } finally {
       await hideDictationOverlay().catch((error: unknown) => {
@@ -824,14 +1112,18 @@ export function App() {
 
   function renderUserView() {
     return (
+      <>
       <MainWindow
         status={status}
         asrConfigStatus={asrConfigStatus}
+        cloudAsrConfigStatus={cloudAsrConfigStatus}
         hotkeyStatus={hotkeyStatus}
-        toggleHotkey={toggleHotkey}
+        pushToTalkHotkey={pushToTalkHotkey}
+        toggleDictationHotkey={toggleDictationHotkeyInput}
         recorderInfo={recorderInfo}
         records={transcriptRecords}
         stats={transcriptStats}
+        historyMessage={historyMessage}
         onOpenDiagnostic={() => setViewMode('diagnostic')}
         onOpenModelSettings={() => setViewMode('model')}
         onCopyRecord={(record) => void handleCopyRecord(record)}
@@ -839,7 +1131,21 @@ export function App() {
         onDeleteRecord={handleDeleteRecord}
         onClearRecords={handleClearRecords}
         onExportRecords={() => void handleExportRecords()}
+        onOpenHotkeySettings={() => { setHotkeySaveMessage(null); setIsHotkeyDialogOpen(true); }}
       />
+      {isHotkeyDialogOpen ? (
+        <HotkeySettingsDialog
+          pushToTalkHotkey={pushToTalkHotkey}
+          toggleDictationHotkey={toggleDictationHotkeyInput}
+          isSaving={isSavingHotkeys}
+          message={hotkeySaveMessage}
+          onPushToTalkHotkeyChange={setPushToTalkHotkey}
+          onToggleDictationHotkeyChange={setToggleDictationHotkeyInput}
+          onSave={() => void handleSaveHotkeyPreferences()}
+          onClose={() => setIsHotkeyDialogOpen(false)}
+        />
+      ) : null}
+      </>
     );
   }
 
@@ -847,6 +1153,18 @@ export function App() {
     return (
       <ModelSettingsView
         asrConfigStatus={asrConfigStatus}
+        cloudAsrConfigStatus={cloudAsrConfigStatus}
+        cloudProvider={cloudProvider}
+        cloudGroupId={cloudGroupId}
+        cloudBaseUrl={cloudBaseUrl}
+        cloudModel={cloudModel}
+        cloudLanguage={cloudLanguage}
+        cloudBaiduCuid={cloudBaiduCuid}
+        cloudBaiduFormat={cloudBaiduFormat}
+        cloudBaiduSampleRate={cloudBaiduSampleRate}
+        cloudApiKeyInput={cloudApiKeyInput}
+        cloudSecretKeyInput={cloudSecretKeyInput}
+        cloudMessage={cloudMessage}
         whisperBinaryPath={whisperBinaryPath}
         whisperModelPath={whisperModelPath}
         asrLanguage={asrLanguage}
@@ -855,9 +1173,24 @@ export function App() {
         onWhisperBinaryPathChange={setWhisperBinaryPath}
         onWhisperModelPathChange={setWhisperModelPath}
         onAsrLanguageChange={setAsrLanguage}
+        onCloudProviderChange={handleCloudProviderChange}
+        onCloudGroupIdChange={setCloudGroupId}
+        onCloudBaseUrlChange={setCloudBaseUrl}
+        onCloudModelChange={setCloudModel}
+        onCloudLanguageChange={setCloudLanguage}
+        onCloudBaiduCuidChange={setCloudBaiduCuid}
+        onCloudBaiduFormatChange={setCloudBaiduFormat}
+        onCloudBaiduSampleRateChange={setCloudBaiduSampleRate}
+        onCloudApiKeyInputChange={setCloudApiKeyInput}
+        onCloudSecretKeyInputChange={setCloudSecretKeyInput}
         onInstallManagedAsr={() => void handleInstallManagedAsr()}
         onSaveAsrConfig={() => void handleSaveAsrConfig()}
         onRefreshAsrConfig={() => void handleRefreshAsrConfig()}
+        onSaveCloudAsrConfig={() => void handleSaveCloudAsrConfig()}
+        onSaveMinimaxApiKey={() => void handleSaveMinimaxApiKey()}
+        onSaveBaiduAsrApiKey={() => void handleSaveBaiduAsrApiKey()}
+        onSaveBaiduAsrSecretKey={() => void handleSaveBaiduAsrSecretKey()}
+        onTestCloudAsrConfig={() => void handleTestCloudAsrConfig()}
       />
     );
   }

@@ -1,6 +1,6 @@
 {
     "project": "VoxType",
-    "last_updated": "2026-05-29",
+    "last_updated": "2026-06-01",
     "rules": {
         "single_active_feature": true,
         "passing_requires_evidence": true,
@@ -250,7 +250,7 @@
             "area": "implementation",
             "title": "V5 主窗体产品化重设计",
             "user_visible_behavior": "维护者打开 VoxType 主窗体时看到的是以识别记录为主体的语音输入控制中心：能确认两种快捷键输入模式是否就绪、查看麦克风/本地识别/上屏/云端 API 准备状态、通过动态胶囊理解当前语音状态、管理本次运行识别记录，并从二级入口进入模型选择和诊断。",
-            "status": "in_progress",
+            "status": "passing",
             "verification": [
                 "运行 npm test -- --run。",
                 "运行 npm run typecheck。",
@@ -311,9 +311,96 @@
                 "2026-05-29: V5.10 自动验证通过：npm test -- --run src/App.test.tsx 通过，10 个测试；npm run typecheck 通过；python -m json.tool docs/harness/feature_list.json 通过；git diff --check 通过；npm run build 通过；隐私和乱码扫描未命中。",
                 "2026-05-29: 维护者确认当前浅绿主窗体版本比较满意；满意版已提交为 74aa469 style: align mode status indicators。",
                 "2026-05-29: 新增 V6 计划 docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md，下一版聚焦自定义快捷键、MiniMax 云端 API 配置和桌面录音浮窗浅绿化统一。",
-                "2026-05-29: V6 API Key 策略更新为环境变量优先：MiniMax 真实 API Key 默认只从 MINIMAX_API_KEY 读取，不写入仓库、日志、文档、测试快照或项目配置文件；项目配置只保存 provider/base URL/model/language 等非密钥字段。"
+                "2026-05-29: V6 API Key 策略更新为环境变量优先：MiniMax 真实 API Key 默认只从 MINIMAX_API_KEY 读取，不写入仓库、日志、文档、测试快照或项目配置文件；项目配置只保存 provider/base URL/model/language 等非密钥字段。",
+                "2026-05-29: V5 已由维护者确认满意并提交为 74aa469；V6 已开始独立任务，V5 状态同步为 passing。"
             ],
-            "notes": "V5.10 满意版已收尾；V6 计划已更新，下一版进入自定义快捷键、MiniMax 云端 API 配置和桌面浮窗浅绿化统一。"
+            "notes": "V5.10 满意版已收尾并提交；后续自定义快捷键、MiniMax 云端 API 配置和桌面浮窗浅绿化统一已切入 v6-001。"
+        },
+        {
+            "id": "v6-001",
+            "priority": 10,
+            "area": "implementation",
+            "title": "V6 自定义快捷键、云端 ASR 配置和浮窗浅绿统一",
+            "user_visible_behavior": "维护者可以从主界面输入模式区右上角的单个设置图标打开快捷键设置，保存按住说话和连续输入快捷键偏好并立即重新注册；模型选择页可在 MiniMax 和百度短语音识别之间切换云端 ASR provider，配置对应非密钥字段，并可通过密码输入框将 MiniMax 或百度 ASR API Key 写入用户环境变量；桌面录音浮窗已统一到浅绿视觉系统。",
+            "status": "passing",
+            "verification": [
+                "运行 npm test -- --run src/App.test.tsx。",
+                "运行 npm test -- --run src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx。",
+                "运行 npm run typecheck。",
+                "运行 cargo check --manifest-path src-tauri/Cargo.toml --lib。",
+                "运行 cargo test --manifest-path src-tauri/Cargo.toml hotkey::tests::runtime_bindings_use_saved_preferences_with_defaults --no-run。",
+                "运行 cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run。",
+                "运行 python -m json.tool docs/harness/feature_list.json。",
+                "运行 git diff --check。",
+                "手动验证主界面输入模式区右上角单个设置图标能打开快捷键设置对话框。",
+                "手动验证保存快捷键后无需重启即可触发新快捷键。",
+                "手动验证重复快捷键和非法快捷键有明确错误。",
+                "手动验证 MiniMax API Key 只从 MINIMAX_API_KEY 环境变量读取，不写入项目配置、日志或文档。",
+                "手动验证百度 ASR API Key 只从 BAIDU_ASR_API_KEY 环境变量读取，不写入项目配置、日志或文档。",
+                "手动验证桌面录音浮窗浅绿视觉统一后录音/转写动效仍存在。",
+                "手动验证 Ctrl+Alt+Space 松开后显示六点转写动效。",
+                "手动验证 Ctrl+Alt+V 第二次按下停止后显示六点转写动效。",
+                "手动验证 Ctrl+Alt+V 一次录音只在识别记录里生成一条合并记录，而不是每个实时片段一条。",
+                "手动验证识别记录导出后主界面显示已复制到剪贴板的反馈。",
+                "手动验证 MiniMax API Key 输入框以密码形式显示，保存后写入用户环境变量 MINIMAX_API_KEY，日志和配置不出现真实 Key。",
+                "手动验证模型选择页切换到百度短语音识别后显示 Endpoint、dev_pid、cuid、音频格式和采样率字段，并可保存非密钥配置。",
+                "手动验证百度 ASR API Key 输入框以密码形式显示，保存后写入用户环境变量 BAIDU_ASR_API_KEY，日志和配置不出现真实 Key。",
+                "手动验证百度 ASR Secret Key 输入框以密码形式显示，保存后写入用户环境变量 BAIDU_ASR_SECRET_KEY，日志和配置不出现真实 Secret Key。"
+            ],
+            "evidence": [
+                "2026-05-29: 写入 docs/superpowers/plans/2026-05-29-v6-hotkeys-and-minimax-cloud.md，范围包括自定义快捷键、MiniMax 云端 API 配置和桌面浮窗浅绿化统一。",
+                "2026-05-29: V6 API Key 策略更新为环境变量优先：MiniMax 真实 API Key 默认只从 MINIMAX_API_KEY 读取，不写入仓库、日志、文档、测试快照或项目配置文件；项目配置只保存 provider/base URL/model/language 等非密钥字段。",
+                "2026-05-29: V6 Task 1/2 已完成核心链路：新增快捷键偏好字段、快捷键成对校验、save_hotkey_preferences Tauri command 和 saveHotkeyPreferences 前端 client；启动和保存后都会按用户偏好注册运行时快捷键。",
+                "2026-05-29: V6 Task 3 使用 TDD 增加前端测试，先确认 npm test -- --run src/App.test.tsx 失败于找不到快捷键设置 dialog，再实现 HotkeySettingsDialog、主界面设置按钮和 App 保存状态。",
+                "2026-05-29: V6 Task 3 验证通过：npm test -- --run src/App.test.tsx 通过，1 个测试文件、11 个测试；npm run typecheck 通过。",
+                "2026-05-29: V6 Task 4 新增 cloud_asr_config Rust 模块，保存 MiniMax provider/groupId/baseUrl/model/language 等非密钥字段；真实 API Key 只从 MINIMAX_API_KEY 环境变量读取，状态只返回 env/missing 和脱敏预览。",
+                "2026-05-29: V6 Task 4 接入 get_cloud_asr_config_status / save_cloud_asr_config Tauri command，并新增 CloudAsrConfig / CloudAsrConfigStatus TypeScript 类型和前端 client。",
+                "2026-05-29: V6 Task 4 验证通过：cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run；cargo check --manifest-path src-tauri/Cargo.toml --lib；npm run typecheck。",
+                "2026-05-29: V6 Task 5 将模型选择页云端 API tab 从占位改为 MiniMax 配置表单，展示 MINIMAX_API_KEY 环境变量状态、Group ID、Base URL、模型、语言、保存和检测入口。",
+                "2026-05-29: V6 Task 5 保持真实 API Key 不输入、不落盘、不进入日志；UI 只展示已配置/未配置和脱敏预览。",
+                "2026-05-29: V6 Task 5 验证通过：npm test -- --run src/App.test.tsx；npm run typecheck。",
+                "2026-05-29: V6 Task 6 官方 endpoint 调研未找到 MiniMax ASR / Speech-to-Text 官方文档；只确认到官方 TTS / T2A 文档和 API overview。真实 MiniMax ASR 调用暂不实现，避免硬编码非官方接口；结论写入 docs/harness/research-log.md。",
+                "2026-05-29: 维护者反馈自定义快捷键入口应上移为单一设置图标、对话框需要可关闭、保存后新快捷键未实际生效；已定位根因为启动和保存后注册仍使用默认快捷键且保存 command 假报注册成功。",
+                "2026-05-29: V6 快捷键 bugfix 将入口收敛到输入模式标题行右上角的无底图标按钮，图标放大且无外圈；新增关闭快捷键设置按钮；全局快捷键插件改为启动时初始化一次，保存后通过 global_shortcut().unregister_all() 和 on_shortcuts(...) 重新注册新快捷键，避免重复安装插件和假成功。",
+                "2026-05-29: V6 快捷键 bugfix 验证通过：npm test -- --run src/App.test.tsx；npm run typecheck；cargo test --manifest-path src-tauri/Cargo.toml hotkey::tests::runtime_bindings_use_saved_preferences_with_defaults --no-run；cargo check --manifest-path src-tauri/Cargo.toml --lib。",
+                "2026-05-30: V6 Task 6 以占位抽象收口 MiniMax ASR 调用：新增 cloud_asr.rs，构造请求配置但真实转写明确返回未启用，原因是官方 ASR endpoint、上传字段和返回文本字段未确认。",
+                "2026-05-30: V6 Task 7 完成浅绿浮窗统一：DictationOverlay / VoiceOverlay 增加 light-green theme 标记，WebView fallback CSS 和 Windows native overlay 像素绘制均改为浅绿胶囊与绿色波形 palette，保留录音/转写动效。",
+                "2026-05-30: V6 Task 6/7 验证通过：npm test -- --run src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx；cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run；cargo check --manifest-path src-tauri/Cargo.toml --lib；npm run typecheck。",
+                "2026-05-30: V6 维护者反馈修复：按住说话和连续输入停止后都会显式调用 show_transcribing_overlay；WebView fallback 的 toggleStopAndTranscribe 也进入 transcribing 模式，保留六点转写动效直到处理完成。",
+                "2026-05-30: V6 连续输入历史修复：实时片段继续即时上屏，但识别记录只在停止后写入一条合并文本，并过滤常见短括号噪声片段。",
+                "2026-05-30: V6 导出反馈修复：识别记录导出后主界面显示已复制条数；失败时显示错误。",
+                "2026-05-30: V6 MiniMax API Key 输入修复：模型选择页新增 password 输入框，保存到 Windows 用户环境变量 MINIMAX_API_KEY；实现直接写 HKCU\\Environment，不通过命令行参数传递密钥。",
+                "2026-05-30: V6 bugfix 自动验证通过：npm test -- --run；npm run typecheck；npm run build；cargo check --manifest-path src-tauri/Cargo.toml --lib；cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings；cargo fmt --all --manifest-path src-tauri/Cargo.toml --check；python -m json.tool docs/harness/feature_list.json；git diff --check。",
+                "2026-06-01: 根据百度官方短语音识别标准版 API 文档新增 docs/integrations/baidu-asr.md，记录 endpoint、鉴权、音频要求、JSON 字段、dev_pid 和返回 result 字段。",
+                "2026-06-01: 模型选择页云端 API 支持 MiniMax / 百度短语音识别 provider 切换；百度 provider 保存 endpoint、dev_pid、cuid、format、sample rate 等非密钥字段，并通过密码输入框将 API Key 写入 BAIDU_ASR_API_KEY 用户环境变量。",
+                "2026-06-01: 百度短语音识别真实调用已接入 transcribe_last_recording：当前 provider 为 baidu 且配置 ready 时，用最近录音的 16 kHz mono PCM 构造 JSON 请求调用百度 endpoint；Windows 下读取 API Key 新增 HKCU\\Environment fallback，避免父进程环境变量未刷新导致误报 missing。",
+                "2026-06-01: 根据百度官方鉴权认证文档修正百度 ASR 鉴权链路：新增 BAIDU_ASR_SECRET_KEY，运行时先用 API Key + Secret Key 调用 https://aip.baidubce.com/oauth/2.0/token 获取 access_token，再把 access_token 作为 http://vop.baidu.com/server_api JSON 请求的 token 字段；API Key 和 Secret Key 不进入 ASR 请求 URL/body。验证通过：npm test -- --run src/App.test.tsx；npm run typecheck；cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run；cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run；cargo check --manifest-path src-tauri/Cargo.toml --lib。",
+                "2026-06-01: 维护者手动验证百度短语音识别真实调用可用：使用 http://vop.baidu.com/server_api、已保存的 BAIDU_ASR_API_KEY 和 BAIDU_ASR_SECRET_KEY，可以准确识别；V6 状态收口为 passing。"
+            ],
+            "notes": "V6 已收尾：自定义快捷键设置、MiniMax 非密钥配置、MiniMax API Key 写入用户环境变量、百度短语音识别 provider 配置、BAIDU_ASR_API_KEY/BAIDU_ASR_SECRET_KEY 写入用户环境变量、百度 access_token 获取和短语音识别整段转写调用、MiniMax ASR 占位抽象、浅绿浮窗统一、停止后转写动效、连续输入历史合并和导出反馈均已完成。MiniMax 因未找到官方 ASR endpoint 不启用真实调用。Rust cargo test 完整运行在本机测试二进制启动阶段仍有既有 STATUS_ENTRYPOINT_NOT_FOUND 环境风险，记录于 docs/harness/debugging-log.md。"
+        },
+        {
+            "id": "v7-001",
+            "priority": 10,
+            "area": "implementation",
+            "title": "V7 模型选择与配置页重构",
+            "user_visible_behavior": "模型选择页把本地 whisper.cpp、百度 API、MiniMax 三个转写引擎并列展示；用户点击任一模型即切换当前使用的转写引擎，选择会持久化并在重启后保持；主界面能清楚区分当前正在使用的模型和各模型配置是否完整。",
+            "status": "not_started",
+            "verification": [
+                "运行 npm test -- --run src/App.test.tsx。",
+                "运行 npm run typecheck。",
+                "运行 cargo check --manifest-path src-tauri/Cargo.toml --lib。",
+                "运行 python -m json.tool docs/harness/feature_list.json。",
+                "运行 git diff --check。",
+                "手动验证本地 whisper.cpp、百度 API、MiniMax 三个入口并列展示。",
+                "手动验证点击任一入口会切换当前转写引擎并持久化到重启后。",
+                "手动验证百度 API 默认可作为候选默认项，MiniMax 保留但标注未接通真实 ASR。",
+                "手动验证主界面显示当前使用模型，而不是写死 API 配置状态。"
+            ],
+            "evidence": [
+                "2026-06-01: 维护者明确 V7 方向：模型选择/模型配置页需要重构为本地 whisper.cpp、百度 API、MiniMax 三个并列入口；点击哪个就代表选中哪个，并记住状态；MiniMax 暂保留但标注未接通真实 ASR；需要区分当前使用模型和配置完整性。"
+            ],
+            "notes": "V7 不混入 V6 提交；开始实现前需要先更新设计/计划，重点是模型选择状态、配置状态、主界面状态三者的数据流对齐。"
         }
     ]
 }

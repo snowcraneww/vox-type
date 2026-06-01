@@ -1,5 +1,25 @@
 # 会话交接
 
+## 2026-06-01 V6 收尾与 V7 交接
+
+- 维护者已手动验证百度短语音识别真实调用可用：`http://vop.baidu.com/server_api` 配合已保存的 `BAIDU_ASR_API_KEY` 和 `BAIDU_ASR_SECRET_KEY` 可以准确识别。
+- V6 可以先收尾提交：自定义快捷键、浅绿浮窗、停止后转写动效、连续输入记录合并、识别记录导出反馈、MiniMax Key 管理、百度 ASR 配置和真实调用均已进入当前实现。
+- 下个版本建议聚焦模型选择/模型配置页面重构，不混入 V6 提交。
+- V7 目标：模型选择需要清楚表达“当前选中的转写引擎”，并允许用户持久化切换。
+- V7 交互方向：本地 whisper.cpp、百度 API、MiniMax 三个模型入口并列展示，而不是“云端 API”下面再嵌套 provider 按钮。
+- V7 默认候选：百度 API 可作为默认选中项；MiniMax 暂时保留但标注为未接通真实 ASR；本地模型仍可被用户选中并记住。
+- V7 状态要求：用户点击任一模型卡/按钮即代表切换当前转写引擎，保存到配置；重启后保持上次选择；主界面云端/本地状态必须跟随真实选择动态显示。
+- V7 设计注意：需要重新设计模型配置页的信息架构，避免“当前配置完整”和“当前正在使用”混淆。
+
+## 2026-05-30 V6 当前交接
+
+- 当前唯一活跃任务：`v6-001`，状态仍为 `in_progress`，原因是代码和自动验证已完成，但还等待维护者统一手动验收真实桌面行为。
+- 本轮已修复维护者反馈：`Ctrl+Alt+Space` 松开后显示六点转写动效；`Ctrl+Alt+V` 第二次停止后显示六点转写动效；连续输入的识别记录合并为一次录音一条记录；识别记录导出后主界面显示复制反馈；MiniMax API Key 使用密码输入框并写入用户环境变量 `MINIMAX_API_KEY`。
+- MiniMax Key 写入实现：Windows 下直接写 `HKCU\\Environment` 并广播环境变更，不通过 `setx` 命令行参数传递密钥；诊断日志、项目配置和文档只记录变量名或脱敏状态，不记录真实 Key。
+- MiniMax 真实 ASR 仍未启用：官方 ASR endpoint、上传字段和返回文本字段未确认，当前只有配置、状态检测和占位抽象。
+- 自动验证已通过：`npm test -- --run`、`npm run typecheck`、`npm run build`、`cargo check --manifest-path src-tauri/Cargo.toml --lib`、`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check`、`python -m json.tool docs/harness/feature_list.json`、`git diff --check`。
+- 下一步：让维护者运行 `npm run tauri -- dev`，按 V6 手动验收清单验证真实快捷键、原生浮窗动效、连续输入历史、导出反馈和 MiniMax Key 写入。通过后再把 `v6-001` 标记为 `passing`。
+
 ## 当前已验证
 
 - `bash init.sh` 通过。

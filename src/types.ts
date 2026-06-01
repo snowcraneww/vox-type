@@ -96,3 +96,26 @@ export interface HotkeyRegistrationStatus {
   registered: boolean;
   message: string;
 }
+
+export interface CloudAsrConfig {
+  provider: string;
+  groupId: string | null;
+  baseUrl: string | null;
+  model: string | null;
+  language: string | null;
+  baiduCuid: string | null;
+  baiduFormat: string | null;
+  baiduSampleRate: number | null;
+}
+
+export interface CloudAsrConfigStatus {
+  config: CloudAsrConfig;
+  apiKeyConfigured: boolean;
+  apiKeySource: string;
+  apiKeyPreview: string | null;
+  secretKeyConfigured: boolean;
+  secretKeySource: string;
+  secretKeyPreview: string | null;
+  ready: boolean;
+  message: string;
+}

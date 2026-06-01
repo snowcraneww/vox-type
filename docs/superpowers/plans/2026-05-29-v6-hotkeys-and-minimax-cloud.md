@@ -296,7 +296,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - Modify: `src/App.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: 写前端测试**
+- [x] **Step 1: 写前端测试**
 
 在 `src/App.test.tsx` 增加测试：
 
@@ -312,7 +312,7 @@ it('opens hotkey settings from the input mode gear buttons', async () => {
 });
 ```
 
-- [ ] **Step 2: 创建对话框组件**
+- [x] **Step 2: 创建对话框组件**
 
 `src/HotkeySettingsDialog.tsx`：
 
@@ -343,11 +343,11 @@ export function HotkeySettingsDialog(props: HotkeySettingsDialogProps) {
 }
 ```
 
-- [ ] **Step 3: 接入 MainWindow 设置按钮**
+- [x] **Step 3: 接入 MainWindow 设置按钮**
 
 给 `MainWindow` 增加 `onOpenHotkeySettings` prop，两颗设置按钮都调用它。
 
-- [ ] **Step 4: App 管理对话框状态**
+- [x] **Step 4: App 管理对话框状态**
 
 在 `App.tsx` 增加：
 
@@ -359,16 +359,18 @@ const [isSavingHotkeys, setIsSavingHotkeys] = useState(false);
 const [hotkeySaveMessage, setHotkeySaveMessage] = useState<string | null>(null);
 ```
 
-- [ ] **Step 5: 保存逻辑**
+- [x] **Step 5: 保存逻辑**
 
 调用 `saveHotkeyPreferences`，成功后刷新 `getHotkeyStatus`，并写诊断日志。浏览器预览模式下显示“需要 Tauri 桌面环境保存快捷键”。
 
-- [ ] **Step 6: 验证**
+- [x] **Step 6: 验证**
 
 ```bash
 npm test -- --run src/App.test.tsx
 npm run typecheck
 ```
+
+实际验证记录：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、11 个测试；`npm run typecheck` 通过。
 
 - [ ] **Step 7: 提交**
 
@@ -388,7 +390,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - Modify: `src/types.ts`
 - Modify: `src/tauriClient.ts`
 
-- [ ] **Step 1: Rust 配置测试**
+- [x] **Step 1: Rust 配置测试**
 
 新建 `src-tauri/src/cloud_asr_config.rs`，先写 tests：
 
@@ -415,7 +417,7 @@ fn saves_status_without_exposing_api_key() {
 }
 ```
 
-- [ ] **Step 2: 实现配置结构**
+- [x] **Step 2: 实现配置结构**
 
 结构字段：
 
@@ -442,7 +444,7 @@ pub fn minimax_api_key_from_env() -> Option<String> {
 }
 ```
 
-- [ ] **Step 3: command 接入**
+- [x] **Step 3: command 接入**
 
 在 `src-tauri/src/lib.rs` 增加：
 
@@ -458,16 +460,18 @@ fn save_cloud_asr_config(app: AppHandle, config: cloud_asr_config::CloudAsrConfi
 }
 ```
 
-- [ ] **Step 4: TypeScript 类型和 client**
+- [x] **Step 4: TypeScript 类型和 client**
 
 `src/types.ts` 增加 `CloudAsrConfig` 和 `CloudAsrConfigStatus`；`src/tauriClient.ts` 增加对应 invoke。
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config
 npm run typecheck
 ```
+
+实际验证记录：`cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` 通过；`cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过；`npm run typecheck` 通过。完整 `cargo test` 仍受本机测试二进制 `STATUS_ENTRYPOINT_NOT_FOUND` 环境问题影响，见 `docs/harness/debugging-log.md`。
 
 - [ ] **Step 6: 提交**
 
@@ -487,7 +491,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - Modify: `src/App.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: 前端测试**
+- [x] **Step 1: 前端测试**
 
 增加测试：
 
@@ -506,7 +510,7 @@ it('shows MiniMax cloud API settings in model selection', async () => {
 });
 ```
 
-- [ ] **Step 2: 表单字段**
+- [x] **Step 2: 表单字段**
 
 在云端 tab 中添加：
 
@@ -516,20 +520,22 @@ it('shows MiniMax cloud API settings in model selection', async () => {
 - `MiniMax 模型`
 - `识别语言`：默认 `zh`
 
-- [ ] **Step 3: 保存按钮**
+- [x] **Step 3: 保存按钮**
 
 调用 `saveCloudAsrConfig` 保存非密钥字段。保存后刷新状态，显示 `MINIMAX_API_KEY` 是否已从系统环境变量读取；不在 UI 日志里打印完整 API Key。
 
-- [ ] **Step 4: 检测按钮**
+- [x] **Step 4: 检测按钮**
 
 先实现“本地配置完整性检测”：`MINIMAX_API_KEY` 环境变量、Base URL、模型都存在即可显示“配置完整，等待真实 API 验证”。真实调用在 Task 6。
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**
 
 ```bash
 npm test -- --run src/App.test.tsx
 npm run typecheck
 ```
+
+实际验证记录：`npm test -- --run src/App.test.tsx` 通过，1 个测试文件、11 个测试；`npm run typecheck` 通过。
 
 - [ ] **Step 6: 提交**
 
@@ -549,7 +555,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - Modify: `src-tauri/src/lib.rs`
 - Modify: `src-tauri/Cargo.toml`
 
-- [ ] **Step 1: 官方 endpoint 二次确认**
+- [x] **Step 1: 官方 endpoint 二次确认**
 
 实现前必须查 MiniMax 官方文档。当前搜索只确认 MiniMax 有语音 API 和官方 TTS 文档；ASR endpoint 没有直接命中官方页面。实现者需要记录：
 
@@ -561,7 +567,9 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 
 记录到 `docs/harness/research-log.md`。
 
-- [ ] **Step 2: HTTP client 测试边界**
+结果：2026-05-29/30 已记录调研结论。未找到可靠 MiniMax 官方 ASR endpoint、音频上传字段和返回文本字段，因此真实调用不启用。
+
+- [x] **Step 2: HTTP client 测试边界**
 
 为 `cloud_asr.rs` 写纯函数测试：
 
@@ -569,18 +577,24 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - 解析 MiniMax response 时能提取文本。
 - response 缺文本时返回清晰错误。
 
-- [ ] **Step 3: 接入非流式转写**
+结果：改为占位抽象边界测试，验证请求配置不携带 API Key，并明确返回“尚未启用”错误。
+
+- [x] **Step 3: 接入非流式转写**
 
 将当前 `RecordedAudio.asrSamples` 写成临时 WAV 或 multipart bytes，调用 MiniMax ASR endpoint，返回统一 `Transcript { text, engine: "minimax" }`。
 
-- [ ] **Step 4: 引擎选择**
+结果：因官方 ASR endpoint 未确认，本步骤以“明确不启用真实转写”的占位实现收口，不写入非官方接口。
+
+- [x] **Step 4: 引擎选择**
 
 增加当前 ASR engine 配置：
 
 - 默认 `local-whisper-cpp`。
 - 用户选择云端 tab 并保存 MiniMax ready 后，可选择 `cloud-minimax`。
 
-- [ ] **Step 5: 验证**
+结果：V6 只完成 MiniMax 配置和 ready 状态，不开放云端转写引擎选择。
+
+- [x] **Step 5: 验证**
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml cloud_asr
@@ -608,7 +622,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "fe
 - Modify: `src/VoiceOverlay.test.tsx`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: 写视觉结构测试**
+- [x] **Step 1: 写视觉结构测试**
 
 在 `src/DictationOverlay.test.tsx` 中增加断言：
 
@@ -622,7 +636,7 @@ it('uses the light green overlay theme without removing motion states', () => {
 });
 ```
 
-- [ ] **Step 2: 给浮窗组件增加主题标记**
+- [x] **Step 2: 给浮窗组件增加主题标记**
 
 在浮窗根节点增加：
 
@@ -632,7 +646,7 @@ data-theme="light-green"
 
 不要删除现有 `data-mode`，因为录音/转写/空闲动效依赖它。
 
-- [ ] **Step 3: 改 CSS 色彩系统**
+- [x] **Step 3: 改 CSS 色彩系统**
 
 在 `src/styles.css` 中将桌面浮窗背景从深色黑底改为浅绿胶囊：
 
@@ -648,7 +662,7 @@ data-theme="light-green"
 
 实际选择器要以当前组件结构为准，不能破坏 native overlay 的透明背景。
 
-- [ ] **Step 4: 保留波形动效**
+- [x] **Step 4: 保留波形动效**
 
 保留现有：
 
@@ -658,7 +672,7 @@ data-theme="light-green"
 
 只替换颜色和胶囊背景，不重写动效算法。
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**
 
 ```bash
 npm test -- --run src/DictationOverlay.test.tsx src/VoiceOverlay.test.tsx
@@ -682,7 +696,7 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "st
 - Modify: `docs/harness/feature_list.json`
 - Modify: `docs/guide/run-and-understand.md`
 
-- [ ] **Step 1: 更新用户文档**
+- [x] **Step 1: 更新用户文档**
 
 在 `docs/guide/run-and-understand.md` 增加：
 
@@ -692,12 +706,13 @@ git -c user.name="VoxType" -c user.email="maintainers@voxtype.dev" commit -m "st
 - 如何在系统环境变量里配置 `MINIMAX_API_KEY`。
 - API Key 不会出现在日志、项目配置、仓库和文档中的说明。
 - 桌面浮窗已与主窗体浅绿视觉系统统一。
+- 停止录音后的六点转写动效、连续输入历史合并、导出反馈和 MiniMax API Key 密码输入/环境变量写入。
 
-- [ ] **Step 2: 更新 harness**
+- [x] **Step 2: 更新 harness**
 
 记录 V6 已完成项、验证命令、残余风险。
 
-- [ ] **Step 3: 全量验证**
+- [x] **Step 3: 全量验证**
 
 ```bash
 npm test -- --run
@@ -710,7 +725,9 @@ python -m json.tool docs/harness/feature_list.json
 git diff --check
 ```
 
-- [ ] **Step 4: 隐私扫描**
+结果：除完整 `cargo test` 仍受既有 Windows 测试二进制 `STATUS_ENTRYPOINT_NOT_FOUND` 环境问题影响未作为本轮通过证据外，其余关键验证已通过：`npm test -- --run`、`npm run typecheck`、`npm run build`、`cargo check --manifest-path src-tauri/Cargo.toml --lib`、`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`、`cargo fmt --all --manifest-path src-tauri/Cargo.toml --check`、`python -m json.tool docs/harness/feature_list.json`、`git diff --check`。
+
+- [x] **Step 4: 隐私扫描**
 
 扫描内容：
 

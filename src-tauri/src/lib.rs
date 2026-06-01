@@ -2,6 +2,8 @@ pub mod asr;
 pub mod asr_config;
 pub mod asr_installer;
 pub mod audio;
+pub mod cloud_asr;
+pub mod cloud_asr_config;
 pub mod config;
 pub mod error;
 pub mod hotkey;
@@ -25,7 +27,7 @@ use serde::Serialize;
 use state::AppStatus;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
-use tauri_plugin_global_shortcut::ShortcutState;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 type HotkeyStatusState = Mutex<hotkey::HotkeyRegistrationStatus>;
 
@@ -77,10 +79,7 @@ fn set_input_device(
     let config_dir = app_config_dir(&app)?;
     let mut preferences = preferences::load_user_preferences(config_dir.clone());
     preferences.selected_input_device_name = device_name;
-    preferences::save_user_preferences(
-        config_dir,
-        preferences,
-    )?;
+    preferences::save_user_preferences(config_dir, preferences)?;
     Ok(info)
 }
 
@@ -123,20 +122,81 @@ fn get_hotkey_status(
 #[tauri::command]
 fn save_hotkey_preferences(
     app: AppHandle,
+    hotkey_status: State<'_, HotkeyStatusState>,
     push_to_talk_hotkey: String,
     toggle_dictation_hotkey: String,
 ) -> Result<hotkey::HotkeyRegistrationStatus, error::VoxError> {
     hotkey::validate_hotkey_pair(&push_to_talk_hotkey, &toggle_dictation_hotkey)
         .map_err(error::VoxError::Config)?;
     let config_dir = app_config_dir(&app)?;
-    let mut preferences = preferences::load_user_preferences(config_dir.clone());
-    let normalized_push_to_talk = push_to_talk_hotkey.trim().to_string();
-    preferences.push_to_talk_hotkey = Some(normalized_push_to_talk.clone());
-    preferences.toggle_dictation_hotkey = Some(toggle_dictation_hotkey.trim().to_string());
-    preferences::save_user_preferences(config_dir, preferences)?;
-    Ok(hotkey::HotkeyRegistrationStatus::registered(
-        normalized_push_to_talk,
+    let previous_preferences = preferences::load_user_preferences(config_dir.clone());
+    let previous_bindings = hotkey::runtime_bindings_from_preferences(&previous_preferences).ok();
+    let mut next_preferences = previous_preferences.clone();
+    next_preferences.push_to_talk_hotkey = Some(push_to_talk_hotkey.trim().to_string());
+    next_preferences.toggle_dictation_hotkey = Some(toggle_dictation_hotkey.trim().to_string());
+    let next_bindings = hotkey::runtime_bindings_from_preferences(&next_preferences)
+        .map_err(error::VoxError::Config)?;
+
+    app.global_shortcut()
+        .unregister_all()
+        .map_err(|error| error::VoxError::Hotkey(error.to_string()))?;
+    let next_status = register_runtime_hotkeys(&app, next_bindings);
+    if !next_status.registered {
+        if let Some(bindings) = previous_bindings {
+            let restore_status = register_runtime_hotkeys(&app, bindings);
+            if let Ok(mut status) = hotkey_status.lock() {
+                *status = restore_status;
+            }
+        }
+        return Err(error::VoxError::Hotkey(next_status.message.clone()));
+    }
+
+    preferences::save_user_preferences(config_dir, next_preferences)?;
+    if let Ok(mut status) = hotkey_status.lock() {
+        *status = next_status.clone();
+    }
+    Ok(next_status)
+}
+
+#[tauri::command]
+fn get_cloud_asr_config_status(
+    app: AppHandle,
+) -> Result<cloud_asr_config::CloudAsrConfigStatus, error::VoxError> {
+    Ok(cloud_asr_config::get_cloud_asr_config_status(
+        app_config_dir(&app)?,
     ))
+}
+
+#[tauri::command]
+fn save_cloud_asr_config(
+    app: AppHandle,
+    config: cloud_asr_config::CloudAsrConfig,
+) -> Result<cloud_asr_config::CloudAsrConfigStatus, error::VoxError> {
+    cloud_asr_config::save_cloud_asr_config(app_config_dir(&app)?, config)
+}
+
+#[tauri::command]
+fn save_minimax_api_key(
+    app: AppHandle,
+    api_key: String,
+) -> Result<cloud_asr_config::CloudAsrConfigStatus, error::VoxError> {
+    cloud_asr_config::save_minimax_api_key_to_user_env(app_config_dir(&app)?, api_key)
+}
+
+#[tauri::command]
+fn save_baidu_asr_api_key(
+    app: AppHandle,
+    api_key: String,
+) -> Result<cloud_asr_config::CloudAsrConfigStatus, error::VoxError> {
+    cloud_asr_config::save_baidu_asr_api_key_to_user_env(app_config_dir(&app)?, api_key)
+}
+
+#[tauri::command]
+fn save_baidu_asr_secret_key(
+    app: AppHandle,
+    secret_key: String,
+) -> Result<cloud_asr_config::CloudAsrConfigStatus, error::VoxError> {
+    cloud_asr_config::save_baidu_asr_secret_key_to_user_env(app_config_dir(&app)?, secret_key)
 }
 
 #[tauri::command]
@@ -163,12 +223,35 @@ fn transcribe_last_recording(
     app: AppHandle,
     recorder: State<'_, RecorderManager>,
 ) -> Result<Transcript, error::VoxError> {
+    let samples = recorder.last_asr_samples()?;
+    let cloud_status = cloud_asr_config::get_cloud_asr_config_status(app_config_dir(&app)?);
+    if cloud_status.config.provider == "baidu" {
+        if !cloud_status.ready {
+            return Err(error::VoxError::Config(cloud_status.message));
+        }
+        let config = cloud_status.config;
+        let api_key = cloud_asr_config::baidu_asr_api_key_from_env()
+            .ok_or_else(|| error::VoxError::Config("未读取到 BAIDU_ASR_API_KEY 环境变量。".to_string()))?;
+        let secret_key = cloud_asr_config::baidu_asr_secret_key_from_env()
+            .ok_or_else(|| error::VoxError::Config("未读取到 BAIDU_ASR_SECRET_KEY 环境变量。".to_string()))?;
+        let access_token = cloud_asr::fetch_baidu_access_token(&api_key, &secret_key)?;
+        let request = cloud_asr::build_baidu_asr_request(
+            config.base_url.as_deref().unwrap_or(""),
+            &access_token,
+            config.model.as_deref().unwrap_or(""),
+            config.baidu_cuid.as_deref().unwrap_or(""),
+            config.baidu_format.as_deref().unwrap_or(""),
+            config.baidu_sample_rate.unwrap_or(audio::TARGET_SAMPLE_RATE),
+            &samples,
+        )?;
+        return cloud_asr::transcribe_with_baidu_short_speech(request);
+    }
+
     let config = asr_config::load_asr_config(app_config_dir(&app)?);
     let status = asr_config::status_from_config(config.clone(), "runtime".to_string());
     if !status.ready {
         return Err(error::VoxError::Config(status.message));
     }
-    let samples = recorder.last_asr_samples()?;
     let engine = WhisperCppEngine {
         binary_path: config
             .whisper_binary_path
@@ -297,6 +380,11 @@ fn show_dictation_overlay(app: AppHandle) -> Result<(), error::VoxError> {
 }
 
 #[tauri::command]
+fn show_transcribing_overlay(app: AppHandle) -> Result<(), error::VoxError> {
+    overlay::show_transcribing_overlay(&app)
+}
+
+#[tauri::command]
 fn hide_dictation_overlay(app: AppHandle) -> Result<(), error::VoxError> {
     overlay::hide_dictation_overlay(&app)
 }
@@ -306,70 +394,87 @@ fn get_overlay_backend_status() -> overlay::OverlayBackendStatus {
     overlay::backend_status()
 }
 
-fn setup_push_to_talk_hotkey(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+fn register_hotkey_handler(
+    app: &AppHandle,
+    bindings: hotkey::RuntimeHotkeyBindings,
+) -> Result<(), Box<dyn std::error::Error>> {
     use std::sync::{Arc, Mutex};
 
     let push_to_talk_state = Arc::new(Mutex::new(hotkey::PushToTalkState::default()));
     let toggle_state = Arc::new(Mutex::new(hotkey::ToggleDictationState::default()));
-    let accelerator = hotkey::HotkeyBinding::default().accelerator;
-    let toggle_accelerator = hotkey::ToggleHotkeyBinding::default().accelerator;
-    let push_to_talk_shortcut = accelerator.parse::<tauri_plugin_global_shortcut::Shortcut>()?;
-    let toggle_shortcut = toggle_accelerator.parse::<tauri_plugin_global_shortcut::Shortcut>()?;
+    let push_to_talk_shortcut = bindings
+        .push_to_talk
+        .parse::<tauri_plugin_global_shortcut::Shortcut>()?;
+    let toggle_shortcut = bindings
+        .toggle_dictation
+        .parse::<tauri_plugin_global_shortcut::Shortcut>()?;
     let push_to_talk_shortcut_id = push_to_talk_shortcut.id();
     let toggle_shortcut_id = toggle_shortcut.id();
     let handler_push_to_talk_state = Arc::clone(&push_to_talk_state);
     let handler_toggle_state = Arc::clone(&toggle_state);
 
-    app.plugin(
-        tauri_plugin_global_shortcut::Builder::new()
-            .with_shortcuts([push_to_talk_shortcut, toggle_shortcut])?
-            .with_handler(move |app, _shortcut, event| {
-                let hotkey_event = match event.state() {
-                    ShortcutState::Pressed => hotkey::PushToTalkEvent::Pressed,
-                    ShortcutState::Released => hotkey::PushToTalkEvent::Released,
-                };
-                let shortcut_id = _shortcut.id();
-                let action = if shortcut_id == toggle_shortcut_id {
-                    match hotkey_event {
-                        hotkey::PushToTalkEvent::Pressed => handler_toggle_state
-                            .lock()
-                            .map(|mut state| state.handle_pressed())
-                            .unwrap_or(hotkey::PushToTalkAction::Ignore),
-                        hotkey::PushToTalkEvent::Released => handler_toggle_state
-                            .lock()
-                            .map(|state| state.handle_released())
-                            .unwrap_or(hotkey::PushToTalkAction::Ignore),
-                    }
-                } else if shortcut_id == push_to_talk_shortcut_id {
-                    handler_push_to_talk_state
+    app.global_shortcut().on_shortcuts(
+        [push_to_talk_shortcut, toggle_shortcut],
+        move |app, shortcut, event| {
+            let hotkey_event = match event.state() {
+                ShortcutState::Pressed => hotkey::PushToTalkEvent::Pressed,
+                ShortcutState::Released => hotkey::PushToTalkEvent::Released,
+            };
+            let shortcut_id = shortcut.id();
+            let action = if shortcut_id == toggle_shortcut_id {
+                match hotkey_event {
+                    hotkey::PushToTalkEvent::Pressed => handler_toggle_state
                         .lock()
-                        .map(|mut state| state.handle_event(hotkey_event))
-                        .unwrap_or(hotkey::PushToTalkAction::Ignore)
-                } else {
-                    hotkey::PushToTalkAction::Ignore
-                };
-                let payload = hotkey::payload_for_event(hotkey_event, action);
-                match action {
-                    hotkey::PushToTalkAction::StartRecording
-                    | hotkey::PushToTalkAction::ToggleStartRecording => {
-                        if let Err(error) = overlay::show_dictation_overlay(app) {
-                            eprintln!("failed to show dictation overlay: {error}");
-                        }
-                    }
-                    hotkey::PushToTalkAction::StopAndTranscribe
-                    | hotkey::PushToTalkAction::ToggleStopAndTranscribe => {
-                        if let Err(error) = overlay::show_transcribing_overlay(app) {
-                            eprintln!("failed to keep dictation overlay visible: {error}");
-                        }
-                    }
-                    hotkey::PushToTalkAction::Ignore => {}
+                        .map(|mut state| state.handle_pressed())
+                        .unwrap_or(hotkey::PushToTalkAction::Ignore),
+                    hotkey::PushToTalkEvent::Released => handler_toggle_state
+                        .lock()
+                        .map(|state| state.handle_released())
+                        .unwrap_or(hotkey::PushToTalkAction::Ignore),
                 }
-                let _ = app.emit("voxtype-push-to-talk", payload);
-            })
-            .build(),
+            } else if shortcut_id == push_to_talk_shortcut_id {
+                handler_push_to_talk_state
+                    .lock()
+                    .map(|mut state| state.handle_event(hotkey_event))
+                    .unwrap_or(hotkey::PushToTalkAction::Ignore)
+            } else {
+                hotkey::PushToTalkAction::Ignore
+            };
+            let payload = hotkey::payload_for_event(hotkey_event, action);
+            match action {
+                hotkey::PushToTalkAction::StartRecording
+                | hotkey::PushToTalkAction::ToggleStartRecording => {
+                    if let Err(error) = overlay::show_dictation_overlay(app) {
+                        eprintln!("failed to show dictation overlay: {error}");
+                    }
+                }
+                hotkey::PushToTalkAction::StopAndTranscribe
+                | hotkey::PushToTalkAction::ToggleStopAndTranscribe => {
+                    if let Err(error) = overlay::show_transcribing_overlay(app) {
+                        eprintln!("failed to keep dictation overlay visible: {error}");
+                    }
+                }
+                hotkey::PushToTalkAction::Ignore => {}
+            }
+            let _ = app.emit("voxtype-push-to-talk", payload);
+        },
     )?;
 
     Ok(())
+}
+
+fn register_runtime_hotkeys(
+    app: &AppHandle,
+    bindings: hotkey::RuntimeHotkeyBindings,
+) -> hotkey::HotkeyRegistrationStatus {
+    let accelerator = bindings.push_to_talk.clone();
+    match register_hotkey_handler(app, bindings) {
+        Ok(()) => hotkey::HotkeyRegistrationStatus::registered(accelerator),
+        Err(error) => {
+            eprintln!("failed to register push-to-talk hotkey: {error}");
+            hotkey::HotkeyRegistrationStatus::failed(accelerator, error.to_string())
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -381,14 +486,12 @@ pub fn run() {
             "全局快捷键尚未初始化".to_string(),
         )))
         .setup(|app| {
-            let accelerator = hotkey::HotkeyBinding::default().accelerator;
-            let next_status = match setup_push_to_talk_hotkey(app.handle()) {
-                Ok(()) => hotkey::HotkeyRegistrationStatus::registered(accelerator),
-                Err(error) => {
-                    eprintln!("failed to register push-to-talk hotkey: {error}");
-                    hotkey::HotkeyRegistrationStatus::failed(accelerator, error.to_string())
-                }
-            };
+            app.handle()
+                .plugin(tauri_plugin_global_shortcut::Builder::new().build())?;
+            let preferences = preferences::load_user_preferences(app_config_dir(app.handle())?);
+            let bindings = hotkey::runtime_bindings_from_preferences(&preferences)
+                .map_err(error::VoxError::Config)?;
+            let next_status = register_runtime_hotkeys(app.handle(), bindings);
             if let Some(state) = app.try_state::<HotkeyStatusState>() {
                 if let Ok(mut status) = state.lock() {
                     *status = next_status;
@@ -412,6 +515,11 @@ pub fn run() {
             save_hotkey_preferences,
             get_asr_config_status,
             save_asr_config,
+            get_cloud_asr_config_status,
+            save_cloud_asr_config,
+            save_minimax_api_key,
+            save_baidu_asr_api_key,
+            save_baidu_asr_secret_key,
             install_managed_asr,
             transcribe_last_recording,
             transcribe_active_recording_chunk,
@@ -420,6 +528,7 @@ pub fn run() {
             export_last_recording_wav,
             insert_text_with_clipboard,
             show_dictation_overlay,
+            show_transcribing_overlay,
             hide_dictation_overlay,
             get_overlay_backend_status
         ])

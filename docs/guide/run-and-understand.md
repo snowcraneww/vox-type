@@ -132,6 +132,19 @@ src-tauri/target/debug/bundle/msi/VoxType_0.1.0_x64_en-US.msi
 
 把 `VoxType_0.1.0_x64-setup.exe` 或 MSI 复制到另一台机器安装运行，而不是复制 `src-tauri/target/debug/vox-type.exe`。
 
+## V6 快捷键、MiniMax 配置和浅绿浮窗
+
+V6 增加了三个日常入口：
+
+- 主界面“输入模式”区右上角的设置图标会打开快捷键设置。它一次配置两个快捷键：按住说话和连续输入。保存成功后会立即重新注册全局快捷键，不需要重启；如果系统占用或格式不合法，界面和诊断日志会显示错误。
+- 模型选择页的“云端 API” tab 可以保存 MiniMax 的非密钥配置，包括 Group ID、Base URL、模型和语言。MiniMax API Key 输入框使用密码显示，点击保存后会写入 Windows 用户环境变量 `MINIMAX_API_KEY`；项目配置、日志、测试和文档都不保存真实 Key。
+- 桌面录音浮窗和主窗体统一为浅绿视觉系统，仍保留录音波形和转写六点动效。Windows 原生浮窗也改为浅绿胶囊配色；WebView fallback 同步使用相同主题标记。
+- 识别记录支持清空和导出。导出会复制本次运行的识别记录到剪贴板，并在主界面显示已复制条数。
+
+MiniMax 真实云端转写在 V6 中仍未启用。当前只完成配置、状态检测和抽象占位；因为还没有找到 MiniMax 官方 ASR endpoint、上传字段和返回文本字段，代码不会硬编码非官方接口，也不会假装云端转写已可用。
+
+通过 VoxType 保存 `MINIMAX_API_KEY` 后，当前进程会立即刷新配置状态；新开的系统进程也能读取用户环境变量。文档和日志只允许出现变量名 `MINIMAX_API_KEY`，不要粘贴真实值。
+
 ## 命令速查
 
 | 命令 | 作用 | 什么时候用 |

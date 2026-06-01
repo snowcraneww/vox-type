@@ -9,7 +9,7 @@ export function VoiceOverlay({ model }: VoiceOverlayProps) {
   const waveBars = Array.from({ length: 20 }, (_, index) => index);
 
   return (
-    <aside className="voice-overlay" data-mode={model.mode} role="status" aria-label={`语音输入状态：${model.title}`} style={levelStyle}>
+    <aside className="voice-overlay" data-mode={model.mode} data-theme="light-green" role="status" aria-label={`语音输入状态：${model.title}`} style={levelStyle}>
       <div className="voice-wave-stage" data-mode={model.mode} data-testid="voice-wave" aria-hidden="true">
         <div className="voice-wave-bars">
           {waveBars.map((bar) => (

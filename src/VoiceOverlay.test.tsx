@@ -21,6 +21,7 @@ describe('VoiceOverlay', () => {
 
     const overlay = screen.getByRole('status', { name: '语音输入状态：正在听' });
     expect(overlay).toHaveAttribute('data-mode', 'recording');
+    expect(overlay).toHaveAttribute('data-theme', 'light-green');
     expect(screen.getByText('说完后松开快捷键')).toBeInTheDocument();
     expect(screen.getByTestId('voice-wave')).toHaveAttribute('aria-hidden', 'true');
     expect(document.querySelectorAll('.voice-wave-bar')).toHaveLength(20);

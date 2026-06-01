@@ -12,10 +12,7 @@ function overlayMode(payload: PushToTalkPayload | null) {
   if (payload.action === 'startRecording' || payload.action === 'toggleStartRecording') {
     return 'recording';
   }
-  if (payload.action === 'toggleStopAndTranscribe') {
-    return 'recording';
-  }
-  if (payload.action === 'stopAndTranscribe') {
+  if (payload.action === 'stopAndTranscribe' || payload.action === 'toggleStopAndTranscribe') {
     return 'transcribing';
   }
   return 'idle';
@@ -64,18 +61,18 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
   }, []);
 
   return (
-    <main className="overlay-root" data-mode={mode}>
-      <section className="wave-ripple" role="status" aria-label={overlayLabel(mode)} data-mode={mode}>
+    <main className="overlay-root" data-mode={mode} data-theme="light-green">
+      <section className="wave-ripple" role="status" aria-label={overlayLabel(mode)} data-mode={mode} data-theme="light-green">
         <svg className="wave-ripple-svg" aria-hidden="true" viewBox="0 0 120 32" preserveAspectRatio="none">
           <defs>
             <linearGradient id="voice-ripple-gradient" gradientUnits="userSpaceOnUse" x1="-120" x2="120" y1="0" y2="0">
-              <stop offset="0%" stopColor="#5ac8fa" />
-              <stop offset="18%" stopColor="#7ee7ff" />
-              <stop offset="34%" stopColor="#34c759" />
-              <stop offset="52%" stopColor="#ffd60a" />
-              <stop offset="70%" stopColor="#ff2d92" />
-              <stop offset="86%" stopColor="#bf5af2" />
-              <stop offset="100%" stopColor="#ffd60a" />
+              <stop offset="0%" stopColor="#2c7a3f" />
+              <stop offset="18%" stopColor="#4fb866" />
+              <stop offset="34%" stopColor="#7bdc8b" />
+              <stop offset="52%" stopColor="#c7efbd" />
+              <stop offset="70%" stopColor="#68b876" />
+              <stop offset="86%" stopColor="#236b38" />
+              <stop offset="100%" stopColor="#dff5d8" />
               {isRecording ? <animate attributeName="x1" dur="920ms" repeatCount="indefinite" values="-120;0;-120" /> : null}
               {isRecording ? <animate attributeName="x2" dur="920ms" repeatCount="indefinite" values="120;240;120" /> : null}
             </linearGradient>
