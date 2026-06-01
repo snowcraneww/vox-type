@@ -425,6 +425,29 @@
                 "2026-06-01 V7.16 closeout: maintainer confirmed the V7 visual style is acceptable enough to close; user-visible Baidu model names include API; V7 is marked passing after fresh automated verification. Verification: npm test -- --run src/App.test.tsx passed with 17 tests; npm run typecheck passed; npm run build passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed; control-character scan passed."
             ],
             "notes": "V7 is closed: readiness state, per-mode model persistence, model selection/config pages, MiniMax UI removal, Baidu Short Speech API, Baidu Realtime WebSocket API V8 placeholder, transcript metadata, statistic units, stale error cleanup, and visual polish are complete. V8 focuses on real Baidu realtime WebSocket API integration."
+        },
+        {
+            "id": "v8-001",
+            "priority": 11,
+            "area": "implementation",
+            "title": "V8 Baidu Realtime WebSocket API integration",
+            "user_visible_behavior": "Continuous input can use Baidu Realtime WebSocket API as a real streaming ASR model. Push-to-talk remains stop-then-transcribe by default. Transcript history records one merged continuous-input record with model, duration, and character metadata.",
+            "status": "in_progress",
+            "verification": [
+                "Run npm test -- --run src/App.test.tsx.",
+                "Run npm run typecheck.",
+                "Run npm run build.",
+                "Run cargo check --manifest-path src-tauri/Cargo.toml --lib.",
+                "Run cargo test --manifest-path src-tauri/Cargo.toml baidu_realtime --no-run.",
+                "Run cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run.",
+                "Run python -m json.tool docs/harness/feature_list.json.",
+                "Run git diff --check.",
+                "Manually verify continuous input with Baidu Realtime WebSocket API in the Tauri desktop app using real Baidu credentials."
+            ],
+            "evidence": [
+                "2026-06-01: V8 planning created after V7 closeout and marked in_progress for planning. Official Baidu realtime WebSocket API source checked: https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i, plus the same Baidu AI Open Platform doc id mirror https://ai.baidu.com/ai-doc/SPEECH/jlbxejt2i. Design saved to docs/superpowers/specs/2026-06-01-v8-baidu-realtime-websocket-design.md; implementation plan saved to docs/superpowers/plans/2026-06-01-v8-baidu-realtime-websocket.md."
+            ],
+            "notes": "V8 is planned but not implemented. Scope is real Baidu Realtime WebSocket API for continuous input mode, with official START frame shape including appid/appkey/dev_pid/cuid/format/sample, 16 kHz PCM streaming, 160 ms / 5120-byte frames, FINISH/CANCEL/HEARTBEAT lifecycle, partial/final result parsing, and one merged transcript record per session."
         }
     ]
 }

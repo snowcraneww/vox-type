@@ -3,12 +3,12 @@
 ## 当前已验证状态
 
 - 仓库根目录：当前 Git 工作树根目录
-- 当前阶段：V6 已收尾；下一项为 V7 模型选择与配置页重构。
+- 当前阶段：V8 百度实时 WebSocket API 规划；V7 已收尾并提交。
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
-- 当前最高优先级未完成项：`v7-001`，V7 模型选择与配置页重构。
+- 当前最高优先级未完成项：`v8-001`，V8 Baidu Realtime WebSocket API integration。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
@@ -696,3 +696,7 @@
 - 2026-06-01 V7.15 visual polish: normalized model configuration page typography and placeholder styling under `.model-panel`, covering headings, field labels, inputs, secret status cards, runtime messages, and action buttons. Model option buttons still avoid internal radial gradients, while selected buttons now use the stronger green linear style matching the primary save buttons. Verification: `npm test -- --run src/App.test.tsx -t "shows V7 mode model routing"` passed; `npm run typecheck` passed; `npm run build` passed; `python -m json.tool docs/harness/feature_list.json` passed; `git diff --check` passed.
 
 - 2026-06-01 V7.16 closeout: maintainer confirmed the V7 visual style is acceptable enough to close; user-visible Baidu model names now include API; v7-001 is marked passing in docs/harness/feature_list.json. Verification: npm test -- --run src/App.test.tsx passed with 17 tests; npm run typecheck passed; npm run build passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed; control-character scan passed. Next phase: V8 real Baidu realtime WebSocket API integration.
+
+- 2026-06-01 V8 planning: researched Baidu official realtime WebSocket API docs and wrote V8 design/implementation plan. Protocol source is the maintainer-provided Baidu doc `https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i` and the same Baidu AI Open Platform doc id mirror. Scope: real Baidu Realtime WebSocket API for continuous input mode, using the official `START` frame shape with nested `data`, 16 kHz PCM, 160 ms / 5120-byte audio chunks, `FINISH`/`CANCEL`/`HEARTBEAT` lifecycle, and one merged transcript history record per continuous-input session.
+
+- 2026-06-01 V8 planning verification: `bash init.sh` passed; `python -m json.tool docs/harness/feature_list.json` passed; `git diff --check` passed with only the existing CRLF/LF warning for `docs/integrations/baidu-asr.md`; keyword check confirmed official Baidu realtime WebSocket doc id, `realtime_asr`, `type: "START"`, `appid`, `appkey`, and 5120-byte chunk guidance are present in V8 docs; control-character scan passed.

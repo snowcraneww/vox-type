@@ -141,3 +141,25 @@ VoxType now uses Baidu's `access_token` auth path for the short speech JSON requ
 3. Put the returned `access_token` into the ASR JSON payload's `token` field.
 
 Do not put the raw API Key or Secret Key into the ASR `server_api` URL or JSON body. Do not write either real value to project config, diagnostics, docs, or tests.
+
+## 2026-06-01 V8 realtime WebSocket planning update
+
+Official realtime WebSocket API source: https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i
+
+V8 planning treats Baidu Realtime WebSocket API as a continuous-input feature, not as the default push-to-talk path.
+
+Key protocol details recorded for implementation:
+
+- WebSocket URI: `wss://vop.baidu.com/realtime_asr`.
+- START frame follows the official JSON example: top-level `type: "START"`, nested `data` containing `appid`, `appkey`, `dev_pid`, optional `lm_id`, `cuid`, optional `user`, `format`, and `sample`.
+- `appid` is non-secret Baidu application AppID config. `appkey` uses the Baidu console API Key; VoxType should read it from `BAIDU_ASR_API_KEY` and never log the value.
+- `format` is fixed to `pcm`.
+- `sample` is fixed to `16000`.
+- Recommended Mandarin realtime model is `dev_pid=15372` for stronger punctuation.
+- Official frame guidance uses 160 ms PCM chunks: `160 * (16000 * 2 / 1000) = 5120` bytes.
+- Control frames include `FINISH`, `CANCEL`, and `HEARTBEAT`.
+
+Design and implementation plan:
+
+- `docs/superpowers/specs/2026-06-01-v8-baidu-realtime-websocket-design.md`
+- `docs/superpowers/plans/2026-06-01-v8-baidu-realtime-websocket.md`

@@ -150,3 +150,11 @@
 - User-visible Baidu model names now include API.
 - V8 will focus on real Baidu realtime WebSocket API integration, mainly for continuous input mode.
 - Before implementation, document protocol, auth, audio frame format, lifecycle, errors, and UI states.
+
+## 2026-06-01 V8 Planning Handoff
+
+- Current active item: v8-001 Baidu Realtime WebSocket API integration planning.
+- Design doc: docs/superpowers/specs/2026-06-01-v8-baidu-realtime-websocket-design.md.
+- Plan doc: docs/superpowers/plans/2026-06-01-v8-baidu-realtime-websocket.md.
+- Implementation should start with protocol/frame/parser tests before adding live network code.
+- Manual acceptance will require a real Baidu API Key configured in BAIDU_ASR_API_KEY and a desktop continuous-input streaming test.
