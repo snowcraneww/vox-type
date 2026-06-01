@@ -1,5 +1,15 @@
 # 会话交接
 
+## 2026-06-02 V8 handoff
+
+- V8 Baidu Realtime WebSocket API implementation is complete and committed in `af644b5 feat: add baidu realtime websocket asr`.
+- Continuous input can select `baidu-realtime`; push-to-talk rejects that model with a clear unsupported-mode error.
+- Official protocol source remains `https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i`: `wss://vop.baidu.com/realtime_asr`, START frame with `appid` and `appkey`, 160 ms / 5120-byte PCM frames, plus `FINISH`, `CANCEL`, and `HEARTBEAT`.
+- Real verification still belongs to the maintainer: run `npm run tauri -- dev`, select the continuous-input model `Baidu Realtime WebSocket API`, press `Ctrl+Alt+V` to start speaking, press `Ctrl+Alt+V` again to stop, and confirm final text appears in the target app and one merged transcript row is recorded.
+- Required credential: `BAIDU_ASR_API_KEY` must be available to the Tauri process. It is used as Baidu realtime `appkey`; the project must not log or store the raw value.
+- `v8-001` remains `in_progress` until the real desktop streaming check passes.
+
+
 ## 2026-06-01 V6 收尾与 V7 交接
 
 - 维护者已手动验证百度短语音识别真实调用可用：`http://vop.baidu.com/server_api` 配合已保存的 `BAIDU_ASR_API_KEY` 和 `BAIDU_ASR_SECRET_KEY` 可以准确识别。

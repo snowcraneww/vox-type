@@ -3,7 +3,7 @@
 ## 当前已验证状态
 
 - 仓库根目录：当前 Git 工作树根目录
-- 当前阶段：V8 百度实时 WebSocket API 规划；V7 已收尾并提交。
+- Current phase: V8 Baidu Realtime WebSocket API implementation and automated verification are complete; maintainer real desktop streaming verification is pending.
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
