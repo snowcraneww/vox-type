@@ -1714,3 +1714,45 @@ Real Baidu network transcription still needs maintainer validation in `npm run t
 ## 残余风险
 
 本轮自动验证覆盖 React 行为、TypeScript 和生产构建；真实 Tauri 桌面窗口里的视觉比例、滚动高度和百度短语音真实转写仍需要维护者手动验收后再把 `v7-001` 标记为 `passing`。
+
+# 2026-06-01 V7.2 split model pages and transcript alignment
+
+## 现象
+
+维护者复核 V7.1 后反馈：
+
+- 识别记录标题区同时显示“2 条”和数量统计胶囊，信息重复。
+- 总统计胶囊内部又套了一层旧样式胶囊，导致尺寸过大。
+- 单条识别记录里时间和识别文本分成两行；长文本换行时应和正文左边对齐，并留出时间列。
+- 模型选择和模型配置放在同一页仍显得杂乱，模型按钮字体和层级不够接近主界面。
+
+## 根因
+
+- V7.1 保留了旧的 `history-title` 条数文本，同时新增了数量 `StatPill`。
+- `.history-stats span` 旧选择器作用范围过宽，命中了 `StatPill` 内部文本 span。
+- 记录头部仍按上下堆叠布局处理，没有为时间建立固定列。
+- 模型路由选择和模型参数配置虽然内容分组，但仍处在同一视觉层级，用户需要同时处理“选择哪个模型”和“配置哪个模型”。
+
+## 修复
+
+- 移除识别记录标题中的重复条数，只保留数量统计胶囊。
+- 重置 `.history-stats .stat-pill span` 和 `.record-meta .stat-pill span`，避免内部文本继承旧胶囊样式。
+- 记录头部改为两列 grid：左侧固定时间列，右侧正文列；正文换行继续从正文列起始位置对齐。
+- 模型页拆成两个页签：`模型选择` 只负责按住说话模型和连续输入模型的默认选择；`模型配置` 只负责本地 whisper.cpp、百度短语音和百度实时 WebSocket 的具体配置。
+- 模型选择按钮改为更轻的 segmented button，选中态使用更深浅绿层次，减少大按钮的压迫感。
+
+## 验证
+
+- `bash init.sh` 通过。
+- `npm test -- --run src/App.test.tsx` 通过，1 个测试文件、16 个测试。
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+- `cargo check --manifest-path src-tauri/Cargo.toml --lib` 通过。
+- `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr --no-run` 通过。
+- `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` 通过。
+- `python -m json.tool docs/harness/feature_list.json` 通过。
+- `git diff --check` 通过，仅有既有 CRLF/LF 提示，无 whitespace error。
+
+## 残余风险
+
+本轮自动验证覆盖 React 行为、TypeScript 和生产构建；真实 Tauri 桌面窗口里的视觉比例、滚动高度、模型选择持久化和百度短语音真实转写仍需要维护者手动验收后再把 `v7-001` 标记为 `passing`。

@@ -213,6 +213,7 @@ describe('App', () => {
     expect(screen.getAllByText('百度短语音').length).toBeGreaterThan(0);
     expect(screen.getAllByText('百度实时 WebSocket').length).toBeGreaterThan(0);
     expect(screen.queryByText('MiniMax')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
     fireEvent.click(screen.getByRole('tab', { name: /本地 whisper\.cpp/ }));
     expect(screen.getByLabelText('whisper.cpp 可执行文件')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /百度短语音/ }));
@@ -220,7 +221,8 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket/ }));
     expect(screen.getByText('V8 接入，当前版本不可用。')).toBeInTheDocument();
 
-    fireEvent.click(within(screen.getByLabelText('连续输入模型默认模型')).getByRole('button', { name: /WebSocket/ }));
+    fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    fireEvent.click(within(screen.getByRole('group', { name: '连续输入模型默认模型' })).getByRole('button', { name: /WebSocket/ }));
     fireEvent.click(screen.getByRole('button', { name: '保存默认模型' }));
 
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
@@ -246,6 +248,7 @@ describe('App', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
 
     expect(screen.getByRole('region', { name: '百度短语音识别配置' })).toBeInTheDocument();
     expect(screen.getByText('BAIDU_ASR_API_KEY')).toBeInTheDocument();
@@ -302,6 +305,7 @@ describe('App', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
     fireEvent.click(screen.getByRole('button', { name: '检测百度配置' }));
 
     expect(await screen.findByText(/百度配置检测/)).toBeInTheDocument();

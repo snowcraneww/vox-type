@@ -5,7 +5,9 @@ const text = {
   title: '\u6a21\u578b\u9009\u62e9',
   back: '\u8fd4\u56de\u4e3b\u754c\u9762',
   defaultModels: '\u8f93\u5165\u6a21\u5f0f\u9ed8\u8ba4\u6a21\u578b',
-  chooseSeparately: '\u5f53\u524d\u8def\u7531',
+  selectionPage: '\u6a21\u578b\u9009\u62e9',
+  configPage: '\u6a21\u578b\u914d\u7f6e',
+  chooseSeparately: '\u5206\u522b\u9009\u62e9',
   pushToTalkModel: '\u6309\u4f4f\u8bf4\u8bdd\u6a21\u578b',
   toggleDictationModel: '\u8fde\u7eed\u8f93\u5165\u6a21\u578b',
   saveDefaults: '\u4fdd\u5b58\u9ed8\u8ba4\u6a21\u578b',
@@ -126,14 +128,14 @@ function displayModelLabel(id: TranscriptionModelId) {
 }
 
 function ModelButton({ id, active, readiness, onClick }: { id: TranscriptionModelId; active: boolean; readiness: ModelReadiness; onClick: () => void }) {
-  return <button className="model-select-button" type="button" data-active={active} data-available={readiness.availableInV7} onClick={onClick} title={readiness.message} aria-pressed={active}><span className="ready-dot" data-ready={readiness.ready} aria-hidden="true" /><strong>{displayModelLabel(id)}</strong><small>{readiness.availableInV7 ? readiness.message : text.v8Reserved}</small></button>;
+  return <button className="route-model-button" type="button" data-active={active} data-available={readiness.availableInV7} onClick={onClick} title={readiness.message} aria-pressed={active}><span className="ready-dot" data-ready={readiness.ready} aria-hidden="true" /><span>{displayModelLabel(id)}</span></button>;
 }
 
 function ModeModelSelector({ label, value, onChange, readiness }: { label: string; value: TranscriptionModelId; onChange: (value: TranscriptionModelId) => void; readiness: Record<TranscriptionModelId, ModelReadiness> }) {
   return (
     <div className="mode-model-row">
       <div className="mode-model-label"><span>{label}</span><strong>{readiness[value].label}</strong></div>
-      <div className="model-button-grid compact" role="group" aria-label={`${label}\u9ed8\u8ba4\u6a21\u578b`}>
+      <div className="segmented-models route-models" role="group" aria-label={`${label}\u9ed8\u8ba4\u6a21\u578b`}>
         {modelOptions.map((id) => <ModelButton key={id} id={id} active={value === id} readiness={readiness[id]} onClick={() => onChange(id)} />)}
       </div>
     </div>
@@ -141,6 +143,7 @@ function ModeModelSelector({ label, value, onChange, readiness }: { label: strin
 }
 
 export function ModelSettingsView(props: ModelSettingsViewProps) {
+  const [activePage, setActivePage] = useState<'selection' | 'config'>('selection');
   const [activeConfig, setActiveConfig] = useState<TranscriptionModelId>(props.pushToTalkModel);
   const apiKeyState = props.cloudAsrConfigStatus.apiKeyConfigured ? '\u5df2\u914d\u7f6e' : '\u672a\u914d\u7f6e';
   const apiKeyDetail = props.cloudAsrConfigStatus.apiKeyPreview ?? text.waitingEnv;
@@ -154,18 +157,22 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
           <div><span className="product-mark">VoxType</span><h1 id="model-title">{text.title}</h1></div>
           <button className="secondary-button" type="button" onClick={props.onBack}>{text.back}</button>
         </header>
-        <section className="model-routing-section" aria-label={text.defaultModels}>
+        <nav className="model-page-tabs" aria-label={text.title}>
+          <button type="button" data-active={activePage === 'selection'} onClick={() => setActivePage('selection')}>{text.selectionPage}</button>
+          <button type="button" data-active={activePage === 'config'} onClick={() => setActivePage('config')}>{text.configPage}</button>
+        </nav>
+        {activePage === 'selection' ? <section className="model-routing-section" aria-label={text.defaultModels}>
           <div className="section-heading"><span>{text.defaultModels}</span><strong>{text.chooseSeparately}</strong></div>
           <div className="mode-routing-card">
             <ModeModelSelector label={text.pushToTalkModel} value={props.pushToTalkModel} onChange={props.onPushToTalkModelChange} readiness={props.modelReadiness} />
             <ModeModelSelector label={text.toggleDictationModel} value={props.toggleDictationModel} onChange={props.onToggleDictationModelChange} readiness={props.modelReadiness} />
           </div>
           <div className="model-route-actions"><button type="button" onClick={props.onSaveModeModelPreferences}>{text.saveDefaults}</button></div>
-        </section>
-        <section className="model-config-section" aria-label={text.modelConfig}>
+        </section> : null}
+        {activePage === 'config' ? <section className="model-config-section" aria-label={text.modelConfig}>
           <div className="section-heading model-config-heading"><span>{text.modelConfig}</span><strong>{text.configDetail}</strong></div>
-          <div className="model-button-grid config-tabs" role="tablist" aria-label={text.modelConfig}>
-            {modelOptions.map((id) => <button key={id} className="model-select-button config-tab" type="button" role="tab" aria-selected={activeConfig === id} data-active={activeConfig === id} data-available={props.modelReadiness[id].availableInV7} onClick={() => setActiveConfig(id)} title={props.modelReadiness[id].message}><span className="ready-dot" data-ready={props.modelReadiness[id].ready} aria-hidden="true" /><strong>{displayModelLabel(id)}</strong><small>{id === 'local-whisper' ? 'whisper.cpp' : id === 'baidu-short' ? 'server_api' : text.v8Reserved}</small></button>)}
+          <div className="config-model-switch" role="tablist" aria-label={text.modelConfig}>
+            {modelOptions.map((id) => <button key={id} className="config-switch-button" type="button" role="tab" aria-selected={activeConfig === id} data-active={activeConfig === id} data-available={props.modelReadiness[id].availableInV7} onClick={() => setActiveConfig(id)} title={props.modelReadiness[id].message}><span className="ready-dot" data-ready={props.modelReadiness[id].ready} aria-hidden="true" /><span>{displayModelLabel(id)}</span></button>)}
           </div>
           {activeConfig === 'local-whisper' ? <section className="model-config active-config-panel" aria-label={`${text.local} \u914d\u7f6e`}>
             <div className="model-config-title"><div><span>{text.local}</span><strong>{props.asrConfigStatus.ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.asrConfigStatus.ready} /></div>
@@ -205,7 +212,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
               <label className="field"><span>{text.wsUser}</span><input aria-label={text.baiduRealtimeUserLabel} value={props.cloudBaiduRealtimeUser} onChange={(event) => props.onCloudBaiduRealtimeUserChange(event.target.value)} /></label>
             </div>
           </section> : null}
-        </section>
+        </section> : null}
       </section>
     </main>
   );
