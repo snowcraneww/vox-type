@@ -17,6 +17,12 @@
 - Added `docs/guide/interview-project-brief.md` as a Chinese interview-oriented project introduction for VoxType, covering project positioning, tech stack, architecture, module boundaries, key implementation details, engineering highlights, debugging stories, current limitations, roadmap, and multiple Mermaid diagrams.
 - Synchronized `docs/integrations/baidu-asr.md` wording with the current V8 state: Baidu Realtime WebSocket API is implemented for continuous input, while real desktop streaming verification remains pending.
 
+## 2026-06-02 Agent instructions refresh
+
+- Updated `AGENTS.md` to reflect the current post-V8 project state, including Baidu Short Speech API, Baidu Realtime WebSocket API, per-mode model routing, native Windows overlay, and the remaining manual V8 streaming verification requirement.
+- Added the real desktop startup command to `AGENTS.md`: `npm run tauri -- dev`. Clarified that `npm run dev` is browser-only UI preview and must not be used to validate microphone, global hotkeys, tray, clipboard insertion, native overlay, or Tauri command behavior.
+- Refined working rules: desktop behavior must be verified in Tauri mode; sensitive values must not enter repo files, logs, tests, or commit metadata; new product/architecture work still needs spec or plan, while small bugfixes/docs/style/verification updates can proceed directly with harness synchronization.
+
 
 ## 2026-06-01 V8 Baidu Realtime WebSocket API integration
 
