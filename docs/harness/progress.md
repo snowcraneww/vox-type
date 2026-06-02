@@ -3,7 +3,7 @@
 ## 当前已验证状态
 
 - 仓库根目录：当前 Git 工作树根目录
-- Current phase: V8 Baidu Realtime WebSocket API implementation and automated verification are complete; maintainer real desktop streaming verification is pending.
+- Current phase: V8 Baidu Realtime WebSocket API has been manually verified and closed; V9 transcript quality planning is ready.
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
@@ -12,10 +12,19 @@
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
 - 当前 blocker：无。
 
+
+## 2026-06-02 V8 closeout and V9 planning
+
+- Maintainer manually verified Baidu Realtime WebSocket API continuous input and accepted the V8 overlay follow-up: the capsule border now renders normally.
+- Marked `v8-001` as `passing` in `docs/harness/feature_list.json`.
+- Updated `docs/guide/interview-project-brief.md` to reflect the closed V8 state, real FIN_TEXT streaming insertion semantics, overlay clipping fix, and the next quality-focused roadmap.
+- Created V9 design and implementation plan: `docs/superpowers/specs/2026-06-02-v9-transcript-quality-design.md` and `docs/superpowers/plans/2026-06-02-v9-transcript-quality.md`.
+- V9 recommended scope: deterministic transcript post-processing, user glossary, phrase replacements, noise cleanup, provider hooks, and local recognition history persistence; SendInput/TSF remains a later insertion-layer version.
+
 ## 2026-06-02 Interview project brief
 
 - Added `docs/guide/interview-project-brief.md` as a Chinese interview-oriented project introduction for VoxType, covering project positioning, tech stack, architecture, module boundaries, key implementation details, engineering highlights, debugging stories, current limitations, roadmap, and multiple Mermaid diagrams.
-- Synchronized `docs/integrations/baidu-asr.md` wording with the current V8 state: Baidu Realtime WebSocket API is implemented for continuous input, while real desktop streaming verification remains pending.
+- Synchronized `docs/integrations/baidu-asr.md` wording with the current V8 state: Baidu Realtime WebSocket API is implemented for continuous input, and real desktop streaming verification has passed.
 
 ## 2026-06-02 Agent instructions refresh
 
@@ -37,7 +46,7 @@
 - Frontend added realtime session client and event listener. When continuous input uses `baidu-realtime`, `Ctrl+Alt+V` starts the session, final fragments are inserted via clipboard, and stop creates one merged transcript record labeled `Baidu Realtime WebSocket API`.
 - Bugs fixed during implementation: model preference changes now sync refs used by hotkey handlers; realtime stop now calls `finish_baidu_realtime_session` before any local recorder stop path; stale V8 placeholder assertions and mojibake test assertions were removed.
 - Automated verification: `npm test -- --run src/App.test.tsx` passed with 20 tests; `npm run typecheck` passed; `npm run build` passed; `cargo fmt --all --manifest-path src-tauri/Cargo.toml --check` passed; `cargo check --manifest-path src-tauri/Cargo.toml --lib` passed; `cargo test --manifest-path src-tauri/Cargo.toml baidu_realtime --no-run` passed; `cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run` passed.
-- Status: `v8-001` remains `in_progress` until maintainer manually verifies real streaming in the Tauri desktop app.
+- Status: `v8-001` is now `passing`; maintainer manually verified Baidu Realtime WebSocket API recognition and confirmed the capsule border clipping fix. V9 planning is ready for the next implementation cycle.
 
 ## 2026-05-28 V4 原生浮窗视觉恢复
 

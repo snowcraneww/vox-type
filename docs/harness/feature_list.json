@@ -432,7 +432,7 @@
             "area": "implementation",
             "title": "V8 Baidu Realtime WebSocket API integration",
             "user_visible_behavior": "Continuous input can use Baidu Realtime WebSocket API as a real streaming ASR model. Push-to-talk remains stop-then-transcribe by default. Transcript history records one merged continuous-input record with model, duration, and character metadata.",
-            "status": "in_progress",
+            "status": "passing",
             "verification": [
                 "Run npm test -- --run src/App.test.tsx.",
                 "Run npm run typecheck.",
@@ -448,9 +448,35 @@
                 "2026-06-01: V8 planning created after V7 closeout and marked in_progress for planning. Official Baidu realtime WebSocket API source checked: https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i, plus the same Baidu AI Open Platform doc id mirror https://ai.baidu.com/ai-doc/SPEECH/jlbxejt2i. Design saved to docs/superpowers/specs/2026-06-01-v8-baidu-realtime-websocket-design.md; implementation plan saved to docs/superpowers/plans/2026-06-01-v8-baidu-realtime-websocket.md.",
                 "2026-06-01: V8 implementation completed for automated verification. npm test -- --run src/App.test.tsx passed with 20 tests; npm run typecheck passed; npm run build passed; cargo fmt --all --manifest-path src-tauri/Cargo.toml --check passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml baidu_realtime --no-run passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run passed. Manual real Baidu WebSocket streaming verification remains pending.",
                 "2026-06-02: V8 config follow-up fixed realtime readiness and UI clarity. Baidu Realtime WebSocket API config now defaults AppID to 10500017, appends runtime sn, serializes numeric START fields, ignores HEARTBEAT, treats only err_no != 0 as error, reports short speech and realtime readiness separately, and shows the shared BAIDU_ASR_API_KEY / BAIDU_ASR_SECRET_KEY masked status plus password save inputs on the realtime config panel. Verification: npm test -- --run src/App.test.tsx passed with 23 tests; npm run typecheck passed; npm run build passed; cargo fmt --all --manifest-path src-tauri/Cargo.toml --check passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml baidu_realtime --no-run passed; cargo test --manifest-path src-tauri/Cargo.toml cloud_asr_config --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed. Manual real Baidu WebSocket streaming verification remains pending.",
-                "2026-06-02: Maintainer manually tested Baidu Realtime WebSocket API and reported acceptable recognition. Follow-up confirmed target-input insertion is real Baidu WebSocket FIN_TEXT final-event insertion, while MID_TEXT partial events only update app status and are not written into the target input. Fixed bottom-edge clipping in the desktop capsule overlay by resizing the overlay viewport to 120 x 36 and drawing the capsule inside it with vertical padding. Verification: npm test -- --run src/DictationOverlay.test.tsx passed with 6 tests; npm test -- --run src/App.test.tsx passed with 23 tests; npm run typecheck passed; npm run build passed; cargo fmt --all --manifest-path src-tauri/Cargo.toml --check passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml overlay --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed. Direct Rust test execution remains limited by the existing STATUS_ENTRYPOINT_NOT_FOUND environment issue."
+                "2026-06-02: Maintainer manually tested Baidu Realtime WebSocket API and reported acceptable recognition. Follow-up confirmed target-input insertion is real Baidu WebSocket FIN_TEXT final-event insertion, while MID_TEXT partial events only update app status and are not written into the target input. Fixed bottom-edge clipping in the desktop capsule overlay by resizing the overlay viewport to 120 x 36 and drawing the capsule inside it with vertical padding. Verification: npm test -- --run src/DictationOverlay.test.tsx passed with 6 tests; npm test -- --run src/App.test.tsx passed with 23 tests; npm run typecheck passed; npm run build passed; cargo fmt --all --manifest-path src-tauri/Cargo.toml --check passed; cargo check --manifest-path src-tauri/Cargo.toml --lib passed; cargo test --manifest-path src-tauri/Cargo.toml overlay --no-run passed; python -m json.tool docs/harness/feature_list.json passed; git diff --check passed. Direct Rust test execution remains limited by the existing STATUS_ENTRYPOINT_NOT_FOUND environment issue.",
+                "2026-06-02: Maintainer confirmed the desktop capsule border now renders normally and accepted V8 closeout. V8 is marked passing after real desktop Baidu Realtime WebSocket API verification, overlay clipping follow-up, and fresh automated verification. Commit 6b8456b fixed the overlay viewport padding; this closeout updates docs and planning only."
             ],
-            "notes": "V8 automated implementation is complete and compiled. Real Baidu Realtime WebSocket API is wired for continuous input using official START, PCM frame, FINISH/CANCEL/HEARTBEAT protocol details from https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i. Maintainer manual streaming verification in the Tauri desktop app is still required before marking passing."
+            "notes": "V8 is closed: Baidu Realtime WebSocket API is wired and manually verified for continuous input using official START, PCM frame, FINISH/CANCEL/HEARTBEAT protocol details from https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i. Target-input insertion uses real Baidu FIN_TEXT final events; MID_TEXT partial events update status only. Push-to-talk still rejects realtime with a clear unsupported-mode message."
+        },
+        {
+            "id": "v9-001",
+            "priority": 12,
+            "area": "implementation",
+            "title": "V9 Transcript quality and history persistence",
+            "user_visible_behavior": "Users can configure glossary/replacement rules and keep recognition history across app restarts. The same deterministic text quality layer applies to local whisper.cpp, Baidu Short Speech API, and Baidu Realtime WebSocket API final text.",
+            "status": "in_progress",
+            "verification": [
+                "Run npm test -- --run src/App.test.tsx.",
+                "Run npm run typecheck.",
+                "Run npm run build.",
+                "Run cargo check --manifest-path src-tauri/Cargo.toml --lib.",
+                "Run cargo test --manifest-path src-tauri/Cargo.toml text_postprocess --no-run.",
+                "Run cargo test --manifest-path src-tauri/Cargo.toml transcript_history --no-run.",
+                "Run python -m json.tool docs/harness/feature_list.json.",
+                "Run git diff --check.",
+                "Manually verify glossary rules apply to all final ASR text paths.",
+                "Manually verify recognition history survives app restart, delete, and clear-all."
+            ],
+            "evidence": [
+                "2026-06-02: V9 planning created after V8 closeout. Design saved to docs/superpowers/specs/2026-06-02-v9-transcript-quality-design.md; implementation plan saved to docs/superpowers/plans/2026-06-02-v9-transcript-quality.md.",
+                "2026-06-02: V9 planning updated after maintainer request to include recognition history persistence. Scope now includes deterministic transcript quality plus local persisted transcript history across app restarts."
+            ],
+            "notes": "V9 scope is deterministic transcript quality improvement plus local transcript history persistence. It intentionally excludes SendInput/TSF, full LLM rewriting, VAD segmentation, cloud sync, and paid/custom Baidu model training implementation."
         }
     ]
 }

@@ -1,13 +1,23 @@
-# 会话交接
+# Session Handoff
+
+## 2026-06-02 V8 closeout and V9 handoff
+
+- V8 is closed and marked `passing`: maintainer manually verified Baidu Realtime WebSocket API continuous input and confirmed the capsule overlay border is no longer clipped.
+- Latest V8 follow-up commit: `6b8456b fix: prevent overlay capsule clipping`.
+- Realtime insertion semantics: continuous input with `baidu-realtime` uses real Baidu WebSocket `FIN_TEXT` final events for target-input insertion; `MID_TEXT` partial events update app status only and are not inserted into the target app.
+- V9 next recommended task: `v9-001` transcript quality and history persistence.
+- V9 docs: `docs/superpowers/specs/2026-06-02-v9-transcript-quality-design.md` and `docs/superpowers/plans/2026-06-02-v9-transcript-quality.md`.
+- V9 should not start with SendInput/TSF or LLM rewriting. Keep it deterministic first: local glossary, phrase replacements, provider-neutral post-processing pipeline, noise cleanup, local history persistence, and tests proving the same cleanup/history path applies to local whisper.cpp, Baidu Short Speech API, and Baidu Realtime WebSocket API final text.
+
 
 ## 2026-06-02 V8 handoff
 
 - V8 Baidu Realtime WebSocket API implementation is complete and committed in `af644b5 feat: add baidu realtime websocket asr`.
 - Continuous input can select `baidu-realtime`; push-to-talk rejects that model with a clear unsupported-mode error.
 - Official protocol source remains `https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i`: `wss://vop.baidu.com/realtime_asr`, START frame with `appid` and `appkey`, 160 ms / 5120-byte PCM frames, plus `FINISH`, `CANCEL`, and `HEARTBEAT`.
-- Real verification still belongs to the maintainer: run `npm run tauri -- dev`, select the continuous-input model `Baidu Realtime WebSocket API`, press `Ctrl+Alt+V` to start speaking, press `Ctrl+Alt+V` again to stop, and confirm final text appears in the target app and one merged transcript row is recorded.
+- Real desktop streaming verification has passed; this older checklist is retained as historical context.
 - Required credential: `BAIDU_ASR_API_KEY` must be available to the Tauri process. It is used as Baidu realtime `appkey`; the project must not log or store the raw value.
-- `v8-001` remains `in_progress` until the real desktop streaming check passes.
+- `v8-001` is now `passing`.
 
 
 ## 2026-06-01 V6 收尾与 V7 交接
