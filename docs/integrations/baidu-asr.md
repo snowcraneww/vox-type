@@ -248,11 +248,6 @@ Key protocol details recorded for implementation:
 - Official frame guidance uses 160 ms PCM chunks: `160 * (16000 * 2 / 1000) = 5120` bytes.
 - Control frames include `FINISH`, `CANCEL`, and `HEARTBEAT`.
 
-Design and implementation plan:
-
-- `docs/superpowers/specs/2026-06-01-v8-baidu-realtime-websocket-design.md`
-- `docs/superpowers/plans/2026-06-01-v8-baidu-realtime-websocket.md`
-
 
 ### V8 implementation
 

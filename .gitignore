@@ -1,4 +1,4 @@
-# OS / editor
+﻿# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/*
@@ -13,9 +13,7 @@ Thumbs.db
 .cache/
 tmp/
 temp/
-!TMP/
-!TMP/research/
-!TMP/research/*.md
+logs/
 
 # Environment and secrets
 .env
@@ -23,8 +21,10 @@ temp/
 !.env.example
 *.pem
 *.key
+*.p12
+*.pfx
 cookies/
-logs/
+secrets/
 
 # Node / frontend
 node_modules/
@@ -41,7 +41,7 @@ src-tauri/gen/schemas/
 Cargo.lock
 !src-tauri/Cargo.lock
 
-# Large local speech assets
+# Large local speech assets and diagnostic media
 models/
 *.gguf
 *.bin
@@ -50,6 +50,10 @@ models/
 *.mp3
 *.flac
 *.m4a
+*.aac
+*.pcm
+*.webm
+*.mp4
 
 # Packaged app artifacts
 *.msi
@@ -58,6 +62,39 @@ models/
 *.AppImage
 *.deb
 *.rpm
+*.zip
+*.7z
+*.tar.gz
 
-# Third-party research clones kept locally for analysis
-TMP/research/repos/
+# Local app data / diagnostics
+app-data/
+diagnostics/
+recordings/
+transcripts/
+
+# Internal project management, design, research, and AI coding records
+AGENTS.md
+CLAUDE.md
+.codex/
+.agents/
+.claude/
+.gstack/
+.aider*
+.cursor/
+.windsurf/
+.roo/
+openspec/
+TMP/
+docs/harness/
+docs/superpowers/
+docs/research/
+docs/plans/
+docs/guide/interview-project-brief.md
+
+# Public docs kept in the open-source repository
+!docs/
+!docs/guide/
+!docs/guide/run-and-understand.md
+!docs/guide/code-walkthrough.md
+!docs/integrations/
+!docs/integrations/baidu-asr.md

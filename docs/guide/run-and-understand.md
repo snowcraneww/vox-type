@@ -559,10 +559,9 @@ flowchart TD
 vox-type/
   src/                    前端 React/TypeScript
   src-tauri/              Tauri + Rust 桌面壳
-  docs/harness/           项目状态、证据、任务事实源
-  docs/research/          需求、调研、技术方案
-  openspec/changes/       已确认的规格变更
-  TMP/research/           调研中间资料，不是正式产品代码
+  docs/                    Public documentation
+  docs/guide/              Run guides and code walkthroughs
+  docs/integrations/       Third-party service integration notes
 ```
 
 前端重点文件：

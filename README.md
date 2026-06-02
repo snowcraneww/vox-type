@@ -1,68 +1,124 @@
-# VoxType
+﻿# VoxType
 
-VoxType 是一个早期开源项目，目标是探索本地优先、隐私友好的语音输入法体验。
+VoxType is a Windows desktop voice input tool for local-first dictation experiments. It lets you speak with global hotkeys, transcribe speech with local `whisper.cpp` or Baidu speech APIs, and insert the final text into the app that currently has focus.
 
-当前仓库已完成 harness 初始化、产品发现、第一轮开源调研、MVP 技术方向确认和第一版 MVP proof-of-life。产品代码已有 Tauri 2 + React/TypeScript + Rust 桌面应用骨架，已接入录音采集、whisper.cpp 一键安装/转写、实验分段实时输入、诊断日志、输入设备选择与持久化、全局按住说话、全局切换录音、剪贴板上屏和 Windows 安装包；`docs/plans/原始需求.md` 是原始需求草稿，不代表最终技术方案。
+The project is still early. The current focus is a usable desktop MVP: reliable recording, visible dictation state, model selection, cloud/local ASR routing, and privacy-conscious configuration.
 
-## 目标方向
+## Features
 
-VoxType 计划优先验证这些能力：
+- Global push-to-talk: hold `Ctrl+Alt+Space`, speak, release to transcribe and insert text.
+- Global continuous input: press `Ctrl+Alt+V` to start, press it again to stop.
+- Local ASR through `whisper.cpp` with in-app configuration and one-click setup support.
+- Baidu Short Speech API support for stop-then-transcribe input.
+- Baidu Realtime WebSocket API support for continuous input.
+- Per-mode model selection: push-to-talk and continuous input can use different default models.
+- Native Windows dictation overlay with recording and transcribing states.
+- Recognition history in the main window with copy, re-insert, delete, clear, export, duration, model, and input-mode metadata.
+- Diagnostics for microphone, model configuration, recording, ASR, overlay, and insertion flow.
 
-- 按住说话、松开转写并输入到当前光标位置。
-- 按一次开始录音、再按一次停止并输入到当前光标位置；当前 `Ctrl+Alt+V` 模式已支持实验分段实时输入，但还不是真正的流式 ASR。
-- 本地语音识别优先，尽量减少网络依赖。
-- 面向 Windows 先做可用 MVP，再评估 macOS/Linux。
-- 开源协作友好：需求、设计、验证和进度都沉淀在仓库内。
+## Current Limitations
 
-## 当前阶段
+- Windows is the primary supported platform.
+- Text insertion currently uses a clipboard-based strategy.
+- Baidu Realtime WebSocket API inserts final `FIN_TEXT` results; partial `MID_TEXT` results are status-only.
+- Recognition quality depends heavily on microphone distance, noise, model choice, and provider behavior.
+- Recognition history persistence and audio quality diagnostics are planned for the next implementation version.
+- Audio preprocessing such as AGC, denoise, VAD trimming, and normalization is planned after diagnostics are in place.
 
-1. 项目 harness 配置。
-2. 语音输入法需求分析和边界澄清。
-3. GitHub 开源项目调研。已完成第一轮，见 `docs/research/open-source-landscape.md`。
-4. 技术方案 brainstorm。已完成。
-5. OpenSpec 记录架构决策。已创建 `openspec/changes/voxtype-mvp-technical-direction/`。
-6. Scaffold 产品代码并建立测试基线。第一版 MVP 已完成：本机和跨机器安装包均已跑通真实录音、转写和上屏 proof-of-life；当前进入第二阶段可用性和可靠性增强。
+## Tech Stack
 
-## 快速开始
+- Tauri 2 desktop shell
+- Rust backend for recording, ASR adapters, hotkeys, overlay, config, and Windows integration
+- React + TypeScript frontend
+- Vite and Vitest
+- `whisper.cpp` for local transcription
+- Baidu Speech APIs for cloud transcription
 
-```bash
-bash init.sh
-```
+## Requirements
 
-安装依赖后可运行：
+- Windows 10/11
+- Node.js and npm
+- Rust stable toolchain
+- A working microphone
+- Optional: Baidu Speech API credentials for cloud ASR
+- Optional: local `whisper.cpp` binary and model, or use the app's setup flow
+
+## Quick Start
+
+Install dependencies:
 
 ```bash
 npm install
-npm run typecheck
-npm test -- --run
-npm run build
-cargo test --manifest-path src-tauri/Cargo.toml
-cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-当前应用提供深色 V3 主界面、彩色流光语音波纹、诊断模式、输入设备选择和持久化、全局 `Ctrl+Alt+Space` 按住说话、全局 `Ctrl+Alt+V` 切换录音、实验分段实时输入、真实录音采集、whisper.cpp 一键安装、最近录音转写、剪贴板上屏、诊断日志、诊断 WAV 导出和 Windows 安装包。识别质量仍取决于输入设备、录音质量和模型选择。
+Run the desktop app:
 
-## 重要文档
+```bash
+npm run tauri -- dev
+```
 
-- `AGENTS.md`：agent 工作规则。
-- `docs/harness/working-agreement.md`：人和 agent 的协作规则。
-- `docs/harness/feature_list.json`：当前任务和功能状态。
-- `docs/harness/progress.md`：已验证状态和会话日志。
-- `docs/harness/research-log.md`：课程学习和后续调研记录。
-- `docs/harness/debugging-log.md`：调试过程中发现的问题、根因、修复和验证记录。
-- `docs/guide/run-and-understand.md`：如何运行当前应用，以及代码模块和语音输入流程说明。
-- `docs/guide/code-walkthrough.md`：面向 Rust/Tauri 新手的当前代码导读。
-- `docs/research/requirements-brief.md`：整理后的需求 brief。
-- `docs/research/open-source-landscape.md`：相关开源项目调研。
-- `docs/research/technical-options.md`：MVP 技术选项建议。
-- `docs/research/mvp-technical-proposal.md`：Rust + Tauri 2 + React/TS MVP 技术方案草案。
-- `TMP/research/`：调研中间材料；其中 `repos/` 是本地第三方克隆，不提交。
-- `docs/plans/原始需求.md`：原始需求草稿。
+Browser-only UI preview is available with:
 
-## 开发状态
+```bash
+npm run dev
+```
 
-已有最小可运行前端和 Tauri/Rust 桌面应用。当前标准验证命令见“快速开始”。第一版真实语音输入 MVP 和 V2 日常输入体验已完成，V3 正在优化界面质感并加入切换录音模式；后续重点是快捷键配置、模型选择、识别质量、真正实时流式 ASR 和更可靠的上屏策略。
+Use the Tauri desktop command when testing microphone capture, global hotkeys, tray behavior, native overlay, clipboard insertion, or Tauri commands. The browser preview cannot validate those desktop features.
 
-## 许可证
+## Development Checks
 
-VoxType 使用 Apache-2.0 许可证。详见 LICENSE。
+```bash
+npm test -- --run
+npm run typecheck
+npm run build
+cargo check --manifest-path src-tauri/Cargo.toml --lib
+```
+
+Some Rust test binaries can be affected by Windows environment differences around native system entry points. `cargo check` and targeted `cargo test --no-run` checks are useful when full execution is blocked by the local OS environment.
+
+## Model Configuration
+
+### Local whisper.cpp
+
+Open the model configuration page in the app and configure:
+
+- `whisper.cpp` executable path
+- model file path
+- language
+
+Large model files are local user assets and should not be committed to Git.
+
+### Baidu Short Speech API
+
+The short speech API uses:
+
+- endpoint: `http://vop.baidu.com/server_api`
+- `BAIDU_ASR_API_KEY`
+- `BAIDU_ASR_SECRET_KEY`
+
+### Baidu Realtime WebSocket API
+
+The realtime API uses Baidu's WebSocket protocol and is intended for continuous input mode. It shares the Baidu API key/secret setup with the short speech API and also needs an AppID in the app configuration.
+
+See [docs/integrations/baidu-asr.md](docs/integrations/baidu-asr.md) for implementation notes.
+
+## Privacy
+
+VoxType is designed to keep sensitive values out of the repository.
+
+- Do not commit API keys, access tokens, cookies, local app data, recordings, models, or generated diagnostic media.
+- Baidu credentials should be configured through environment variables or the app's secure configuration flow.
+- Local model files and exported WAV diagnostics stay on the user's machine.
+- Cloud ASR modes send audio to the selected provider. Use local `whisper.cpp` if the audio must stay local.
+
+## Public Documentation
+
+- [Run and understand](docs/guide/run-and-understand.md)
+- [Code walkthrough](docs/guide/code-walkthrough.md)
+- [Baidu ASR integration notes](docs/integrations/baidu-asr.md)
+
+Internal planning, research, agent harness, and AI coding records are intentionally excluded from the public repository.
+
+## License
+
+VoxType is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
