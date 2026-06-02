@@ -1920,7 +1920,7 @@ kbd {
 .readiness-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   margin: 0;
 }
 
@@ -1948,6 +1948,13 @@ kbd {
 .readiness-grid div[data-state="warning"]::after { background: #ffd60a; }
 .readiness-grid div[data-state="busy"]::after { background: #5ac8fa; }
 .readiness-grid div[data-state="error"]::after { background: #ff453a; }
+.readiness-grid div[data-column="model"] {
+  grid-column: 1;
+}
+
+.readiness-grid div[data-column="system"] {
+  grid-column: 2;
+}
 
 .readiness-grid dt {
   color: rgba(235,239,247,0.52);

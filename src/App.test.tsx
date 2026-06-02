@@ -108,10 +108,12 @@ describe('App', () => {
     expect(screen.getByText('Ctrl+Alt+Space')).toBeInTheDocument();
     expect(screen.getByText('Ctrl+Alt+V')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '模型选择配置' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: '准备状态' })).toBeInTheDocument();
+    const readiness = screen.getByRole('region', { name: '准备状态' });
+    expect(readiness).toBeInTheDocument();
     expect(screen.getByText('麦克风')).toBeInTheDocument();
     expect(screen.getByText('上屏')).toBeInTheDocument();
     expect(screen.getAllByText('百度短语音 API').length).toBeGreaterThanOrEqual(2);
+    expect(within(readiness).getAllByRole('term').map((term) => term.textContent)).toEqual(['按住说话模型', '连续输入模型', '麦克风', '上屏']);
     expect(screen.queryByText('本地识别')).not.toBeInTheDocument();
     expect(screen.queryByText('云端 API')).not.toBeInTheDocument();
     expect(screen.queryByText('快捷键')).not.toBeInTheDocument();

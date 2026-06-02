@@ -118,10 +118,10 @@ function formatInputMode(source: TranscriptRecord['inputMode']) {
 export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDictationHotkey, pushToTalkModelReadiness, toggleDictationModelReadiness, recorderInfo, records, stats, historyMessage, onOpenDiagnostic, onOpenModelSettings, onCopyRecord, onReinsertRecord, onDeleteRecord, onClearRecords, onExportRecords, onOpenHotkeySettings }: MainWindowProps) {
   const hotkeysReady = hotkeyStatus.registered;
   const readinessItems = [
-    { label: text.microphone, value: recorderInfo?.deviceName ?? text.waitingDevice, state: recorderInfo ? 'ready' : 'warning', title: recorderInfo ? `${recorderInfo.sampleRate} Hz / ${recorderInfo.channels}` : 'Waiting for input device.' },
-    { label: text.paste, value: 'Clipboard', state: status.phase === 'failed' ? 'error' : 'ready', title: 'Clipboard paste path.' },
-    { label: text.pushToTalkModel, value: pushToTalkModelReadiness.label, state: pushToTalkModelReadiness.ready ? 'ready' : 'warning', title: pushToTalkModelReadiness.message },
-    { label: text.toggleDictationModel, value: toggleDictationModelReadiness.label, state: toggleDictationModelReadiness.ready ? 'ready' : 'warning', title: toggleDictationModelReadiness.message },
+    { label: text.pushToTalkModel, value: pushToTalkModelReadiness.label, state: pushToTalkModelReadiness.ready ? 'ready' : 'warning', title: pushToTalkModelReadiness.message, column: 'model' },
+    { label: text.toggleDictationModel, value: toggleDictationModelReadiness.label, state: toggleDictationModelReadiness.ready ? 'ready' : 'warning', title: toggleDictationModelReadiness.message, column: 'model' },
+    { label: text.microphone, value: recorderInfo?.deviceName ?? text.waitingDevice, state: recorderInfo ? 'ready' : 'warning', title: recorderInfo ? `${recorderInfo.sampleRate} Hz / ${recorderInfo.channels}` : 'Waiting for input device.', column: 'system' },
+    { label: text.paste, value: 'Clipboard', state: status.phase === 'failed' ? 'error' : 'ready', title: 'Clipboard paste path.', column: 'system' },
   ];
 
   return (
@@ -140,7 +140,7 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
           <section className="control-section readiness-panel" aria-label={text.readiness}>
             <div className="section-heading"><span>{text.readiness}</span><strong>{text.capabilities}</strong></div>
             <dl className="readiness-grid">
-              {readinessItems.map((item) => <div key={item.label} data-state={item.state} title={item.title}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
+              {readinessItems.map((item) => <div key={item.label} data-state={item.state} data-column={item.column} title={item.title}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
             </dl>
           </section>
         </div>
