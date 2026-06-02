@@ -450,8 +450,8 @@ export function App() {
     };
   }, [transcriptRecords]);
 
-  async function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short') {
-    const processed = await postprocessText(text);
+  async function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short', processedOverride?: { text: string; rulesApplied: number; noiseRemoved: boolean }) {
+    const processed = processedOverride ?? await postprocessText(text);
     const normalizedText = processed.text.trim();
     if (!normalizedText || processed.noiseRemoved) {
       return null;
@@ -1123,12 +1123,16 @@ export function App() {
         await processFinalLiveTranscriptionChunk();
       }
       if (!liveInsertedTextRef.current) {
-        setStatus({ phase: 'transcribing', message: '正在用连续输入默认模型识别整段录音', lastTranscript: null });
         const transcript = await transcribeLastRecording(selectedModel);
-        await insertTextWithClipboard(transcript.text);
-        await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'toggle-dictation', selectedModel);
-        setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: transcript.text });
-        addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
+        const processed = await postprocessText(transcript.text);
+        const finalText = processed.text.trim();
+        if (!finalText || processed.noiseRemoved) {
+          return;
+        }
+        await insertTextWithClipboard(finalText);
+        await addTranscriptRecord(finalText, audio.asrDurationMs, 'toggle-dictation', selectedModel, processed);
+        setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: finalText });
+        addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${finalText}` });
       } else {
         const sessionText = combinedLiveSessionText();
         if (sessionText) {
@@ -1176,11 +1180,16 @@ export function App() {
       const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current);
       assertModelUsable(model);
       const transcript = await transcribeLastRecording(selectedModel);
-      setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: transcript.text });
-      await insertTextWithClipboard(transcript.text);
-      await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'push-to-talk', selectedModel);
-      setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: transcript.text });
-      addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${transcript.text}` });
+      const processed = await postprocessText(transcript.text);
+      const finalText = processed.text.trim();
+      if (!finalText || processed.noiseRemoved) {
+        return;
+      }
+      setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: finalText });
+      await insertTextWithClipboard(finalText);
+      await addTranscriptRecord(finalText, audio.asrDurationMs, 'push-to-talk', selectedModel, processed);
+      setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: finalText });
+      addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${finalText}` });
     } catch (error) {
       const detail = formatError(error);
       setRecordingStatus((current) => ({ ...current, state: 'idle' }));
@@ -1345,13 +1354,20 @@ export function App() {
         return;
       }
       if (payload.isFinal) {
-        liveInsertedTextRef.current = true;
-        rememberLiveSessionText(text, payload.durationMs);
-        setStatus({ phase: 'recording', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u6700\u7ec8\u7247\u6bb5\u5df2\u4e0a\u5c4f', lastTranscript: text });
-        void insertTextWithClipboard(text).catch((error: unknown) => {
+        void (async () => {
+          const processed = await postprocessText(text);
+          const finalText = processed.text.trim();
+          if (!finalText || processed.noiseRemoved) {
+            return;
+          }
+          liveInsertedTextRef.current = true;
+          rememberLiveSessionText(finalText, payload.durationMs);
+          setStatus({ phase: 'recording', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u6700\u7ec8\u7247\u6bb5\u5df2\u4e0a\u5c4f', lastTranscript: finalText });
+          await insertTextWithClipboard(finalText);
+          addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u6700\u7ec8\u7247\u6bb5', result: 'success', detail: finalText });
+        })().catch((error: unknown) => {
           addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u7247\u6bb5\u4e0a\u5c4f\u5931\u8d25', result: 'error', detail: formatError(error) });
         });
-        addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u6700\u7ec8\u7247\u6bb5', result: 'success', detail: text });
       } else {
         setStatus({ phase: 'recording', message: `\u767e\u5ea6\u5b9e\u65f6\u8bc6\u522b\u4e2d\uff1a${text}`, lastTranscript: text });
       }

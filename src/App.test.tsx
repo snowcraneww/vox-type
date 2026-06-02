@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { getOverlayBackendStatus, hideDictationOverlay, insertTextWithClipboard, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { getOverlayBackendStatus, hideDictationOverlay, insertTextWithClipboard, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
@@ -23,6 +23,13 @@ vi.mock('./tauriClient', async (importOriginal) => {
     getUserPreferences: vi.fn().mockResolvedValue({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short' }),
     getHotkeyStatus: vi.fn().mockResolvedValue({ accelerator: 'Ctrl+Alt+Space', registered: true, message: '全局快捷键已注册：Ctrl+Alt+Space' }),
     getOverlayBackendStatus: vi.fn().mockResolvedValue({ backend: 'native-win32', lastError: null }),
+    loadTranscriptHistory: vi.fn().mockResolvedValue([]),
+    saveTranscriptHistoryEntry: vi.fn().mockImplementation((entry) => Promise.resolve([entry])),
+    deleteTranscriptHistoryEntry: vi.fn().mockResolvedValue([]),
+    clearTranscriptHistory: vi.fn().mockResolvedValue([]),
+    getTranscriptPostprocessConfig: vi.fn().mockResolvedValue({ enabled: true, cleanupNoise: true, glossary: ['WebSocket', 'whisper.cpp', 'VoxType'], replacements: [{ from: 'scale', to: 'skill', enabled: true }] }),
+    saveTranscriptPostprocessConfig: vi.fn().mockImplementation((config) => Promise.resolve(config)),
+    previewTranscriptPostprocess: vi.fn().mockImplementation((text: string) => Promise.resolve({ text: text.replace(/scale/gi, 'skill').replace(/websocket/gi, 'WebSocket').replace(/whisper cpp/gi, 'whisper.cpp'), rulesApplied: /scale/i.test(text) ? 1 : 0, noiseRemoved: false })),
     listInputDevices: vi.fn().mockResolvedValue([{ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }]),
     startBaiduRealtimeSession: vi.fn().mockResolvedValue({ state: 'streaming', message: 'Baidu realtime WebSocket session started.', startedAtMs: 1000, durationMs: 0, finalText: '' }),
     finishBaiduRealtimeSession: vi.fn().mockResolvedValue({ status: { state: 'finished', message: 'stopped', startedAtMs: 1000, durationMs: 1800, finalText: 'realtime final text' }, text: 'realtime final text', durationMs: 1800, charCount: 6 }),
@@ -69,6 +76,22 @@ describe('App', () => {
     vi.mocked(hideDictationOverlay).mockClear();
     vi.mocked(showTranscribingOverlay).mockClear();
     vi.mocked(getOverlayBackendStatus).mockClear();
+    vi.mocked(loadTranscriptHistory).mockResolvedValue([]);
+    vi.mocked(loadTranscriptHistory).mockClear();
+    const savedEntries: import('./types').PersistedTranscriptEntry[] = [];
+    vi.mocked(saveTranscriptHistoryEntry).mockImplementation((entry) => {
+      savedEntries.unshift(entry);
+      return Promise.resolve([...savedEntries]);
+    });
+    vi.mocked(saveTranscriptHistoryEntry).mockClear();
+    vi.mocked(deleteTranscriptHistoryEntry).mockResolvedValue([]);
+    vi.mocked(deleteTranscriptHistoryEntry).mockClear();
+    vi.mocked(clearTranscriptHistory).mockResolvedValue([]);
+    vi.mocked(clearTranscriptHistory).mockClear();
+    vi.mocked(previewTranscriptPostprocess).mockImplementation((text: string) => Promise.resolve({ text: text.replace(/scale/gi, 'skill').replace(/websocket/gi, 'WebSocket').replace(/whisper cpp/gi, 'whisper.cpp'), rulesApplied: /scale/i.test(text) ? 1 : 0, noiseRemoved: false }));
+    vi.mocked(previewTranscriptPostprocess).mockClear();
+    vi.mocked(saveTranscriptPostprocessConfig).mockImplementation((config) => Promise.resolve(config));
+    vi.mocked(saveTranscriptPostprocessConfig).mockClear();
     vi.mocked(saveCloudAsrConfig).mockClear();
     vi.mocked(saveModeModelPreferences).mockClear();
     vi.mocked(saveBaiduAsrApiKey).mockClear();
@@ -264,6 +287,94 @@ describe('App', () => {
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
   });
 
+  it('loads persisted transcript history and renders compact audio warnings', async () => {
+    vi.mocked(loadTranscriptHistory).mockResolvedValueOnce([{
+      id: 'persisted-1',
+      text: 'persisted transcript',
+      inputMode: 'push-to-talk',
+      model: 'baidu-short',
+      createdAtMs: 1717310000000,
+      durationMs: 2400,
+      characterCount: 20,
+      postprocessRulesApplied: 1,
+      audioQuality: { rms: 0.01, peak: 0.4, silenceRatio: 0.8, activeSpeechMs: 300, warnings: ['low_volume', 'mostly_silence'] },
+    }]);
+
+    render(<App />);
+
+    expect(await screen.findByText('persisted transcript')).toBeInTheDocument();
+    expect(screen.getByText('音量低 / 静音多')).toBeInTheDocument();
+    expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
+  });
+
+  it('inserts the postprocessed push-to-talk text and persists quality metadata', async () => {
+    vi.mocked(transcribeLastRecording).mockResolvedValueOnce({ engine: 'whisper.cpp', text: 'open scale websocket' });
+    vi.mocked(stopRecording).mockResolvedValueOnce({
+      sampleRate: 44100,
+      channels: 1,
+      sampleCount: 32000,
+      durationMs: 2000,
+      asrSampleRate: 16000,
+      asrSampleCount: 32000,
+      asrDurationMs: 2000,
+      peakAmplitude: 12000,
+      rmsAmplitude: 1600,
+      audioQuality: { rms: 0.01, peak: 0.4, silenceRatio: 0.8, activeSpeechMs: 300, warnings: ['low_volume', 'mostly_silence'] },
+    } as never);
+
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    await waitForBaiduReadiness();
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    await waitFor(() => expect(previewTranscriptPostprocess).toHaveBeenCalledWith('open scale websocket'));
+    await waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('open skill WebSocket'));
+    await waitFor(() => expect(saveTranscriptHistoryEntry).toHaveBeenCalledWith(expect.objectContaining({
+      text: 'open skill WebSocket',
+      postprocessRulesApplied: 1,
+      audioQuality: expect.objectContaining({ warnings: ['low_volume', 'mostly_silence'] }),
+    })));
+    expect(await screen.findByText('open skill WebSocket')).toBeInTheDocument();
+  });
+
+  it('routes delete and clear history through persistent commands', async () => {
+    const remaining = {
+      id: 'persisted-2',
+      text: 'remaining transcript',
+      inputMode: 'push-to-talk' as const,
+      model: 'baidu-short' as const,
+      createdAtMs: 1717310001000,
+      durationMs: 1200,
+      characterCount: 20,
+      postprocessRulesApplied: 0,
+      audioQuality: null,
+    };
+    vi.mocked(loadTranscriptHistory).mockResolvedValueOnce([{
+      id: 'persisted-1',
+      text: 'persisted transcript',
+      inputMode: 'push-to-talk',
+      model: 'baidu-short',
+      createdAtMs: 1717310000000,
+      durationMs: 2400,
+      characterCount: 20,
+      postprocessRulesApplied: 0,
+      audioQuality: null,
+    }, remaining]);
+    vi.mocked(deleteTranscriptHistoryEntry).mockResolvedValueOnce([remaining]);
+
+    render(<App />);
+
+    expect(await screen.findByText('persisted transcript')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: '删除此识别记录' })[0]);
+    await waitFor(() => expect(deleteTranscriptHistoryEntry).toHaveBeenCalledWith('persisted-1'));
+    expect(await screen.findByText('remaining transcript')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '清空全部识别记录' }));
+    await waitFor(() => expect(clearTranscriptHistory).toHaveBeenCalledTimes(1));
+  });
 
   it('shows visible feedback when exporting transcript records', async () => {
     render(<App />);
