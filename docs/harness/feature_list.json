@@ -457,8 +457,8 @@
             "id": "v9-001",
             "priority": 12,
             "area": "implementation",
-            "title": "V9 Transcript quality and history persistence",
-            "user_visible_behavior": "Users can configure glossary/replacement rules and keep recognition history across app restarts. The same deterministic text quality layer applies to local whisper.cpp, Baidu Short Speech API, and Baidu Realtime WebSocket API final text.",
+            "title": "V9 Transcript quality, history persistence, and audio diagnostics",
+            "user_visible_behavior": "Users can configure glossary/replacement rules, keep recognition history across app restarts, and see lightweight audio quality hints for likely low-volume, clipped, silence-heavy, or far-microphone recordings. The same deterministic text quality layer applies to local whisper.cpp, Baidu Short Speech API, and Baidu Realtime WebSocket API final text.",
             "status": "in_progress",
             "verification": [
                 "Run npm test -- --run src/App.test.tsx.",
@@ -467,16 +467,43 @@
                 "Run cargo check --manifest-path src-tauri/Cargo.toml --lib.",
                 "Run cargo test --manifest-path src-tauri/Cargo.toml text_postprocess --no-run.",
                 "Run cargo test --manifest-path src-tauri/Cargo.toml transcript_history --no-run.",
+                "Run cargo test --manifest-path src-tauri/Cargo.toml audio_quality --no-run.",
                 "Run python -m json.tool docs/harness/feature_list.json.",
                 "Run git diff --check.",
                 "Manually verify glossary rules apply to all final ASR text paths.",
-                "Manually verify recognition history survives app restart, delete, and clear-all."
+                "Manually verify recognition history survives app restart, delete, and clear-all.",
+                "Manually verify low-volume or far-microphone recordings show a non-blocking quality hint."
             ],
             "evidence": [
                 "2026-06-02: V9 planning created after V8 closeout. Design saved to docs/superpowers/specs/2026-06-02-v9-transcript-quality-design.md; implementation plan saved to docs/superpowers/plans/2026-06-02-v9-transcript-quality.md.",
-                "2026-06-02: V9 planning updated after maintainer request to include recognition history persistence. Scope now includes deterministic transcript quality plus local persisted transcript history across app restarts."
+                "2026-06-02: V9 planning updated after maintainer request to include recognition history persistence. Scope now includes deterministic transcript quality plus local persisted transcript history across app restarts.",
+                "2026-06-02: V9/V10 scope split accepted by maintainer. V9 keeps deterministic transcript quality, local history persistence, and lightweight audio quality diagnostics. V10 is split out for actual audio preprocessing such as AGC, denoise, VAD trimming, high-pass filtering, and normalization."
             ],
-            "notes": "V9 scope is deterministic transcript quality improvement plus local transcript history persistence. It intentionally excludes SendInput/TSF, full LLM rewriting, VAD segmentation, cloud sync, and paid/custom Baidu model training implementation."
+            "notes": "V9 scope is deterministic transcript quality improvement, local transcript history persistence, and lightweight audio quality diagnostics. It intentionally excludes SendInput/TSF, full LLM rewriting, actual audio preprocessing, VAD trimming, waveform normalization, cloud sync, and paid/custom Baidu model training implementation."
+        },
+        {
+            "id": "v10-001",
+            "priority": 13,
+            "area": "implementation",
+            "title": "V10 Audio preprocessing for recognition quality",
+            "user_visible_behavior": "Users can enable a conservative audio enhancement pipeline for quiet, distant, noisy, or silence-heavy recordings. The first V10 design targets stop-then-transcribe paths and keeps Baidu Realtime WebSocket API raw until a low-latency preprocessing path is validated.",
+            "status": "not_started",
+            "verification": [
+                "Run npm test -- --run src/App.test.tsx.",
+                "Run npm run typecheck.",
+                "Run npm run build.",
+                "Run cargo check --manifest-path src-tauri/Cargo.toml --lib.",
+                "Run cargo test --manifest-path src-tauri/Cargo.toml audio_quality --no-run.",
+                "Run cargo test --manifest-path src-tauri/Cargo.toml audio_preprocess --no-run.",
+                "Run python -m json.tool docs/harness/feature_list.json.",
+                "Run git diff --check.",
+                "Manually compare before/after diagnostics on a low-volume sample.",
+                "Manually verify disabling audio enhancement restores raw-ASR behavior."
+            ],
+            "evidence": [
+                "2026-06-02: V10 planning created after maintainer agreed to split audio quality work. Design saved to docs/superpowers/specs/2026-06-02-v10-audio-preprocessing-design.md; implementation plan saved to docs/superpowers/plans/2026-06-02-v10-audio-preprocessing.md."
+            ],
+            "notes": "V10 is planned but not started. Scope is actual audio preprocessing: DC offset removal, optional high-pass filtering, conservative normalization/AGC, VAD leading/trailing trim, and a denoise library spike. Realtime WebSocket preprocessing remains disabled until a separate low-latency path is proven."
         }
     ]
 }

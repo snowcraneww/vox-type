@@ -178,3 +178,14 @@
 - Plan doc: docs/superpowers/plans/2026-06-01-v8-baidu-realtime-websocket.md.
 - Implementation should start with protocol/frame/parser tests before adding live network code.
 - Manual acceptance will require a real Baidu API Key configured in BAIDU_ASR_API_KEY and a desktop continuous-input streaming test.
+
+## 2026-06-02 V9/V10 quality split handoff
+
+- Current active item: `v9-001`.
+- V9 scope: deterministic transcript post-processing, local transcript history persistence, and lightweight audio quality diagnostics.
+- V9 docs: `docs/superpowers/specs/2026-06-02-v9-transcript-quality-design.md` and `docs/superpowers/plans/2026-06-02-v9-transcript-quality.md`.
+- V9 audio diagnostics should calculate numeric summaries and warning labels only: RMS, peak, silence ratio, active speech estimate, `low_volume`, `clipping_risk`, `mostly_silence`, and `possible_far_microphone`.
+- V9 must not implement audio preprocessing. Do not change samples before ASR in V9.
+- Future item: `v10-001` audio preprocessing.
+- V10 docs: `docs/superpowers/specs/2026-06-02-v10-audio-preprocessing-design.md` and `docs/superpowers/plans/2026-06-02-v10-audio-preprocessing.md`.
+- V10 scope: DC offset removal, optional high-pass filtering, conservative normalization/AGC, VAD leading/trailing trim, and denoise library spike. Initial V10 should target stop-then-transcribe paths; Baidu Realtime WebSocket API preprocessing should remain disabled until a low-latency path is validated.

@@ -3,7 +3,7 @@
 ## 当前已验证状态
 
 - 仓库根目录：当前 Git 工作树根目录
-- Current phase: V8 Baidu Realtime WebSocket API has been manually verified and closed; V9 transcript quality planning is ready.
+- Current phase: V9 transcript quality, history persistence, and lightweight audio diagnostics planning is ready; V10 audio preprocessing is split out as a future plan.
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
@@ -736,3 +736,12 @@
 - 2026-06-01 V8 planning: researched Baidu official realtime WebSocket API docs and wrote V8 design/implementation plan. Protocol source is the maintainer-provided Baidu doc `https://cloud.baidu.com/doc/SPEECH/s/jlbxejt2i` and the same Baidu AI Open Platform doc id mirror. Scope: real Baidu Realtime WebSocket API for continuous input mode, using the official `START` frame shape with nested `data`, 16 kHz PCM, 160 ms / 5120-byte audio chunks, `FINISH`/`CANCEL`/`HEARTBEAT` lifecycle, and one merged transcript history record per continuous-input session.
 
 - 2026-06-01 V8 planning verification: `bash init.sh` passed; `python -m json.tool docs/harness/feature_list.json` passed; `git diff --check` passed with only the existing CRLF/LF warning for `docs/integrations/baidu-asr.md`; keyword check confirmed official Baidu realtime WebSocket doc id, `realtime_asr`, `type: "START"`, `appid`, `appkey`, and 5120-byte chunk guidance are present in V8 docs; control-character scan passed.
+
+## 2026-06-02 V9/V10 quality split
+
+- Maintainer agreed to split recognition accuracy improvements into V9 and V10.
+- V9 remains the active feature and now covers deterministic transcript post-processing, local recognition history persistence, and lightweight audio quality diagnostics for low volume, clipping risk, mostly silence, and possible far microphone conditions.
+- V9 explicitly does not change the waveform: no AGC, denoise, VAD trimming, high-pass filtering, or normalization.
+- V10 is created as a future feature for actual audio preprocessing: DC offset removal, optional high-pass filtering, conservative normalization/AGC, VAD leading/trailing trim, and a denoise library spike.
+- Updated docs: `docs/superpowers/specs/2026-06-02-v9-transcript-quality-design.md`, `docs/superpowers/plans/2026-06-02-v9-transcript-quality.md`, `docs/superpowers/specs/2026-06-02-v10-audio-preprocessing-design.md`, and `docs/superpowers/plans/2026-06-02-v10-audio-preprocessing.md`.
+- Updated `docs/harness/feature_list.json`: `v9-001` remains `in_progress`; `v10-001` is added as `not_started`.
