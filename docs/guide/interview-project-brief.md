@@ -4,6 +4,15 @@
 >
 > 当前项目状态：VoxType 是一个本地优先的语音输入工具原型，已经跑通 Windows 桌面端的快捷键、录音、ASR、上屏、诊断、模型选择和百度实时 WebSocket API 连续输入链路。它还不是完整 TSF 输入法，但已经具备语音输入法核心闭环。
 
+
+## 0. Current Update For Interviews
+
+V8 is closed and manually verified on the real Windows desktop app. Baidu Realtime WebSocket API continuous input works as a real streaming ASR path: target-app insertion is driven by Baidu `FIN_TEXT` final events, while `MID_TEXT` partial events are status-only and are not inserted into the target app. This distinction is useful in interviews because it shows the project separates real provider streaming from simulated typing and avoids unstable partial-text rewrites.
+
+The V8 overlay follow-up is also closed. The small capsule overlay border was visually clipped at the bottom because both the native Win32 overlay and WebView fallback used a `120 x 32` viewport and drew antialiased capsule pixels directly at the transparent window edge. The fix increased the viewport to `120 x 36` while keeping the visual capsule about `120 x 32`, leaving transparent padding for the border pixels.
+
+V9 is planned as transcript quality plus local history persistence. It will add deterministic glossary/replacement rules such as `scale => skill`, provider-neutral post-processing for local whisper.cpp, Baidu Short Speech API, and Baidu Realtime WebSocket API final text, and durable recognition history across app restarts. The persisted history should keep final text, input mode, model, duration, character count, timestamp, and post-processing metadata. V9 intentionally does not start with SendInput/TSF or LLM rewriting.
+
 ## 1. 一分钟项目介绍
 
 VoxType 是一个用 Rust + Tauri 2 + React/TypeScript 实现的桌面语音输入工具。它的目标是让用户在任意 Windows 应用中按快捷键说话，系统自动录音、识别成文字，并把文字输入到当前光标位置。
