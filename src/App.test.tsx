@@ -303,7 +303,9 @@ describe('App', () => {
     render(<App />);
 
     expect(await screen.findByText('persisted transcript')).toBeInTheDocument();
-    expect(screen.getByText('音量低 / 静音多')).toBeInTheDocument();
+    const qualityPill = screen.getByText('音量低 / 静音多');
+    expect(qualityPill).toBeInTheDocument();
+    expect(qualityPill.closest('footer')?.firstElementChild).toBe(qualityPill);
     expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
   });
 

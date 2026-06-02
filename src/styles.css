@@ -2033,7 +2033,7 @@ kbd {
 .v51-top-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
 }
 
 .v51 .control-section {
@@ -3072,7 +3072,7 @@ kbd {
 }
 
 .record-footer {
-  align-items: end;
+  align-items: center;
   display: flex;
   gap: 6px;
   justify-content: flex-end;
@@ -3097,6 +3097,23 @@ kbd {
   font-weight: 760;
   max-width: 180px;
   padding: 4px 6px;
+}
+.quality-pill {
+  align-items: center;
+  background: rgba(255, 238, 235, 0.76);
+  border: 1px solid rgba(205, 83, 74, 0.18);
+  border-radius: 999px;
+  color: rgba(132, 52, 46, 0.76);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
+  max-width: 180px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .record-meta .stat-pill span:last-child {
@@ -3273,6 +3290,7 @@ kbd {
   .model-button-grid.compact { grid-template-columns: 1fr; }
   .record-footer { align-items: stretch; flex-direction: column; }
   .record-actions { margin-left: 0; }
+  .record-meta { margin-left: 0; }
 }
 /* V7.2 visual cleanup: remove nested history chips and split model pages. */
 .history-title {
