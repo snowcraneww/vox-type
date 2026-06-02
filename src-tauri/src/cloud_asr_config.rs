@@ -17,6 +17,7 @@ const DEFAULT_BAIDU_DEV_PID: &str = "1537";
 const DEFAULT_BAIDU_CUID: &str = "voxtype-local";
 const DEFAULT_BAIDU_FORMAT: &str = "pcm";
 const DEFAULT_BAIDU_SAMPLE_RATE: u32 = 16000;
+const DEFAULT_BAIDU_REALTIME_APP_ID: &str = "10500017";
 const DEFAULT_BAIDU_REALTIME_ENDPOINT: &str = "wss://vop.baidu.com/realtime_asr";
 const DEFAULT_BAIDU_REALTIME_DEV_PID: &str = "15372";
 
@@ -390,7 +391,8 @@ fn normalize_config(config: CloudAsrConfig) -> CloudAsrConfig {
                 .or_else(|| Some(DEFAULT_BAIDU_FORMAT.to_string())),
             baidu_sample_rate: config.baidu_sample_rate.or(Some(DEFAULT_BAIDU_SAMPLE_RATE)),
             baidu_lm_id: trim_optional(config.baidu_lm_id),
-            baidu_realtime_app_id: trim_optional(config.baidu_realtime_app_id),
+            baidu_realtime_app_id: trim_optional(config.baidu_realtime_app_id)
+                .or_else(|| Some(DEFAULT_BAIDU_REALTIME_APP_ID.to_string())),
             baidu_realtime_endpoint: trim_optional(config.baidu_realtime_endpoint)
                 .or_else(|| Some(DEFAULT_BAIDU_REALTIME_ENDPOINT.to_string())),
             baidu_realtime_dev_pid: trim_optional(config.baidu_realtime_dev_pid)
@@ -794,6 +796,10 @@ mod tests {
             Some("wss://vop.baidu.com/realtime_asr".to_string())
         );
         assert_eq!(normalized.baidu_realtime_dev_pid, Some("15372".to_string()));
+        assert_eq!(
+            normalized.baidu_realtime_app_id,
+            Some("10500017".to_string())
+        );
     }
 
     #[test]

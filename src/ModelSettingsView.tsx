@@ -43,8 +43,6 @@ const text = {
   baiduRealtime: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API',
   baiduRealtimeLabel: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API',
   realtimeConfig: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u914d\u7f6e',
-  v8Only: 'V8 \u63a5\u5165\uff0c\u5f53\u524d\u7248\u672c\u4e0d\u53ef\u7528\u3002',
-  v8Reserved: 'V8 \u9884\u7559',
   wsAppId: 'AppID',
   wsEndpoint: 'WebSocket Endpoint',
   wsDevPid: 'dev_pid',
@@ -152,6 +150,12 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
   const apiKeyDetail = props.cloudAsrConfigStatus.apiKeyPreview ?? text.waitingEnv;
   const secretKeyState = props.cloudAsrConfigStatus.secretKeyConfigured ? '\u5df2\u914d\u7f6e' : '\u672a\u914d\u7f6e';
   const secretKeyDetail = props.cloudAsrConfigStatus.secretKeyPreview ?? text.waitingEnv;
+  const baiduCredentialFields = (
+    <div className="secret-grid">
+      <div className="secret-block"><div className="cloud-key-status"><span>{text.apiKey}</span><strong>{apiKeyState}</strong><code>BAIDU_ASR_API_KEY</code><small>{apiKeyDetail}</small></div><label className="field"><span>{text.apiKey}</span><input aria-label={text.apiKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudApiKeyInput} onChange={(event) => props.onCloudApiKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrApiKey} disabled={!props.cloudApiKeyInput.trim()}>{text.saveApiKey}</button></div>
+      <div className="secret-block"><div className="cloud-key-status"><span>{text.secretKey}</span><strong>{secretKeyState}</strong><code>BAIDU_ASR_SECRET_KEY</code><small>{secretKeyDetail}</small></div><label className="field"><span>{text.secretKey}</span><input aria-label={text.secretKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudSecretKeyInput} onChange={(event) => props.onCloudSecretKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrSecretKey} disabled={!props.cloudSecretKeyInput.trim()}>{text.saveSecretKey}</button></div>
+    </div>
+  );
 
   return (
     <main className="app-shell model-shell">
@@ -185,10 +189,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
           </section> : null}
           {activeConfig === 'baidu-short' ? <section className="model-config active-config-panel cloud-config" aria-label={text.baiduShortConfig}>
             <div className="model-config-title"><div><span>{text.baiduShort}</span><strong>{props.cloudAsrConfigStatus.ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.cloudAsrConfigStatus.ready} /></div>
-            <div className="secret-grid">
-              <div className="secret-block"><div className="cloud-key-status"><span>{text.apiKey}</span><strong>{apiKeyState}</strong><code>BAIDU_ASR_API_KEY</code><small>{apiKeyDetail}</small></div><label className="field"><span>{text.apiKey}</span><input aria-label={text.apiKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudApiKeyInput} onChange={(event) => props.onCloudApiKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrApiKey} disabled={!props.cloudApiKeyInput.trim()}>{text.saveApiKey}</button></div>
-              <div className="secret-block"><div className="cloud-key-status"><span>{text.secretKey}</span><strong>{secretKeyState}</strong><code>BAIDU_ASR_SECRET_KEY</code><small>{secretKeyDetail}</small></div><label className="field"><span>{text.secretKey}</span><input aria-label={text.secretKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudSecretKeyInput} onChange={(event) => props.onCloudSecretKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrSecretKey} disabled={!props.cloudSecretKeyInput.trim()}>{text.saveSecretKey}</button></div>
-            </div>
+            {baiduCredentialFields}
             <div className="compact-field-grid">
               <label className="field wide"><span>{text.endpoint}</span><input aria-label={text.endpoint} value={props.cloudBaseUrl} onChange={(event) => props.onCloudBaseUrlChange(event.target.value)} /></label>
               <label className="field"><span>{text.devPid}</span><input aria-label={text.devPid} value={props.cloudModel} onChange={(event) => props.onCloudModelChange(event.target.value)} /></label>
@@ -203,7 +204,8 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
           </section> : null}
           {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
             <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>{props.modelReadiness['baidu-realtime'].ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.modelReadiness['baidu-realtime'].ready} /></div>
-            <p className="runtime-message">{props.modelReadiness['baidu-realtime'].message}</p>
+            <p className="runtime-message">{props.cloudMessage ?? props.modelReadiness['baidu-realtime'].message}</p>
+            {baiduCredentialFields}
             <div className="compact-field-grid">
               <label className="field"><span>{text.wsAppId}</span><input aria-label={text.baiduRealtimeAppIdLabel} value={props.cloudBaiduRealtimeAppId} onChange={(event) => props.onCloudBaiduRealtimeAppIdChange(event.target.value)} /></label>
               <label className="field wide"><span>{text.wsEndpoint}</span><input aria-label={text.baiduRealtimeEndpointLabel} value={props.cloudBaiduRealtimeEndpoint} onChange={(event) => props.onCloudBaiduRealtimeEndpointChange(event.target.value)} /></label>

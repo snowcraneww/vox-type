@@ -278,7 +278,7 @@ fn transcribe_last_recording(
     let selected_model = model_id.unwrap_or(preferences::TranscriptionModelId::BaiduShort);
     if selected_model == preferences::TranscriptionModelId::BaiduRealtime {
         return Err(error::VoxError::Asr(
-            "百度实时 WebSocket 将在 V8 接入，当前版本不可用于转写。".to_string(),
+            "百度实时 WebSocket API 仅支持连续输入模式，请将连续输入模型设为百度实时 WebSocket API 后使用 Ctrl+Alt+V。".to_string(),
         ));
     }
     if selected_model == preferences::TranscriptionModelId::LocalWhisper {

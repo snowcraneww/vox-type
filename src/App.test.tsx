@@ -346,7 +346,70 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: '检测百度配置' }));
 
     expect(await screen.findByText(/百度配置检测/)).toBeInTheDocument();
+    expect(screen.getByText(/百度实时 WebSocket API 已就绪/)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: '百度短语音 API 配置' })).toBeInTheDocument();
+  });
+
+  it('shows realtime WebSocket readiness feedback on the realtime config panel', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
+    expect(screen.getByLabelText('百度 WebSocket AppID')).toHaveValue('10500017');
+    expect(screen.getByLabelText('百度 WebSocket Endpoint')).toHaveValue('wss://vop.baidu.com/realtime_asr');
+    expect(screen.getByLabelText('百度 WebSocket dev_pid')).toHaveValue('15372');
+    expect(screen.getByLabelText('百度 WebSocket cuid')).toHaveValue('voxtype-local');
+    expect(screen.getByLabelText('百度 WebSocket 音频格式')).toHaveValue('pcm');
+    expect(screen.getByLabelText('百度 WebSocket 采样率')).toHaveValue(16000);
+    fireEvent.click(screen.getByRole('button', { name: '检测百度配置' }));
+
+    expect(await screen.findByText(/百度实时 WebSocket API 已就绪/)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '百度实时 WebSocket API 配置' })).toBeInTheDocument();
+  });
+
+  it('shows shared Baidu credentials on the realtime WebSocket config panel', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
+
+    expect(screen.getByRole('region', { name: '百度实时 WebSocket API 配置' })).toBeInTheDocument();
+    expect(screen.getByText('BAIDU_ASR_API_KEY')).toBeInTheDocument();
+    expect(screen.getByText('BAIDU_ASR_SECRET_KEY')).toBeInTheDocument();
+    expect(await screen.findByText('ba***ey')).toBeInTheDocument();
+    expect(screen.getByText('sk***ey')).toBeInTheDocument();
+    expect(screen.getByLabelText('百度 ASR API Key 输入')).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText('百度 ASR Secret Key 输入')).toHaveAttribute('type', 'password');
+
+    fireEvent.change(screen.getByLabelText('百度 ASR API Key 输入'), { target: { value: 'baidu-realtime-api-key' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存百度 API Key 到系统环境变量' }));
+
+    await waitFor(() => expect(saveBaiduAsrApiKey).toHaveBeenCalledWith('baidu-realtime-api-key'));
+    expect(screen.queryByDisplayValue('baidu-realtime-api-key')).not.toBeInTheDocument();
+    expect(screen.queryByText('baidu-realtime-api-key')).not.toBeInTheDocument();
+  });
+
+  it('saves realtime WebSocket fields as part of Baidu model configuration', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
+    fireEvent.change(screen.getByLabelText('百度 WebSocket AppID'), { target: { value: '10500017' } });
+    fireEvent.change(screen.getByLabelText('百度 WebSocket dev_pid'), { target: { value: '15372' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存百度配置' }));
+
+    await waitFor(() => expect(saveCloudAsrConfig).toHaveBeenCalledWith(expect.objectContaining({
+      baiduRealtimeAppId: '10500017',
+      baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr',
+      baiduRealtimeDevPid: '15372',
+      baiduRealtimeCuid: 'voxtype-local',
+      baiduRealtimeFormat: 'pcm',
+      baiduRealtimeSampleRate: 16000,
+    })));
+    expect(await screen.findByText(/百度实时 WebSocket API 已就绪/)).toBeInTheDocument();
   });
 
   it('lets the user reinsert and clear the latest transcript from the control center', async () => {

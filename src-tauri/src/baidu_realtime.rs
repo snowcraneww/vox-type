@@ -61,11 +61,11 @@ struct StartFrameEnvelope<'a> {
 
 #[derive(Debug, Serialize)]
 struct StartFrameData<'a> {
-    appid: &'a str,
+    appid: i64,
     appkey: &'a str,
     dev_pid: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    lm_id: Option<&'a str>,
+    lm_id: Option<i64>,
     cuid: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     user: Option<&'a str>,
@@ -75,13 +75,28 @@ struct StartFrameData<'a> {
 
 impl BaiduRealtimeStartFrame {
     pub fn to_json(&self) -> Result<String, VoxError> {
+        let appid = self.appid.parse::<i64>().map_err(|_| {
+            VoxError::Config("Baidu realtime WebSocket AppID must be numeric.".to_string())
+        })?;
+        let lm_id = self
+            .lm_id
+            .as_deref()
+            .map(|value| {
+                value.parse::<i64>().map_err(|_| {
+                    VoxError::Config(
+                        "Baidu realtime WebSocket lm_id must be numeric when configured."
+                            .to_string(),
+                    )
+                })
+            })
+            .transpose()?;
         let envelope = StartFrameEnvelope {
             frame_type: "START",
             data: StartFrameData {
-                appid: &self.appid,
+                appid,
                 appkey: &self.appkey,
                 dev_pid: self.dev_pid,
-                lm_id: self.lm_id.as_deref(),
+                lm_id,
                 cuid: &self.cuid,
                 user: self.user.as_deref(),
                 format: &self.format,
@@ -278,7 +293,8 @@ pub fn parse_baidu_realtime_message(body: &str) -> Result<BaiduRealtimeEvent, Vo
         .or_else(|| value.get("sequence"))
         .and_then(serde_json::Value::as_u64);
 
-    if frame_type.eq_ignore_ascii_case("ERROR") || value.get("err_no").is_some() {
+    let err_no = value.get("err_no").and_then(serde_json::Value::as_i64);
+    if frame_type.eq_ignore_ascii_case("ERROR") || err_no.is_some_and(|code| code != 0) {
         let code = value
             .get("err_no")
             .or_else(|| value.get("code"))
@@ -298,6 +314,9 @@ pub fn parse_baidu_realtime_message(body: &str) -> Result<BaiduRealtimeEvent, Vo
     }
     if frame_type.eq_ignore_ascii_case("FINISH") || frame_type.eq_ignore_ascii_case("FINISHED") {
         return Ok(BaiduRealtimeEvent::Finished);
+    }
+    if frame_type.eq_ignore_ascii_case("HEARTBEAT") {
+        return Ok(BaiduRealtimeEvent::Ignored);
     }
 
     let text = extract_result_text(&value);
@@ -577,7 +596,8 @@ fn run_realtime_worker_inner(
     result_tx: &mpsc::Sender<WorkerResult>,
     started_at_ms: u64,
 ) -> Result<(), VoxError> {
-    let (mut socket, _) = connect(config.endpoint.as_str()).map_err(|error| {
+    let connection_uri = realtime_connection_uri(&config.endpoint, started_at_ms);
+    let (mut socket, _) = connect(connection_uri.as_str()).map_err(|error| {
         VoxError::Asr(format!("Baidu realtime WebSocket connect failed: {error}"))
     })?;
     set_read_timeout(socket.get_mut(), Duration::from_millis(20));
@@ -640,6 +660,17 @@ fn run_realtime_worker_inner(
     let _ = socket.close(None);
     let _ = result_tx.send(WorkerResult::Finished);
     Ok(())
+}
+
+fn realtime_connection_uri(endpoint: &str, started_at_ms: u64) -> String {
+    let separator = if endpoint.contains('?') { '&' } else { '?' };
+    format!(
+        "{}{}sn=voxtype-{}-{}",
+        endpoint.trim_end_matches(['?', '&']),
+        separator,
+        std::process::id(),
+        started_at_ms
+    )
 }
 
 fn send_available_audio_frames(
@@ -742,10 +773,10 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&frame.to_json().unwrap()).unwrap();
 
         assert_eq!(value["type"], "START");
-        assert_eq!(value["data"]["appid"], "10500017");
+        assert_eq!(value["data"]["appid"], 10500017);
         assert_eq!(value["data"]["appkey"], "test-api-key");
         assert_eq!(value["data"]["dev_pid"], 15372);
-        assert_eq!(value["data"]["lm_id"], "9001");
+        assert_eq!(value["data"]["lm_id"], 9001);
         assert_eq!(value["data"]["cuid"], "voxtype-local");
         assert_eq!(value["data"]["user"], "dialect-user");
         assert_eq!(value["data"]["format"], "pcm");
@@ -769,6 +800,14 @@ mod tests {
     }
 
     #[test]
+    fn realtime_connection_uri_adds_sn_query_param() {
+        let uri = realtime_connection_uri("wss://vop.baidu.com/realtime_asr", 123456789);
+
+        assert!(uri.starts_with("wss://vop.baidu.com/realtime_asr?sn=voxtype-"));
+        assert!(uri.ends_with("-123456789"));
+    }
+
+    #[test]
     fn pcm_frame_buffer_drains_only_complete_160ms_frames() {
         let mut buffer = PcmFrameBuffer::new();
         buffer.push_samples(&vec![1; 2559]);
@@ -786,7 +825,7 @@ mod tests {
     fn parser_accepts_partial_and_final_result_shapes() {
         assert_eq!(
             parse_baidu_realtime_message(
-                r#"{"type":"MID_TEXT","result":"\u6b63\u5728\u8bc6\u522b"}"#
+                r#"{"err_no":0,"err_msg":"OK","type":"MID_TEXT","result":"\u6b63\u5728\u8bc6\u522b"}"#
             )
             .unwrap(),
             BaiduRealtimeEvent::Partial {
@@ -796,13 +835,21 @@ mod tests {
         );
         assert_eq!(
             parse_baidu_realtime_message(
-                r#"{"type":"FIN_TEXT","result":["\u6700\u7ec8\u6587\u672c"]}"#
+                r#"{"err_no":0,"err_msg":"OK","type":"FIN_TEXT","result":["\u6700\u7ec8\u6587\u672c"],"start_time":53220,"end_time":73340}"#
             )
             .unwrap(),
             BaiduRealtimeEvent::Final {
                 text: "\u{6700}\u{7ec8}\u{6587}\u{672c}".to_string(),
                 sequence: None
             }
+        );
+    }
+
+    #[test]
+    fn parser_ignores_official_heartbeat_result() {
+        assert_eq!(
+            parse_baidu_realtime_message(r#"{"type":"HEARTBEAT"}"#).unwrap(),
+            BaiduRealtimeEvent::Ignored
         );
     }
 

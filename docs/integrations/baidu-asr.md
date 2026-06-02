@@ -148,11 +148,100 @@ Official realtime WebSocket API source: https://cloud.baidu.com/doc/SPEECH/s/jlb
 
 V8 implementation treats Baidu Realtime WebSocket API as a continuous-input feature, not as the default push-to-talk path.
 
+### Official realtime WebSocket protocol notes
+
+The official document describes realtime ASR as a WebSocket flow that uploads audio while receiving recognition results. The intended use cases include long-sentence voice input, subtitles, live-stream quality inspection, and meeting notes.
+
+Connection and frame sequence:
+
+1. Connect to `wss://vop.baidu.com/realtime_asr?sn=<request-id>`.
+2. Send one text START frame as JSON.
+3. Send binary PCM audio frames while recording.
+4. Receive text JSON result frames from Baidu.
+5. Send a text FINISH frame when audio ends, or CANCEL when abandoning the session.
+6. Close the WebSocket after the server finishes or closes the connection.
+
+The `sn` query parameter is caller-defined and is used for log lookup. It should contain only English letters, digits, `-`, and `_`, up to 128 characters. VoxType keeps the configured endpoint as `wss://vop.baidu.com/realtime_asr` and appends a generated `sn=voxtype-<pid>-<timestamp>` at runtime.
+
+START frame shape:
+
+```json
+{
+  "type": "START",
+  "data": {
+    "appid": 10500017,
+    "appkey": "<BAIDU_ASR_API_KEY>",
+    "dev_pid": 15372,
+    "cuid": "voxtype-local",
+    "format": "pcm",
+    "sample": 16000
+  }
+}
+```
+
+Optional START fields:
+
+- `lm_id`: numeric self-trained model ID. It must align with the chosen base `dev_pid`.
+- `user`: required by Baidu when using Chinese multi-dialect model `dev_pid=15376`; otherwise optional.
+
+Audio frame requirements:
+
+- WebSocket opcode: Binary.
+- Audio format: 16 kHz, 16-bit, mono PCM.
+- Each normal audio frame should contain 20-200 ms of audio.
+- Official recommendation: 160 ms frames, `160 * (16000 * 2 / 1000) = 5120` bytes.
+- Baidu may disconnect and report an error if it receives no audio for 5 seconds. VoxType sends full 160 ms frames while recording and can send HEARTBEAT frames during waits.
+
+Control frames:
+
+```json
+{ "type": "FINISH" }
+```
+
+```json
+{ "type": "CANCEL" }
+```
+
+```json
+{ "type": "HEARTBEAT" }
+```
+
+Result frames:
+
+- `MID_TEXT`: temporary result for one utterance.
+- `FIN_TEXT`: final result for one utterance; may include `start_time` and `end_time` in milliseconds.
+- `HEARTBEAT`: server heartbeat; VoxType ignores it.
+- `err_no != 0`: error result. The WebSocket request may still continue for other utterances unless the server closes the connection.
+
+### VoxType realtime configuration model
+
+百度短语音 API and 百度实时 WebSocket API use the same Baidu application credentials:
+
+- `BAIDU_ASR_API_KEY`: shared API Key. Short speech uses it with Secret Key to fetch an OAuth `access_token`; realtime WebSocket sends it as START frame `appkey`.
+- `BAIDU_ASR_SECRET_KEY`: shared Secret Key for short speech OAuth. Realtime WebSocket does not send Secret Key in the START frame, but it still belongs to the same Baidu application credential pair.
+- `AppID`: realtime WebSocket additionally requires the same Baidu application AppID as START frame `appid`. VoxType defaults this non-secret field to the official sample-style value `10500017`, but users should replace it with their own console AppID when available.
+
+The Baidu Short Speech API and Baidu Realtime WebSocket API config panels both show the same shared credential status and password inputs for `BAIDU_ASR_API_KEY` and `BAIDU_ASR_SECRET_KEY`. The raw values are never loaded back into the UI; VoxType only shows masked previews such as `ba***ey` after reading the user environment. Saving either credential from either panel writes to the same user environment variable.
+
+The realtime WebSocket config panel stores only non-secret realtime fields:
+
+| Field | Default | Notes |
+| --- | --- | --- |
+| `baiduRealtimeAppId` | `10500017` | Numeric Baidu application AppID; required by START frame. |
+| `baiduRealtimeEndpoint` | `wss://vop.baidu.com/realtime_asr` | Runtime appends `sn`. |
+| `baiduRealtimeDevPid` | `15372` | Mandarin with stronger punctuation; official recommended model for input-like scenarios. |
+| `baiduRealtimeCuid` | `voxtype-local` | Device/user unique ID for UV stats and troubleshooting. |
+| `baiduRealtimeFormat` | `pcm` | Fixed by official docs. |
+| `baiduRealtimeSampleRate` | `16000` | Fixed by official docs. |
+| `baiduRealtimeUser` | empty | Required only for `dev_pid=15376`. |
+
+Realtime ready means `BAIDU_ASR_API_KEY` is readable, AppID and dev_pid are numeric, endpoint is the official realtime endpoint, cuid is present, format is `pcm`, and sample rate is `16000`. It intentionally does not require `BAIDU_ASR_SECRET_KEY` for the WebSocket START frame; the UI still displays Secret Key because short speech and realtime belong to the same Baidu application credential set, and short speech ready still requires both API Key and Secret Key.
+
 Key protocol details recorded for implementation:
 
-- WebSocket URI: `wss://vop.baidu.com/realtime_asr`.
-- START frame follows the official JSON example: top-level `type: "START"`, nested `data` containing `appid`, `appkey`, `dev_pid`, optional `lm_id`, `cuid`, optional `user`, `format`, and `sample`.
-- `appid` is non-secret Baidu application AppID config. `appkey` uses the Baidu console API Key; VoxType should read it from `BAIDU_ASR_API_KEY` and never log the value.
+- WebSocket URI: `wss://vop.baidu.com/realtime_asr?sn=<generated>`.
+- START frame follows the official JSON example: top-level `type: "START"`, nested `data` containing numeric `appid`, `appkey`, numeric `dev_pid`, optional numeric `lm_id`, `cuid`, optional `user`, `format`, and `sample`.
+- `appid` is non-secret Baidu application AppID config. `appkey` uses the Baidu console API Key from `BAIDU_ASR_API_KEY`; VoxType must never log the value.
 - `format` is fixed to `pcm`.
 - `sample` is fixed to `16000`.
 - Recommended Mandarin realtime model is `dev_pid=15372` for stronger punctuation.

@@ -185,14 +185,18 @@ export function App() {
       return { id: modelId, label: '\u767e\u5ea6\u77ed\u8bed\u97f3 API', ready: cloudStatus.config.provider === 'baidu' && cloudStatus.ready, message: cloudStatus.message, availableInV7: true };
     }
     const cfg = cloudStatus.config;
+    const realtimeAppId = cfg.baiduRealtimeAppId?.trim() ?? '';
+    const realtimeDevPid = cfg.baiduRealtimeDevPid?.trim() ?? '';
     const realtimeReady = cloudStatus.apiKeyConfigured
-      && Boolean(cfg.baiduRealtimeAppId?.trim())
+      && Boolean(realtimeAppId)
+      && /^\d+$/.test(realtimeAppId)
       && cfg.baiduRealtimeEndpoint === 'wss://vop.baidu.com/realtime_asr'
-      && Boolean(cfg.baiduRealtimeDevPid?.trim())
+      && Boolean(realtimeDevPid)
+      && /^\d+$/.test(realtimeDevPid)
       && Boolean(cfg.baiduRealtimeCuid?.trim())
       && cfg.baiduRealtimeFormat === 'pcm'
       && cfg.baiduRealtimeSampleRate === 16000;
-    const message = realtimeReady ? '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u914d\u7f6e\u5b8c\u6574\u3002' : '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u9700\u8981 BAIDU_ASR_API_KEY\u3001AppID\u3001Endpoint\u3001dev_pid\u3001cuid\u3001pcm \u548c 16000 Hz\u3002';
+    const message = realtimeReady ? '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u914d\u7f6e\u5b8c\u6574\u3002' : '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u9700\u8981 BAIDU_ASR_API_KEY\u3001\u6570\u5b57 AppID\u3001Endpoint\u3001\u6570\u5b57 dev_pid\u3001cuid\u3001pcm \u548c 16000 Hz\u3002';
     return { id: modelId, label: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API', ready: realtimeReady, message, availableInV7: true };
   }
 
@@ -200,6 +204,13 @@ export function App() {
     if (!model.ready) {
       throw new Error(`${model.label} \u672a\u5c31\u7eea\uff1a${model.message}`);
     }
+  }
+
+  function cloudConfigFeedback(status: CloudAsrConfigStatus) {
+    const realtime = getModelReadiness('baidu-realtime', asrConfigStatus, status);
+    const shortState = status.ready ? '\u767e\u5ea6\u77ed\u8bed\u97f3 API \u5df2\u5c31\u7eea' : `\u767e\u5ea6\u77ed\u8bed\u97f3 API \u672a\u5c31\u7eea\uff1a${status.message}`;
+    const realtimeState = realtime.ready ? '\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u5df2\u5c31\u7eea' : `\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u672a\u5c31\u7eea\uff1a${realtime.message}`;
+    return `${shortState}\uff1b${realtimeState}`;
   }
 
   function applyAsrConfigStatus(nextStatus: AsrConfigStatus) {
@@ -230,7 +241,7 @@ export function App() {
     setCloudBaiduFormat(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 'pcm' : nextStatus.config.baiduFormat ?? 'pcm');
     setCloudBaiduSampleRate(String(provider === 'baidu' && nextStatus.config.provider !== 'baidu' ? 16000 : nextStatus.config.baiduSampleRate ?? 16000));
     setCloudBaiduLmId(nextStatus.config.baiduLmId ?? '');
-    setCloudBaiduRealtimeAppId(nextStatus.config.baiduRealtimeAppId ?? '');
+    setCloudBaiduRealtimeAppId(nextStatus.config.baiduRealtimeAppId ?? '10500017');
     setCloudBaiduRealtimeEndpoint(nextStatus.config.baiduRealtimeEndpoint ?? 'wss://vop.baidu.com/realtime_asr');
     setCloudBaiduRealtimeDevPid(nextStatus.config.baiduRealtimeDevPid ?? '15372');
     setCloudBaiduRealtimeCuid(nextStatus.config.baiduRealtimeCuid ?? 'voxtype-local');
@@ -634,8 +645,10 @@ export function App() {
         baiduRealtimeUser: cloudBaiduRealtimeUser.trim() || null,
       });
       applyCloudAsrConfigStatus(nextStatus);
-      const providerName = '百度短语音 API';
-      addDiagnostic({ title: nextStatus.ready ? `${providerName} 配置已保存并就绪` : `${providerName} 配置已保存但未就绪`, result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
+      const feedback = cloudConfigFeedback(nextStatus);
+      setCloudMessage(`百度配置已保存：${feedback}`);
+      const realtimeReady = getModelReadiness('baidu-realtime', asrConfigStatus, nextStatus).ready;
+      addDiagnostic({ title: nextStatus.ready && realtimeReady ? '百度配置已保存并就绪' : '百度配置已保存但未完全就绪', result: nextStatus.ready && realtimeReady ? 'success' : 'warning', detail: feedback });
     } catch (error) {
       const detail = formatError(error);
       setCloudMessage(detail);
@@ -726,10 +739,11 @@ export function App() {
     try {
       const nextStatus = await getCloudAsrConfigStatus();
       applyCloudAsrConfigStatus(nextStatus);
-      const providerName = '百度配置';
-      const message = `${providerName}检测完成：${nextStatus.message}`;
+      const feedback = cloudConfigFeedback(nextStatus);
+      const realtimeReady = getModelReadiness('baidu-realtime', asrConfigStatus, nextStatus).ready;
+      const message = `百度配置检测完成：${feedback}`;
       setCloudMessage(message);
-      addDiagnostic({ title: nextStatus.ready ? `${providerName}检测通过` : `${providerName}未就绪`, result: nextStatus.ready ? 'success' : 'warning', detail: message });
+      addDiagnostic({ title: nextStatus.ready && realtimeReady ? '百度配置检测通过' : '百度配置未完全就绪', result: nextStatus.ready && realtimeReady ? 'success' : 'warning', detail: message });
     } catch (error) {
       const detail = formatError(error);
       setCloudMessage(detail);

@@ -9,6 +9,46 @@
 - 涉及代码、命令、API、文件名和错误消息时保留原文。
 - 面向维护者的解释默认使用中文。
 
+## 2026-06-02 V8 百度实时 WebSocket 配置未就绪和检测反馈不清晰
+
+2026-06-02 follow-up: 维护者确认百度实时 WebSocket 和百度短语音共用同一组百度 API Key / Secret Key，因此实时 WebSocket 配置页也必须显示已经配置好的共享凭据状态，并在未配置时提供同样的密码输入和保存入口。
+
+### 现象
+
+维护者已填写百度实时 WebSocket AppID，并点击保存百度配置，但界面仍不能明确显示实时 WebSocket API 已就绪；在实时 WebSocket 配置页点击“检测百度配置”时，反馈看起来像没有反应或只是在检查百度短语音 API。
+
+### 影响
+
+V8 真实接入已经有后端 WebSocket session、音频分帧和前端连续输入路径，但用户无法从模型配置页判断实时 WebSocket 是否具备测试条件，导致无法进入真实桌面验证。
+
+### 根因
+
+- `CloudAsrConfig::default` 和 `normalize_config` 默认了实时 endpoint、dev_pid、cuid、format、sample rate，但没有默认 `baiduRealtimeAppId`；前端和后端都要求 AppID，因此配置加载后可能把 AppID 清空，导致实时 ready 一直失败。
+- 百度短语音 API 和百度实时 WebSocket API 共用同一个百度应用的 API Key / Secret Key，但 UI 文案没有把“共用密钥，实时另需 AppID”讲清楚。
+- 实时 WebSocket 配置页只展示 AppID、endpoint、dev_pid、cuid、format、sample rate 等实时字段，没有显示共享的 `BAIDU_ASR_API_KEY` / `BAIDU_ASR_SECRET_KEY` 状态和保存入口，导致用户误以为还缺一个单独的实时 API Key 配置。
+- 保存/检测按钮复用百度短语音配置状态 `CloudAsrConfigStatus.ready`，没有在反馈文案中单独报告实时 WebSocket ready 状态。
+- 官方实时 WebSocket 文档要求 START 帧中 `appid`、`dev_pid`、可选 `lm_id` 是数字；旧实现把 `appid` 和 `lm_id` 序列化成字符串。
+- 官方连接 URI 是 `wss://vop.baidu.com/realtime_asr?sn=...`，旧实现只连接基础 endpoint，没有运行时生成 `sn`。
+- 官方正常结果帧包含 `err_no: 0`；旧 parser 只要看到 `err_no` 就当错误，可能误判正常 `MID_TEXT` / `FIN_TEXT`。
+
+### 修复
+
+- 默认实时 AppID 为官方示例风格非密钥值 `10500017`，用户仍可替换为自己百度控制台的 AppID。
+- 实时 ready 判定要求：可读取 `BAIDU_ASR_API_KEY`、数字 AppID、官方 endpoint、数字 dev_pid、cuid、`pcm`、`16000`。实时 WebSocket 不要求 `BAIDU_ASR_SECRET_KEY`；Secret Key 只用于短语音 OAuth。
+- 保存/检测百度配置时，前端同时显示“百度短语音 API”和“百度实时 WebSocket API”的 ready / not-ready 反馈。
+- 百度实时 WebSocket 配置页复用百度短语音页的共享凭据组件：只显示脱敏预览，不回填明文；从任一 tab 保存 API Key 或 Secret Key 都写入同一个用户环境变量。
+- 按住说话路径如果被配置成百度实时 WebSocket API，会返回当前事实文案：实时 WebSocket API 仅支持连续输入模式，应在连续输入模型中使用 `Ctrl+Alt+V`。
+- START 帧按官方形状序列化：`appid` 和 `lm_id` 为数字，`appkey` 来自 `BAIDU_ASR_API_KEY`，不记录明文。
+- 运行时自动把基础 endpoint 转成带 `sn=voxtype-<pid>-<timestamp>` 的连接 URI。
+- Parser 忽略服务端 `HEARTBEAT`，并且只有 `err_no != 0` 才视为错误。
+
+### 验证
+
+- 新增/更新 Rust 回归测试覆盖默认实时 AppID、START 帧数字字段、运行时 `sn` URI、官方 `err_no:0` 正常结果和 HEARTBEAT 忽略。
+- 新增前端测试覆盖实时配置页字段展示、保存实时配置字段、检测后显示实时 WebSocket ready 反馈。
+- 新增前端测试覆盖实时 WebSocket 配置页展示共享 `BAIDU_ASR_API_KEY` / `BAIDU_ASR_SECRET_KEY` 状态、password 输入和保存后不回显明文。
+- 真实百度 WebSocket 流式验证仍需维护者在 `npm run tauri -- dev` 下使用真实百度凭据、麦克风和目标输入框手动执行。
+
 ## 2026-06-01 百度 ASR 配置保存后跳回 MiniMax、检测无反馈
 
 ### 现象
