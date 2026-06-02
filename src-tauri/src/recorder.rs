@@ -1,9 +1,10 @@
-use std::sync::{Arc, Mutex};
+﻿use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use serde::{Deserialize, Serialize};
 
 use crate::audio;
+use crate::audio_quality::{self, AudioQualitySummary};
 use crate::error::VoxError;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -35,6 +36,7 @@ pub struct RecordedAudio {
     pub asr_sample_rate: u32,
     pub asr_sample_count: usize,
     pub asr_duration_ms: u64,
+    pub audio_quality: AudioQualitySummary,
 }
 
 impl RecordedAudio {
@@ -92,6 +94,7 @@ impl RecordingSession {
         let asr_sample_count = asr_samples.len();
         let peak_amplitude = peak_amplitude(&self.buffer.samples);
         let rms_amplitude = rms_amplitude(&self.buffer.samples);
+        let audio_quality = audio_quality::analyze_audio_quality(&asr_samples, audio::TARGET_SAMPLE_RATE);
         Ok(RecordedAudio {
             samples: self.buffer.samples.clone(),
             sample_rate: self.buffer.sample_rate,
@@ -104,6 +107,7 @@ impl RecordingSession {
             asr_sample_rate: audio::TARGET_SAMPLE_RATE,
             asr_sample_count,
             asr_duration_ms: audio::duration_ms(asr_sample_count, audio::TARGET_SAMPLE_RATE),
+            audio_quality,
         })
     }
 

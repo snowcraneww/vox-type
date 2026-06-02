@@ -1,4 +1,4 @@
-export type AppPhase = 'idle' | 'recording' | 'transcribing' | 'inserting' | 'succeeded' | 'failed';
+﻿export type AppPhase = 'idle' | 'recording' | 'transcribing' | 'inserting' | 'succeeded' | 'failed';
 
 export interface AppConfig {
   hotkey: string;
@@ -28,6 +28,16 @@ export interface RecorderRuntimeStatus {
   durationMs: number;
 }
 
+export type AudioQualityWarning = 'low_volume' | 'clipping_risk' | 'mostly_silence' | 'possible_far_microphone';
+
+export interface AudioQualitySummary {
+  rms: number;
+  peak: number;
+  silenceRatio: number;
+  activeSpeechMs: number;
+  warnings: AudioQualityWarning[];
+}
+
 export interface RecordedAudio {
   samples: number[];
   sampleRate: number;
@@ -40,6 +50,7 @@ export interface RecordedAudio {
   asrSampleRate: number;
   asrSampleCount: number;
   asrDurationMs: number;
+  audioQuality: AudioQualitySummary;
 }
 
 export interface Transcript {
@@ -64,13 +75,15 @@ export interface ModelReadiness {
 }
 
 export interface TranscriptRecord {
-  id: number;
+  id: string;
   time: string;
   text: string;
   durationMs: number;
   inputMode: InputModeId;
   modelId: TranscriptionModelId;
   charCount: number;
+  postprocessRulesApplied: number;
+  audioQuality: AudioQualitySummary | null;
 }
 
 export interface TranscriptStats {
@@ -170,4 +183,35 @@ export interface BaiduRealtimeSessionSummary {
   text: string;
   durationMs: number;
   charCount: number;
+}
+
+export interface ReplacementRule {
+  from: string;
+  to: string;
+  enabled: boolean;
+}
+
+export interface TranscriptPostprocessConfig {
+  enabled: boolean;
+  cleanupNoise: boolean;
+  glossary: string[];
+  replacements: ReplacementRule[];
+}
+
+export interface PostprocessResult {
+  text: string;
+  rulesApplied: number;
+  noiseRemoved: boolean;
+}
+
+export interface PersistedTranscriptEntry {
+  id: string;
+  text: string;
+  inputMode: InputModeId;
+  model: TranscriptionModelId;
+  createdAtMs: number;
+  durationMs: number;
+  characterCount: number;
+  postprocessRulesApplied: number;
+  audioQuality: AudioQualitySummary | null;
 }

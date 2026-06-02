@@ -1,6 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
+﻿import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptionModelId, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptPostprocessConfig, PostprocessResult, PersistedTranscriptEntry, TranscriptionModelId, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -160,4 +160,32 @@ export async function listenToBaiduRealtimeResults(handler: (payload: BaiduRealt
 
 export function isTauriRuntime(): boolean {
   return '__TAURI_INTERNALS__' in window;
+}
+
+export async function loadTranscriptHistory(): Promise<PersistedTranscriptEntry[]> {
+  return invoke<PersistedTranscriptEntry[]>('load_transcript_history');
+}
+
+export async function saveTranscriptHistoryEntry(entry: PersistedTranscriptEntry): Promise<PersistedTranscriptEntry[]> {
+  return invoke<PersistedTranscriptEntry[]>('save_transcript_history_entry', { entry });
+}
+
+export async function deleteTranscriptHistoryEntry(id: string): Promise<PersistedTranscriptEntry[]> {
+  return invoke<PersistedTranscriptEntry[]>('delete_transcript_history_entry', { id });
+}
+
+export async function clearTranscriptHistory(): Promise<PersistedTranscriptEntry[]> {
+  return invoke<PersistedTranscriptEntry[]>('clear_transcript_history');
+}
+
+export async function getTranscriptPostprocessConfig(): Promise<TranscriptPostprocessConfig> {
+  return invoke<TranscriptPostprocessConfig>('get_transcript_postprocess_config');
+}
+
+export async function saveTranscriptPostprocessConfig(config: TranscriptPostprocessConfig): Promise<TranscriptPostprocessConfig> {
+  return invoke<TranscriptPostprocessConfig>('save_transcript_postprocess_config', { config });
+}
+
+export async function previewTranscriptPostprocess(text: string): Promise<PostprocessResult> {
+  return invoke<PostprocessResult>('preview_transcript_postprocess', { text });
 }

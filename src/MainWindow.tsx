@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import type { AppStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 const text = {
@@ -56,7 +56,7 @@ interface MainWindowProps {
   onOpenModelSettings: () => void;
   onCopyRecord: (record: TranscriptRecord) => void;
   onReinsertRecord: (record: TranscriptRecord) => void;
-  onDeleteRecord: (id: number) => void;
+  onDeleteRecord: (id: string) => void;
   onClearRecords: () => void;
   onExportRecords: () => void;
   onOpenHotkeySettings: () => void;
@@ -97,6 +97,18 @@ function formatModelLabel(modelId: TranscriptionModelId) {
   return text.baiduRealtime;
 }
 
+
+function formatAudioWarnings(record: TranscriptRecord) {
+  const warnings = record.audioQuality?.warnings ?? [];
+  if (warnings.length === 0) return null;
+  const labels: Record<string, string> = {
+    low_volume: '音量低',
+    clipping_risk: '爆音风险',
+    mostly_silence: '静音多',
+    possible_far_microphone: '离麦远',
+  };
+  return warnings.map((warning) => labels[warning] ?? warning).join(' / ');
+}
 function formatInputMode(source: TranscriptRecord['inputMode']) {
   if (source === 'push-to-talk') return text.pushToTalk;
   if (source === 'toggle-dictation') return text.toggleDictation;
@@ -135,7 +147,7 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
         <section className="transcript-history" aria-label={text.history}>
           <header className="history-header" data-testid="history-toolbar"><div className="history-title"><span>{text.history}</span></div><div className="history-stats"><StatPill icon="count" value={`${stats.count} ${text.itemUnit}`} title={text.countTitle} tone="count" /><StatPill icon="duration" value={formatDuration(stats.totalDurationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${stats.totalChars} ${text.charUnit}`} title={text.charsTitle} tone="chars" /><StatPill icon="speed" value={`${stats.charsPerMinute}/m`} title={text.speedTitle} tone="speed" /></div><div className="history-actions"><button type="button" onClick={onClearRecords} disabled={records.length === 0} aria-label={text.clearAll} title={text.clearAll}>{text.clear}</button><button type="button" onClick={onExportRecords} disabled={records.length === 0} aria-label={text.exportAll} title={text.exportAll}>{text.export}</button></div></header>
           {historyMessage ? <p className="history-message" role="status">{historyMessage}</p> : null}
-          {records.length === 0 ? <div className="empty-history"><span>{text.empty}</span><strong>{text.emptyDetail}</strong></div> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`${text.history} ${record.time}`}><div className="record-head"><time>{record.time}</time><p>{record.text}</p></div><footer className="record-footer"><div className="record-meta"><StatPill icon="mode" value={formatInputMode(record.inputMode)} title={text.inputMode} tone="mode" /><StatPill icon="model" value={formatModelLabel(record.modelId)} title={text.modelSettings} tone="model" /><StatPill icon="duration" value={formatDuration(record.durationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${record.charCount} ${text.charUnit}`} title={text.charsTitle} tone="chars" /></div><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label={text.copy} title={text.copy}><Icon name="copy" /></button><button type="button" onClick={() => onReinsertRecord(record)} aria-label={text.reinsert} title={text.reinsert}><Icon name="reinsert" /></button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label={text.delete} title={text.delete}><Icon name="delete" /></button></div></footer></article></li>)}</ol>}
+          {records.length === 0 ? <div className="empty-history"><span>{text.empty}</span><strong>{text.emptyDetail}</strong></div> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`${text.history} ${record.time}`}><div className="record-head"><time>{record.time}</time><p>{record.text}</p></div><footer className="record-footer"><div className="record-meta"><StatPill icon="mode" value={formatInputMode(record.inputMode)} title={text.inputMode} tone="mode" /><StatPill icon="model" value={formatModelLabel(record.modelId)} title={text.modelSettings} tone="model" /><StatPill icon="duration" value={formatDuration(record.durationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${record.charCount} ${text.charUnit}`} title={text.charsTitle} tone="chars" />{formatAudioWarnings(record) ? <span className="quality-pill" title="录音质量提示">{formatAudioWarnings(record)}</span> : null}</div><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label={text.copy} title={text.copy}><Icon name="copy" /></button><button type="button" onClick={() => onReinsertRecord(record)} aria-label={text.reinsert} title={text.reinsert}><Icon name="reinsert" /></button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label={text.delete} title={text.delete}><Icon name="delete" /></button></div></footer></article></li>)}</ol>}
         </section>
       </section>
     </main>

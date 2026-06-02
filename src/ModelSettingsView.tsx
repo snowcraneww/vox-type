@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AsrConfigStatus, CloudAsrConfigStatus, ModelReadiness, TranscriptionModelId } from './types';
+import type { AsrConfigStatus, CloudAsrConfigStatus, ModelReadiness, TranscriptPostprocessConfig, TranscriptionModelId } from './types';
 
 const text = {
   title: '\u6a21\u578b\u9009\u62e9\u914d\u7f6e',
@@ -59,6 +59,18 @@ const text = {
   baiduRealtimeUserLabel: '\u767e\u5ea6 WebSocket user',
   lmPlaceholder: '\u81ea\u8bad\u7ec3\u5e73\u53f0\u6a21\u578b ID',
   ready: '\u5df2\u5c31\u7eea',
+  textOptimization: '\u6587\u672c\u4f18\u5316',
+  textOptimizationDetail: '\u7ba1\u7406\u8f6c\u5199\u540e\u7684\u786e\u5b9a\u6027\u66ff\u6362\u548c\u566a\u58f0\u8fc7\u6ee4',
+  enablePostprocess: '\u542f\u7528\u6587\u672c\u4f18\u5316',
+  cleanupNoise: '\u8fc7\u6ee4\u5b57\u5e55\u7c7b\u566a\u58f0',
+  replacements: '\u66ff\u6362\u89c4\u5219',
+  glossary: '\u4e13\u6709\u8bcd\u8868',
+  previewInput: '\u9884\u89c8\u8f93\u5165',
+  previewOutput: '\u9884\u89c8\u7ed3\u679c',
+  saveTextOptimization: '\u4fdd\u5b58\u6587\u672c\u4f18\u5316',
+  previewTextOptimization: '\u9884\u89c8\u4f18\u5316\u6548\u679c',
+  replacementPlaceholder: 'scale => skill',
+  glossaryPlaceholder: 'WebSocket\nwhisper.cpp\nVoxType',
   notReady: '\u672a\u5c31\u7eea',
 };
 
@@ -85,6 +97,12 @@ interface ModelSettingsViewProps {
   cloudApiKeyInput: string;
   cloudSecretKeyInput: string;
   cloudMessage: string | null;
+  transcriptPostprocessConfig: TranscriptPostprocessConfig;
+  postprocessReplacementText: string;
+  postprocessGlossaryText: string;
+  postprocessPreviewInput: string;
+  postprocessPreviewOutput: string | null;
+  postprocessMessage: string | null;
   whisperBinaryPath: string;
   whisperModelPath: string;
   asrLanguage: string;
@@ -111,6 +129,13 @@ interface ModelSettingsViewProps {
   onCloudBaiduRealtimeUserChange: (value: string) => void;
   onCloudApiKeyInputChange: (value: string) => void;
   onCloudSecretKeyInputChange: (value: string) => void;
+  onTranscriptPostprocessEnabledChange: (value: boolean) => void;
+  onTranscriptPostprocessCleanupNoiseChange: (value: boolean) => void;
+  onPostprocessReplacementTextChange: (value: string) => void;
+  onPostprocessGlossaryTextChange: (value: string) => void;
+  onPostprocessPreviewInputChange: (value: string) => void;
+  onSaveTranscriptPostprocessConfig: () => void;
+  onPreviewTranscriptPostprocess: () => void;
   onInstallManagedAsr: () => void;
   onSaveAsrConfig: () => void;
   onRefreshAsrConfig: () => void;
@@ -202,7 +227,21 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             <p className="runtime-message">{props.cloudMessage ?? props.cloudAsrConfigStatus.message}</p>
             <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
           </section> : null}
-          {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
+          <section className="text-optimization-panel" aria-label={text.textOptimization}>
+            <div className="section-heading model-config-heading"><span>{text.textOptimization}</span><strong>{text.textOptimizationDetail}</strong></div>
+            <div className="toggle-row">
+              <label><input type="checkbox" checked={props.transcriptPostprocessConfig.enabled} onChange={(event) => props.onTranscriptPostprocessEnabledChange(event.target.checked)} />{text.enablePostprocess}</label>
+              <label><input type="checkbox" checked={props.transcriptPostprocessConfig.cleanupNoise} onChange={(event) => props.onTranscriptPostprocessCleanupNoiseChange(event.target.checked)} />{text.cleanupNoise}</label>
+            </div>
+            <div className="postprocess-grid">
+              <label className="field"><span>{text.replacements}</span><textarea aria-label={text.replacements} value={props.postprocessReplacementText} onChange={(event) => props.onPostprocessReplacementTextChange(event.target.value)} placeholder={text.replacementPlaceholder} /></label>
+              <label className="field"><span>{text.glossary}</span><textarea aria-label={text.glossary} value={props.postprocessGlossaryText} onChange={(event) => props.onPostprocessGlossaryTextChange(event.target.value)} placeholder={text.glossaryPlaceholder} /></label>
+              <label className="field wide"><span>{text.previewInput}</span><input aria-label={text.previewInput} value={props.postprocessPreviewInput} onChange={(event) => props.onPostprocessPreviewInputChange(event.target.value)} /></label>
+              <div className="postprocess-output" aria-label={text.previewOutput}>{props.postprocessPreviewOutput ?? text.previewOutput}</div>
+            </div>
+            {props.postprocessMessage ? <p className="runtime-message">{props.postprocessMessage}</p> : null}
+            <div className="button-row"><button type="button" onClick={props.onSaveTranscriptPostprocessConfig}>{text.saveTextOptimization}</button><button type="button" onClick={props.onPreviewTranscriptPostprocess}>{text.previewTextOptimization}</button></div>
+          </section>          {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
             <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>{props.modelReadiness['baidu-realtime'].ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.modelReadiness['baidu-realtime'].ready} /></div>
             <p className="runtime-message">{props.cloudMessage ?? props.modelReadiness['baidu-realtime'].message}</p>
             {baiduCredentialFields}

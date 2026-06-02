@@ -5,9 +5,9 @@ import { HotkeySettingsDialog } from './HotkeySettingsDialog';
 import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
 import { formatError } from './errorFormat';
-import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getTranscriptPostprocessConfig, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, saveTranscriptPostprocessConfig, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, AudioQualitySummary, PersistedTranscriptEntry, TranscriptPostprocessConfig, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -31,6 +31,13 @@ const defaultConfig: AppConfig = {
 
 const defaultPushToTalkHotkey = 'Ctrl+Alt+Space';
 const defaultToggleDictationHotkey = 'Ctrl+Alt+V';
+
+const defaultTranscriptPostprocessConfig: TranscriptPostprocessConfig = {
+  enabled: true,
+  cleanupNoise: true,
+  glossary: ['WebSocket', 'whisper.cpp', 'VoxType'],
+  replacements: [{ from: 'scale', to: 'skill', enabled: true }],
+};
 
 const initialStatus: AppStatus = {
   phase: 'idle',
@@ -141,6 +148,12 @@ export function App() {
   const [hotkeySaveMessage, setHotkeySaveMessage] = useState<string | null>(null);
   const [transcriptRecords, setTranscriptRecords] = useState<TranscriptRecord[]>([]);
   const [historyMessage, setHistoryMessage] = useState<string | null>(null);
+  const [transcriptPostprocessConfig, setTranscriptPostprocessConfig] = useState<TranscriptPostprocessConfig>(defaultTranscriptPostprocessConfig);
+  const [postprocessReplacementText, setPostprocessReplacementText] = useState('scale => skill');
+  const [postprocessGlossaryText, setPostprocessGlossaryText] = useState('WebSocket\nwhisper.cpp\nVoxType');
+  const [postprocessPreviewInput, setPostprocessPreviewInput] = useState('scale websocket whisper cpp');
+  const [postprocessPreviewOutput, setPostprocessPreviewOutput] = useState<string | null>(null);
+  const [postprocessMessage, setPostprocessMessage] = useState<string | null>(null);
   const didLoadRuntime = useRef(false);
   const nextDiagnosticIdRef = useRef(2);
   const nextTranscriptRecordIdRef = useRef(1);
@@ -151,6 +164,7 @@ export function App() {
   const liveInsertedTextRef = useRef(false);
   const liveSessionTextsRef = useRef<string[]>([]);
   const liveSessionDurationMsRef = useRef(0);
+  const lastAudioQualityRef = useRef<AudioQualitySummary | null>(null);
   const asrConfigStatusRef = useRef(asrConfigStatus);
   const cloudAsrConfigStatusRef = useRef(cloudAsrConfigStatus);
   const pushToTalkModelRef = useRef(pushToTalkModel);
@@ -218,6 +232,35 @@ export function App() {
     setWhisperBinaryPath(nextStatus.whisperBinaryPath ?? '');
     setWhisperModelPath(nextStatus.whisperModelPath ?? '');
     setAsrLanguage(nextStatus.language);
+  }
+
+  function formatReplacementRules(config: TranscriptPostprocessConfig) {
+    return config.replacements.map((rule) => `${rule.from} => ${rule.to}`).join('\n');
+  }
+
+  function formatGlossary(config: TranscriptPostprocessConfig) {
+    return config.glossary.join('\n');
+  }
+
+  function applyTranscriptPostprocessConfig(config: TranscriptPostprocessConfig) {
+    setTranscriptPostprocessConfig(config);
+    setPostprocessReplacementText(formatReplacementRules(config));
+    setPostprocessGlossaryText(formatGlossary(config));
+  }
+
+  function buildTranscriptPostprocessConfig(): TranscriptPostprocessConfig {
+    const replacements = postprocessReplacementText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const separator = line.includes('=>') ? '=>' : '->';
+        const [from = '', to = ''] = line.split(separator).map((part) => part.trim());
+        return { from, to, enabled: Boolean(from && to) };
+      })
+      .filter((rule) => rule.from && rule.to);
+    const glossary = postprocessGlossaryText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    return { ...transcriptPostprocessConfig, glossary, replacements };
   }
 
   function applyCloudAsrConfigStatus(nextStatus: CloudAsrConfigStatus) {
@@ -318,6 +361,18 @@ export function App() {
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取桌面浮窗后端失败', result: 'error', detail: formatError(error) });
       });
+    void loadTranscriptHistory()
+      .then((entries) => {
+        setTranscriptRecords(entries.map(mapPersistedEntry));
+      })
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '读取识别记录失败', result: 'warning', detail: formatError(error) });
+      });
+    void getTranscriptPostprocessConfig()
+      .then(applyTranscriptPostprocessConfig)
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '读取文本优化配置失败', result: 'warning', detail: formatError(error) });
+      });
     void listInputDevices()
       .then((devices) => {
         setInputDevices(devices);
@@ -358,6 +413,32 @@ export function App() {
   pushToTalkModelRef.current = pushToTalkModel;
   toggleDictationModelRef.current = toggleDictationModel;
 
+
+  function mapPersistedEntry(entry: PersistedTranscriptEntry): TranscriptRecord {
+    return {
+      id: entry.id,
+      time: new Date(entry.createdAtMs).toLocaleTimeString(),
+      text: entry.text,
+      durationMs: entry.durationMs,
+      inputMode: entry.inputMode,
+      modelId: entry.model,
+      charCount: entry.characterCount,
+      postprocessRulesApplied: entry.postprocessRulesApplied,
+      audioQuality: entry.audioQuality,
+    };
+  }
+
+  async function postprocessText(text: string) {
+    if (!isTauriRuntime()) {
+      return { text: text.trim(), rulesApplied: 0, noiseRemoved: isLikelyNoiseTranscript(text) };
+    }
+    try {
+      return await previewTranscriptPostprocess(text);
+    } catch (error) {
+      addDiagnostic({ title: '文本优化失败', result: 'warning', detail: formatError(error) });
+      return { text: text.trim(), rulesApplied: 0, noiseRemoved: false };
+    }
+  }
   const transcriptStats = useMemo<TranscriptStats>(() => {
     const totalDurationMs = transcriptRecords.reduce((sum, record) => sum + record.durationMs, 0);
     const totalChars = transcriptRecords.reduce((sum, record) => sum + record.charCount, 0);
@@ -369,22 +450,38 @@ export function App() {
     };
   }, [transcriptRecords]);
 
-  function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short') {
-    const normalizedText = text.trim();
-    if (!normalizedText) {
-      return;
+  async function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short') {
+    const processed = await postprocessText(text);
+    const normalizedText = processed.text.trim();
+    if (!normalizedText || processed.noiseRemoved) {
+      return null;
     }
     setHistoryMessage(null);
-    const record: TranscriptRecord = {
-      id: nextTranscriptRecordIdRef.current++,
-      time: new Date().toLocaleTimeString(),
+    const audioQuality = lastAudioQualityRef.current;
+    lastAudioQualityRef.current = null;
+    const createdAtMs = Date.now();
+    const entry: PersistedTranscriptEntry = {
+      id: `local-${createdAtMs}-${nextTranscriptRecordIdRef.current++}`,
       text: normalizedText,
-      durationMs: Math.max(0, Math.round(durationMs)),
       inputMode,
-      modelId,
-      charCount: normalizedText.length,
+      model: modelId,
+      createdAtMs,
+      durationMs: Math.max(0, Math.round(durationMs)),
+      characterCount: normalizedText.length,
+      postprocessRulesApplied: processed.rulesApplied,
+      audioQuality,
     };
+    const record = mapPersistedEntry(entry);
     setTranscriptRecords((current) => [record, ...current]);
+    if (isTauriRuntime()) {
+      try {
+        const saved = await saveTranscriptHistoryEntry(entry);
+        setTranscriptRecords(saved.map(mapPersistedEntry));
+      } catch (error) {
+        addDiagnostic({ title: '识别记录持久化失败', result: 'warning', detail: formatError(error) });
+      }
+    }
+    return record;
   }
 
   function isLikelyNoiseTranscript(text: string) {
@@ -436,14 +533,72 @@ export function App() {
     }
   }
 
-  function handleDeleteRecord(id: number) {
+  async function handleDeleteRecord(id: string) {
     setTranscriptRecords((current) => current.filter((record) => record.id !== id));
+    if (isTauriRuntime()) {
+      try {
+        const saved = await deleteTranscriptHistoryEntry(id);
+        setTranscriptRecords(saved.map(mapPersistedEntry));
+      } catch (error) {
+        addDiagnostic({ title: '删除识别记录持久化失败', result: 'warning', detail: formatError(error) });
+      }
+    }
   }
 
-  function handleClearRecords() {
+  async function handleClearRecords() {
     setTranscriptRecords([]);
     setHistoryMessage(null);
-    addDiagnostic({ title: '识别记录已清空', result: 'info', detail: '本次运行期间的识别记录已清空。' });
+    if (isTauriRuntime()) {
+      try {
+        await clearTranscriptHistory();
+      } catch (error) {
+        addDiagnostic({ title: '清空识别记录持久化失败', result: 'warning', detail: formatError(error) });
+      }
+    }
+    addDiagnostic({ title: '识别记录已清空', result: 'info', detail: '识别记录已清空。' });
+  }
+
+  async function handleSaveTranscriptPostprocessConfig() {
+    const nextConfig = buildTranscriptPostprocessConfig();
+    if (!isTauriRuntime()) {
+      applyTranscriptPostprocessConfig(nextConfig);
+      setPostprocessMessage('浏览器预览模式已暂存文本优化配置');
+      return;
+    }
+    try {
+      const saved = await saveTranscriptPostprocessConfig(nextConfig);
+      applyTranscriptPostprocessConfig(saved);
+      setPostprocessMessage('文本优化配置已保存');
+      addDiagnostic({ title: '文本优化配置已保存', result: 'success', detail: `替换规则 ${saved.replacements.length} 条，词表 ${saved.glossary.length} 项。` });
+    } catch (error) {
+      const detail = formatError(error);
+      setPostprocessMessage(`保存文本优化配置失败：${detail}`);
+      addDiagnostic({ title: '保存文本优化配置失败', result: 'error', detail });
+    }
+  }
+
+  async function handlePreviewTranscriptPostprocess() {
+    const input = postprocessPreviewInput.trim();
+    if (!input) {
+      setPostprocessPreviewOutput(null);
+      setPostprocessMessage('请输入要预览的文本');
+      return;
+    }
+    if (!isTauriRuntime()) {
+      const fallback = input.replace(/scale/g, 'skill').replace(/websocket/gi, 'WebSocket').replace(/whisper cpp/gi, 'whisper.cpp');
+      setPostprocessPreviewOutput(fallback);
+      setPostprocessMessage('浏览器预览模式使用前端示例规则');
+      return;
+    }
+    try {
+      const result = await previewTranscriptPostprocess(input);
+      setPostprocessPreviewOutput(result.noiseRemoved ? '' : result.text);
+      setPostprocessMessage(`预览完成：应用 ${result.rulesApplied} 条规则${result.noiseRemoved ? '，已过滤噪声文本' : ''}`);
+    } catch (error) {
+      const detail = formatError(error);
+      setPostprocessMessage(`预览文本优化失败：${detail}`);
+      addDiagnostic({ title: '预览文本优化失败', result: 'warning', detail });
+    }
   }
 
   async function handleExportRecords() {
@@ -885,6 +1040,7 @@ export function App() {
         return;
       }
       try {
+        lastAudioQualityRef.current = null;
         const realtimeStatus = await startBaiduRealtimeSession();
         isRecordingRef.current = true;
         setRecordingStatus({ state: 'recording', sampleRate: 16000, channels: 1, sampleCount: 0, durationMs: realtimeStatus.durationMs });
@@ -934,7 +1090,7 @@ export function App() {
           sessionText = combinedLiveSessionText();
         }
         if (sessionText) {
-          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || summary.durationMs, 'toggle-dictation', 'baidu-realtime');
+          await addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || summary.durationMs, 'toggle-dictation', 'baidu-realtime');
         }
         setStatus({ phase: 'succeeded', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5df2\u505c\u6b62', lastTranscript: sessionText || summaryText || null });
         addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5df2\u505c\u6b62', result: 'success', detail: sessionText ? '\u6700\u7ec8\u7247\u6bb5\u5df2\u5408\u5e76\u4e3a\u4e00\u6761\u8bc6\u522b\u8bb0\u5f55\u3002' : '\u672c\u6b21\u6ca1\u6709\u53ef\u5199\u5165\u8bc6\u522b\u8bb0\u5f55\u7684\u6700\u7ec8\u6587\u672c\u3002' });
@@ -955,6 +1111,7 @@ export function App() {
     }
     try {
       const audio = await stopRecording();
+      lastAudioQualityRef.current = audio.audioQuality;
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
       setStatus({ phase: 'transcribing', message: '录音已停止，正在处理最后一段', lastTranscript: null });
       addDiagnostic({ title: '实验实时录音已停止', result: 'success', detail: `采集到 ${audio.sampleCount} 个 mono 样本，已立即停止录音流并进入转写状态。` });
@@ -969,13 +1126,13 @@ export function App() {
         setStatus({ phase: 'transcribing', message: '正在用连续输入默认模型识别整段录音', lastTranscript: null });
         const transcript = await transcribeLastRecording(selectedModel);
         await insertTextWithClipboard(transcript.text);
-        addTranscriptRecord(transcript.text, audio.asrDurationMs, 'toggle-dictation', selectedModel);
+        await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'toggle-dictation', selectedModel);
         setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: transcript.text });
         addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
       } else {
         const sessionText = combinedLiveSessionText();
         if (sessionText) {
-          addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || audio.asrDurationMs, 'toggle-dictation', selectedModel);
+          await addTranscriptRecord(sessionText, liveSessionDurationMsRef.current || audio.asrDurationMs, 'toggle-dictation', selectedModel);
         }
         setStatus({ phase: 'succeeded', message: '实验实时输入已停止', lastTranscript: sessionText || null });
         addDiagnostic({ title: '实验实时输入已停止', result: 'success', detail: sessionText ? '尾段处理完成，已合并为一条识别记录。' : '尾段处理完成，本次仅产生疑似噪声片段，未写入识别记录。' });
@@ -1004,6 +1161,7 @@ export function App() {
     }
     try {
       const audio = await stopRecording();
+      lastAudioQualityRef.current = audio.audioQuality;
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
       addDiagnostic({ title: '快捷键录音已停止', result: audio.sampleCount > 0 ? 'success' : 'warning', detail: `采集到 ${audio.sampleCount} 个 mono 样本，峰值音量 ${audio.peakAmplitude}，RMS 音量 ${audio.rmsAmplitude}。` });
 
@@ -1020,7 +1178,7 @@ export function App() {
       const transcript = await transcribeLastRecording(selectedModel);
       setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: transcript.text });
       await insertTextWithClipboard(transcript.text);
-      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'push-to-talk', selectedModel);
+      await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'push-to-talk', selectedModel);
       setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${transcript.text}` });
     } catch (error) {
@@ -1057,6 +1215,7 @@ export function App() {
     }
     try {
       const audio = await stopRecording();
+      lastAudioQualityRef.current = audio.audioQuality;
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
       setStatus({ phase: 'succeeded', message: `录音已停止：${audio.durationMs} ms，已准备 ${audio.asrSampleCount} 个 16 kHz ASR 样本`, lastTranscript: null });
       addDiagnostic({ title: '录音已停止', result: audio.sampleCount > 0 ? 'success' : 'warning', detail: `采集到 ${audio.sampleCount} 个 mono 样本，峰值音量 ${audio.peakAmplitude}，RMS 音量 ${audio.rmsAmplitude}。` });
@@ -1088,7 +1247,7 @@ export function App() {
     try {
       setStatus({ phase: 'transcribing', message: '正在调用 whisper.cpp 转写最近录音', lastTranscript: null });
       const transcript = await transcribeLastRecording();
-      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
+      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
       setStatus({ phase: 'succeeded', message: '真实转写完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实转写成功', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
     } catch (error) {
@@ -1110,7 +1269,7 @@ export function App() {
       addDiagnostic({ title: '真实转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
-      addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
+      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
       setStatus({ phase: 'succeeded', message: '真实语音输入闭环完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实闭环上屏请求已发送', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1149,6 +1308,7 @@ export function App() {
     }
     try {
       const audio = await stopRecording();
+      lastAudioQualityRef.current = audio.audioQuality;
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
       addDiagnostic({ title: '录音已停止', result: audio.sampleCount > 0 ? 'success' : 'warning', detail: `采集到 ${audio.sampleCount} 个 mono 样本，峰值音量 ${audio.peakAmplitude}，RMS 音量 ${audio.rmsAmplitude}。` });
 
@@ -1158,7 +1318,7 @@ export function App() {
       addDiagnostic({ title: '主界面转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
-      addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual', 'baidu-short');
+      await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual', 'baidu-short');
       setStatus({ phase: 'succeeded', message: '语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '主界面语音输入完成', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1362,6 +1522,12 @@ export function App() {
         cloudApiKeyInput={cloudApiKeyInput}
         cloudSecretKeyInput={cloudSecretKeyInput}
         cloudMessage={cloudMessage}
+        transcriptPostprocessConfig={transcriptPostprocessConfig}
+        postprocessReplacementText={postprocessReplacementText}
+        postprocessGlossaryText={postprocessGlossaryText}
+        postprocessPreviewInput={postprocessPreviewInput}
+        postprocessPreviewOutput={postprocessPreviewOutput}
+        postprocessMessage={postprocessMessage}
         whisperBinaryPath={whisperBinaryPath}
         whisperModelPath={whisperModelPath}
         asrLanguage={asrLanguage}
@@ -1388,6 +1554,13 @@ export function App() {
         onCloudBaiduRealtimeUserChange={setCloudBaiduRealtimeUser}
         onCloudApiKeyInputChange={setCloudApiKeyInput}
         onCloudSecretKeyInputChange={setCloudSecretKeyInput}
+        onTranscriptPostprocessEnabledChange={(value) => setTranscriptPostprocessConfig((current) => ({ ...current, enabled: value }))}
+        onTranscriptPostprocessCleanupNoiseChange={(value) => setTranscriptPostprocessConfig((current) => ({ ...current, cleanupNoise: value }))}
+        onPostprocessReplacementTextChange={setPostprocessReplacementText}
+        onPostprocessGlossaryTextChange={setPostprocessGlossaryText}
+        onPostprocessPreviewInputChange={setPostprocessPreviewInput}
+        onSaveTranscriptPostprocessConfig={() => void handleSaveTranscriptPostprocessConfig()}
+        onPreviewTranscriptPostprocess={() => void handlePreviewTranscriptPostprocess()}
         onInstallManagedAsr={() => void handleInstallManagedAsr()}
         onSaveAsrConfig={() => void handleSaveAsrConfig()}
         onRefreshAsrConfig={() => void handleRefreshAsrConfig()}

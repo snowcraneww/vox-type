@@ -1,4 +1,4 @@
-pub mod asr;
+﻿pub mod asr;
 pub mod asr_config;
 pub mod asr_installer;
 pub mod audio;
@@ -17,6 +17,9 @@ pub mod preferences;
 pub mod recorder;
 pub mod state;
 pub mod tray;
+pub mod transcript_history;
+pub mod text_postprocess;
+pub mod audio_quality;
 
 use asr::{AsrEngine, MockAsrEngine, Transcript, WhisperCppEngine};
 use asr_config::{AsrConfig, AsrConfigStatus};
@@ -249,6 +252,58 @@ fn get_baidu_realtime_session_status(
     manager.status()
 }
 
+#[tauri::command]
+fn load_transcript_history(
+    app: AppHandle,
+) -> Result<Vec<transcript_history::PersistedTranscriptEntry>, error::VoxError> {
+    transcript_history::load_transcript_history(app_config_dir(&app)?)
+}
+
+#[tauri::command]
+fn save_transcript_history_entry(
+    app: AppHandle,
+    entry: transcript_history::PersistedTranscriptEntry,
+) -> Result<Vec<transcript_history::PersistedTranscriptEntry>, error::VoxError> {
+    transcript_history::save_transcript_history_entry(app_config_dir(&app)?, entry)
+}
+
+#[tauri::command]
+fn delete_transcript_history_entry(
+    app: AppHandle,
+    id: String,
+) -> Result<Vec<transcript_history::PersistedTranscriptEntry>, error::VoxError> {
+    transcript_history::delete_transcript_history_entry(app_config_dir(&app)?, id)
+}
+
+#[tauri::command]
+fn clear_transcript_history(
+    app: AppHandle,
+) -> Result<Vec<transcript_history::PersistedTranscriptEntry>, error::VoxError> {
+    transcript_history::clear_transcript_history(app_config_dir(&app)?)
+}
+#[tauri::command]
+fn get_transcript_postprocess_config(
+    app: AppHandle,
+) -> Result<text_postprocess::TranscriptPostprocessConfig, error::VoxError> {
+    Ok(text_postprocess::load_transcript_postprocess_config(app_config_dir(&app)?))
+}
+
+#[tauri::command]
+fn save_transcript_postprocess_config(
+    app: AppHandle,
+    config: text_postprocess::TranscriptPostprocessConfig,
+) -> Result<text_postprocess::TranscriptPostprocessConfig, error::VoxError> {
+    text_postprocess::save_transcript_postprocess_config(app_config_dir(&app)?, config)
+}
+
+#[tauri::command]
+fn preview_transcript_postprocess(
+    app: AppHandle,
+    text: String,
+) -> Result<text_postprocess::PostprocessResult, error::VoxError> {
+    let config = text_postprocess::load_transcript_postprocess_config(app_config_dir(&app)?);
+    Ok(text_postprocess::process_transcript(&text, &config))
+}
 #[tauri::command]
 fn get_asr_config_status(app: AppHandle) -> Result<AsrConfigStatus, error::VoxError> {
     let config_dir = app_config_dir(&app)?;
@@ -587,6 +642,13 @@ pub fn run() {
             get_hotkey_status,
             save_hotkey_preferences,
             save_mode_model_preferences,
+            load_transcript_history,
+            save_transcript_history_entry,
+            delete_transcript_history_entry,
+            clear_transcript_history,
+            get_transcript_postprocess_config,
+            save_transcript_postprocess_config,
+            preview_transcript_postprocess,
             get_asr_config_status,
             save_asr_config,
             get_cloud_asr_config_status,
