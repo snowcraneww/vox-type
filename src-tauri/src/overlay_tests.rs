@@ -8,7 +8,7 @@ fn overlay_uses_stable_label_and_route() {
 
 #[test]
 fn overlay_size_matches_tauri_window_config() {
-    assert_eq!(overlay_size(), (120, 32));
+    assert_eq!(overlay_size(), (120, 36));
 }
 
 #[test]
@@ -28,6 +28,8 @@ fn overlay_window_disables_shadow_in_tauri_config() {
     assert_eq!(overlay["transparent"], true);
     assert_eq!(overlay["decorations"], false);
     assert_eq!(overlay["shadow"], false);
+    assert_eq!(overlay["width"], 120);
+    assert_eq!(overlay["height"], 36);
 }
 
 #[test]

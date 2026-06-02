@@ -259,7 +259,9 @@ mod platform {
     }
 
     const WIDTH: i32 = 120;
-    const HEIGHT: i32 = 32;
+    const HEIGHT: i32 = 36;
+    const CAPSULE_Y: f32 = 2.0;
+    const CAPSULE_HEIGHT: f32 = 32.0;
     const MARGIN_BOTTOM: i32 = 92;
     const TIMER_ID: usize = 1;
     const TIMER_MS: u32 = 72;
@@ -603,7 +605,13 @@ mod platform {
 
     fn render_overlay_pixels(mode: NativeOverlayMode, frame: u32) -> Vec<u8> {
         let mut canvas = Canvas::new(WIDTH as usize, HEIGHT as usize, 3);
-        canvas.draw_capsule(0.0, 0.0, WIDTH as f32, HEIGHT as f32, HEIGHT as f32 / 2.0);
+        canvas.draw_capsule(
+            0.0,
+            CAPSULE_Y,
+            WIDTH as f32,
+            CAPSULE_HEIGHT,
+            CAPSULE_HEIGHT / 2.0,
+        );
         match mode {
             NativeOverlayMode::Recording => draw_recording_bars(&mut canvas, frame),
             NativeOverlayMode::Transcribing => draw_transcribing_dots(&mut canvas, frame),
@@ -790,7 +798,7 @@ mod platform {
             let pulse: f32 = [0.0, 1.0, 3.0, 5.0, 3.0, 1.0][pulse_phase];
             let height = (*base_height + pulse).min(18.5_f32);
             let x = 13.0 + index as f32 * 5.0;
-            let y = 16.0 - height / 2.0;
+            let y = CAPSULE_Y + CAPSULE_HEIGHT / 2.0 - height / 2.0;
 
             canvas.fill_bar(x - 0.8, y - 1.8, 4.0, height + 3.6, glow);
             canvas.fill_bar(x, y, 2.4, height, color);
@@ -812,7 +820,7 @@ mod platform {
                 1.8, 1.9, 2.1, 2.5, 2.75, 2.5, 2.1, 1.9, 1.8, 1.65, 1.65, 1.75,
             ][phase];
             let cx = 40.0 + index as f32 * 8.0;
-            let cy = 16.0;
+            let cy = CAPSULE_Y + CAPSULE_HEIGHT / 2.0;
             canvas.fill_dot(cx, cy, 4.2, glow);
             canvas.fill_dot(cx, cy, radius, color);
         }
@@ -831,7 +839,7 @@ mod platform {
         ];
         for (index, height) in heights.iter().enumerate() {
             let x = 13.0 + index as f32 * 5.0;
-            let y = 16.0 - height / 2.0;
+            let y = CAPSULE_Y + CAPSULE_HEIGHT / 2.0 - height / 2.0;
             canvas.fill_bar(x, y, 2.4, *height, ghost);
         }
     }

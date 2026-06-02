@@ -39,6 +39,14 @@ describe('DictationOverlay', () => {
     expect(document.querySelectorAll('.mini-wave-bar')).toHaveLength(0);
   });
 
+  it('keeps the capsule inside the overlay viewport so the border is not clipped', () => {
+    render(<DictationOverlay initialPayload={payload({ state: 'pressed', action: 'startRecording' })} />);
+
+    expect(document.querySelector('.wave-ripple-svg')).toHaveAttribute('viewBox', '0 0 120 36');
+    expect(document.querySelector('.ripple-capsule')).toHaveAttribute('y', '2.5');
+    expect(document.querySelector('.ripple-capsule')).toHaveAttribute('height', '31');
+  });
+
   it('renders transcribing dots after push-to-talk release', () => {
     render(<DictationOverlay initialPayload={payload({ state: 'released', action: 'stopAndTranscribe' })} />);
 
