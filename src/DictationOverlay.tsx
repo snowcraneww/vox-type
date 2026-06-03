@@ -63,7 +63,7 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
   return (
     <main className="overlay-root" data-mode={mode} data-theme="light-green">
       <section className="wave-ripple" role="status" aria-label={overlayLabel(mode)} data-mode={mode} data-theme="light-green">
-        <svg className="wave-ripple-svg" aria-hidden="true" viewBox="0 0 120 36" preserveAspectRatio="none">
+        <svg className="wave-ripple-svg" aria-hidden="true" viewBox="0 0 132 44" preserveAspectRatio="none">
           <defs>
             <linearGradient id="voice-ripple-gradient" gradientUnits="userSpaceOnUse" x1="-120" x2="120" y1="0" y2="0">
               <stop offset="0%" stopColor="#2c7a3f" />
@@ -85,10 +85,10 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
               </feMerge>
             </filter>
             <clipPath id="voice-capsule-clip">
-              <rect x="0.5" y="2.5" width="119" height="31" rx="15.5" />
+              <rect x="6.5" y="6.5" width="119" height="31" rx="15.5" />
             </clipPath>
           </defs>
-          <rect className="ripple-capsule" x="0.5" y="2.5" width="119" height="31" rx="15.5" />
+          <rect className="ripple-capsule" x="6.5" y="6.5" width="119" height="31" rx="15.5" />
           <g className="overlay-contents" clipPath="url(#voice-capsule-clip)">
           <g className="soundwave-bars" filter="url(#voice-ripple-glow)">
             {Array.from({ length: 20 }, (_, index) => {
@@ -100,8 +100,8 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
                   data-index={index}
                   key={index}
                   rx="1.4"
-                  x={13 + index * 5}
-                  y={18 - height / 2}
+                  x={19 + index * 5}
+                  y={22 - height / 2}
                   width="2.4"
                   height={height}
                   style={{ '--bar-index': index } as React.CSSProperties}
@@ -111,8 +111,8 @@ export function DictationOverlay({ initialPayload = null }: DictationOverlayProp
           </g>
           {isTranscribing ? (
             <g className="transcribing-dots" aria-hidden="true" filter="url(#voice-ripple-glow)">
-              {[40, 48, 56, 64, 72, 80].map((cx, index) => (
-                <circle className={`transcribing-dot transcribing-dot-${index}`} cx={cx} cy="18" data-index={index} key={cx} r="2.15">
+              {[46, 54, 62, 70, 78, 86].map((cx, index) => (
+                <circle className={`transcribing-dot transcribing-dot-${index}`} cx={cx} cy="22" data-index={index} key={cx} r="2.15">
                   <animate attributeName="r" begin={`${index * 0.10}s`} dur="1.25s" repeatCount="indefinite" values="1.85;2.75;2.1;1.85" />
                   <animate attributeName="opacity" begin={`${index * 0.10}s`} dur="1.25s" repeatCount="indefinite" values="0.32;1;0.58;0.32" />
                 </circle>

@@ -115,9 +115,7 @@ pub struct PushToTalkState {
 }
 
 #[derive(Debug, Default)]
-pub struct ToggleDictationState {
-    recording: bool,
-}
+pub struct ToggleDictationState;
 
 impl PushToTalkState {
     pub fn handle_event(&mut self, event: PushToTalkEvent) -> PushToTalkAction {
@@ -137,13 +135,7 @@ impl PushToTalkState {
 
 impl ToggleDictationState {
     pub fn handle_pressed(&mut self) -> PushToTalkAction {
-        if self.recording {
-            self.recording = false;
-            PushToTalkAction::ToggleStopAndTranscribe
-        } else {
-            self.recording = true;
-            PushToTalkAction::ToggleStartRecording
-        }
+        PushToTalkAction::ToggleStartRecording
     }
 
     pub fn handle_released(&self) -> PushToTalkAction {
@@ -254,17 +246,12 @@ mod tests {
     }
 
     #[test]
-    fn toggle_hotkey_alternates_start_and_stop_on_presses() {
+    fn toggle_hotkey_press_is_frontend_toggle_signal() {
         let mut state = ToggleDictationState::default();
 
         assert_eq!(
             state.handle_pressed(),
             PushToTalkAction::ToggleStartRecording
-        );
-        assert_eq!(state.handle_released(), PushToTalkAction::Ignore);
-        assert_eq!(
-            state.handle_pressed(),
-            PushToTalkAction::ToggleStopAndTranscribe
         );
         assert_eq!(state.handle_released(), PushToTalkAction::Ignore);
         assert_eq!(

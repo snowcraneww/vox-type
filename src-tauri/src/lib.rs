@@ -1,7 +1,8 @@
-﻿pub mod asr;
+pub mod asr;
 pub mod asr_config;
 pub mod asr_installer;
 pub mod audio;
+pub mod audio_quality;
 pub mod baidu_realtime;
 pub mod cloud_asr;
 pub mod cloud_asr_config;
@@ -15,13 +16,14 @@ pub mod overlay;
 mod overlay_tests;
 pub mod preferences;
 pub mod recorder;
+pub mod sensevoice_config;
+pub mod sensevoice_installer;
 pub mod state;
-pub mod tray;
-pub mod transcript_history;
 pub mod text_postprocess;
-pub mod audio_quality;
+pub mod transcript_history;
+pub mod tray;
 
-use asr::{AsrEngine, MockAsrEngine, Transcript, WhisperCppEngine};
+use asr::{AsrEngine, MockAsrEngine, SenseVoiceSmallEngine, Transcript, WhisperCppEngine};
 use asr_config::{AsrConfig, AsrConfigStatus};
 use config::AppConfig;
 use insertion::{ClipboardInsertion, InsertionStrategy, MockInsertion};
@@ -285,7 +287,9 @@ fn clear_transcript_history(
 fn get_transcript_postprocess_config(
     app: AppHandle,
 ) -> Result<text_postprocess::TranscriptPostprocessConfig, error::VoxError> {
-    Ok(text_postprocess::load_transcript_postprocess_config(app_config_dir(&app)?))
+    Ok(text_postprocess::load_transcript_postprocess_config(
+        app_config_dir(&app)?,
+    ))
 }
 
 #[tauri::command]
@@ -324,6 +328,32 @@ fn install_managed_asr(app: AppHandle) -> Result<AsrConfigStatus, error::VoxErro
 }
 
 #[tauri::command]
+fn get_sensevoice_config_status(
+    app: AppHandle,
+) -> Result<sensevoice_config::SenseVoiceConfigStatus, error::VoxError> {
+    Ok(sensevoice_config::get_sensevoice_config_status(
+        app_config_dir(&app)?,
+    ))
+}
+
+#[tauri::command]
+fn save_sensevoice_config(
+    app: AppHandle,
+    config: sensevoice_config::SenseVoiceConfig,
+) -> Result<sensevoice_config::SenseVoiceConfigStatus, error::VoxError> {
+    sensevoice_config::save_sensevoice_config(app_config_dir(&app)?, config)
+}
+
+#[tauri::command]
+fn install_managed_sensevoice(
+    app: AppHandle,
+) -> Result<sensevoice_config::SenseVoiceConfigStatus, error::VoxError> {
+    let app_data_dir = app_data_dir(&app)?;
+    let config_dir = app_config_dir(&app)?;
+    sensevoice_installer::install_managed_sensevoice(app_data_dir, config_dir)
+}
+
+#[tauri::command]
 fn transcribe_last_recording(
     app: AppHandle,
     recorder: State<'_, RecorderManager>,
@@ -338,6 +368,9 @@ fn transcribe_last_recording(
     }
     if selected_model == preferences::TranscriptionModelId::LocalWhisper {
         return transcribe_with_local_whisper(&app, &samples);
+    }
+    if selected_model == preferences::TranscriptionModelId::SensevoiceSmall {
+        return transcribe_with_sensevoice_small(&app, &samples);
     }
     let cloud_status = cloud_asr_config::get_cloud_asr_config_status(app_config_dir(&app)?);
     if cloud_status.config.provider == "baidu" {
@@ -389,6 +422,23 @@ fn transcribe_with_local_whisper(
         language: config.language,
     };
     engine.transcribe(&samples)
+}
+fn transcribe_with_sensevoice_small(
+    app: &AppHandle,
+    samples: &[i16],
+) -> Result<Transcript, error::VoxError> {
+    let config = sensevoice_config::load_sensevoice_config(app_config_dir(app)?);
+    let status = sensevoice_config::status_from_config(config.clone(), "runtime".to_string());
+    if !status.ready {
+        return Err(error::VoxError::Config(status.message));
+    }
+    let engine = SenseVoiceSmallEngine {
+        runtime_path: config.runtime_path.expect("ready config has runtime path"),
+        model_path: config.model_path.expect("ready config has model path"),
+        tokens_path: config.tokens_path.expect("ready config has tokens path"),
+        language: config.language,
+    };
+    engine.transcribe(samples)
 }
 
 #[tauri::command]
@@ -479,7 +529,7 @@ fn export_last_recording_wav(
     let recording = recorder.last_recording()?;
     let export_dir = app_data_dir(&app)?.join("diagnostics");
     std::fs::create_dir_all(&export_dir)
-        .map_err(|error| error::VoxError::Recorder(format!("创建诊断录音目录失败：{error}")))?;
+        .map_err(|error| error::VoxError::Recorder(format!("读取应用目录失败：{error}")))?;
     let path = export_dir.join("last-asr-input.wav");
     asr::write_pcm_wav(&path, &recording.asr_samples)?;
     Ok(path.to_string_lossy().to_string())
@@ -569,19 +619,19 @@ fn register_hotkey_handler(
             };
             let payload = hotkey::payload_for_event(hotkey_event, action);
             match action {
-                hotkey::PushToTalkAction::StartRecording
-                | hotkey::PushToTalkAction::ToggleStartRecording => {
+                hotkey::PushToTalkAction::StartRecording => {
                     if let Err(error) = overlay::show_dictation_overlay(app) {
                         eprintln!("failed to show dictation overlay: {error}");
                     }
                 }
-                hotkey::PushToTalkAction::StopAndTranscribe
-                | hotkey::PushToTalkAction::ToggleStopAndTranscribe => {
+                hotkey::PushToTalkAction::StopAndTranscribe => {
                     if let Err(error) = overlay::show_transcribing_overlay(app) {
                         eprintln!("failed to keep dictation overlay visible: {error}");
                     }
                 }
-                hotkey::PushToTalkAction::Ignore => {}
+                hotkey::PushToTalkAction::ToggleStartRecording
+                | hotkey::PushToTalkAction::ToggleStopAndTranscribe
+                | hotkey::PushToTalkAction::Ignore => {}
             }
             let _ = app.emit("voxtype-push-to-talk", payload);
         },
@@ -651,6 +701,9 @@ pub fn run() {
             preview_transcript_postprocess,
             get_asr_config_status,
             save_asr_config,
+            get_sensevoice_config_status,
+            save_sensevoice_config,
+            install_managed_sensevoice,
             get_cloud_asr_config_status,
             save_cloud_asr_config,
             save_minimax_api_key,

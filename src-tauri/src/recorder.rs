@@ -1,4 +1,4 @@
-﻿use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use serde::{Deserialize, Serialize};
@@ -94,7 +94,8 @@ impl RecordingSession {
         let asr_sample_count = asr_samples.len();
         let peak_amplitude = peak_amplitude(&self.buffer.samples);
         let rms_amplitude = rms_amplitude(&self.buffer.samples);
-        let audio_quality = audio_quality::analyze_audio_quality(&asr_samples, audio::TARGET_SAMPLE_RATE);
+        let audio_quality =
+            audio_quality::analyze_audio_quality(&asr_samples, audio::TARGET_SAMPLE_RATE);
         Ok(RecordedAudio {
             samples: self.buffer.samples.clone(),
             sample_rate: self.buffer.sample_rate,

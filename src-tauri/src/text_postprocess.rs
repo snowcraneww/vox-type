@@ -1,4 +1,4 @@
-﻿use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 use crate::error::VoxError;
@@ -13,23 +13,40 @@ pub fn load_transcript_postprocess_config(config_dir: PathBuf) -> TranscriptPost
     serde_json::from_str(&text).unwrap_or_default()
 }
 
-pub fn save_transcript_postprocess_config(config_dir: PathBuf, mut config: TranscriptPostprocessConfig) -> Result<TranscriptPostprocessConfig, VoxError> {
-    config.replacements.retain(|rule| !rule.from.trim().is_empty());
+pub fn save_transcript_postprocess_config(
+    config_dir: PathBuf,
+    mut config: TranscriptPostprocessConfig,
+) -> Result<TranscriptPostprocessConfig, VoxError> {
+    config
+        .replacements
+        .retain(|rule| !rule.from.trim().is_empty());
     for rule in &mut config.replacements {
         rule.from = rule.from.trim().to_string();
         rule.to = rule.to.trim().to_string();
     }
-    config.glossary = config.glossary.into_iter().map(|term| term.trim().to_string()).filter(|term| !term.is_empty()).collect();
-    std::fs::create_dir_all(&config_dir).map_err(|error| VoxError::Config(format!("failed to create postprocess config directory: {error}")))?;
-    let text = serde_json::to_string_pretty(&config).map_err(|error| VoxError::Config(format!("failed to serialize postprocess config: {error}")))?;
-    std::fs::write(postprocess_config_path(&config_dir), text).map_err(|error| VoxError::Config(format!("failed to write postprocess config: {error}")))?;
+    config.glossary = config
+        .glossary
+        .into_iter()
+        .map(|term| term.trim().to_string())
+        .filter(|term| !term.is_empty())
+        .collect();
+    std::fs::create_dir_all(&config_dir).map_err(|error| {
+        VoxError::Config(format!(
+            "failed to create postprocess config directory: {error}"
+        ))
+    })?;
+    let text = serde_json::to_string_pretty(&config).map_err(|error| {
+        VoxError::Config(format!("failed to serialize postprocess config: {error}"))
+    })?;
+    std::fs::write(postprocess_config_path(&config_dir), text).map_err(|error| {
+        VoxError::Config(format!("failed to write postprocess config: {error}"))
+    })?;
     Ok(config)
 }
 
 fn postprocess_config_path(config_dir: &Path) -> std::path::PathBuf {
     config_dir.join(POSTPROCESS_CONFIG_FILE)
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -53,8 +70,16 @@ impl Default for TranscriptPostprocessConfig {
         Self {
             enabled: true,
             cleanup_noise: true,
-            glossary: vec!["WebSocket".to_string(), "whisper.cpp".to_string(), "VoxType".to_string()],
-            replacements: vec![ReplacementRule { from: "scale".to_string(), to: "skill".to_string(), enabled: true }],
+            glossary: vec![
+                "WebSocket".to_string(),
+                "whisper.cpp".to_string(),
+                "VoxType".to_string(),
+            ],
+            replacements: vec![ReplacementRule {
+                from: "scale".to_string(),
+                to: "skill".to_string(),
+                enabled: true,
+            }],
         }
     }
 }
@@ -70,15 +95,27 @@ pub struct PostprocessResult {
 pub fn process_transcript(text: &str, config: &TranscriptPostprocessConfig) -> PostprocessResult {
     let original = normalize_whitespace(text);
     if !config.enabled {
-        return PostprocessResult { text: original, rules_applied: 0, noise_removed: false };
+        return PostprocessResult {
+            text: original,
+            rules_applied: 0,
+            noise_removed: false,
+        };
     }
 
     if config.cleanup_noise && is_noise_only(&original) {
-        return PostprocessResult { text: String::new(), rules_applied: 0, noise_removed: true };
+        return PostprocessResult {
+            text: String::new(),
+            rules_applied: 0,
+            noise_removed: true,
+        };
     }
 
     let mut output = original;
-    let mut rules: Vec<&ReplacementRule> = config.replacements.iter().filter(|rule| rule.enabled && !rule.from.trim().is_empty()).collect();
+    let mut rules: Vec<&ReplacementRule> = config
+        .replacements
+        .iter()
+        .filter(|rule| rule.enabled && !rule.from.trim().is_empty())
+        .collect();
     rules.sort_by_key(|rule| std::cmp::Reverse(rule.from.chars().count()));
     let mut rules_applied = 0;
     for rule in rules {
@@ -94,11 +131,19 @@ pub fn process_transcript(text: &str, config: &TranscriptPostprocessConfig) -> P
     }
     output = normalize_whitespace(&output);
 
-    PostprocessResult { text: output, rules_applied, noise_removed: false }
+    PostprocessResult {
+        text: output,
+        rules_applied,
+        noise_removed: false,
+    }
 }
 
 fn normalize_whitespace(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ").trim().to_string()
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim()
+        .to_string()
 }
 
 fn is_noise_only(text: &str) -> bool {
@@ -112,7 +157,9 @@ fn is_noise_only(text: &str) -> bool {
         .trim_end_matches('\u{ff09}')
         .trim();
     let lower = unwrapped.to_lowercase();
-    ["j chong", "caption:j chong", "subtitle:j chong"].iter().any(|pattern| lower.contains(pattern))
+    ["j chong", "caption:j chong", "subtitle:j chong"]
+        .iter()
+        .any(|pattern| lower.contains(pattern))
         || unwrapped.contains("J Chong")
         || unwrapped == "\u{4e0d}\u{77e5}"
         || unwrapped == "\u{7121}\u{6cd5} \u{5bf6}\u{5bf6}"
@@ -158,8 +205,16 @@ mod tests {
         TranscriptPostprocessConfig {
             enabled: true,
             cleanup_noise: true,
-            glossary: vec!["WebSocket".to_string(), "whisper.cpp".to_string(), "VoxType".to_string()],
-            replacements: vec![ReplacementRule { from: "scale".to_string(), to: "skill".to_string(), enabled: true }],
+            glossary: vec![
+                "WebSocket".to_string(),
+                "whisper.cpp".to_string(),
+                "VoxType".to_string(),
+            ],
+            replacements: vec![ReplacementRule {
+                from: "scale".to_string(),
+                to: "skill".to_string(),
+                enabled: true,
+            }],
         }
     }
 
@@ -174,8 +229,16 @@ mod tests {
     fn applies_longest_replacement_first() {
         let mut cfg = config();
         cfg.replacements = vec![
-            ReplacementRule { from: "scale".to_string(), to: "skill".to_string(), enabled: true },
-            ReplacementRule { from: "scale bar".to_string(), to: "skill bar".to_string(), enabled: true },
+            ReplacementRule {
+                from: "scale".to_string(),
+                to: "skill".to_string(),
+                enabled: true,
+            },
+            ReplacementRule {
+                from: "scale bar".to_string(),
+                to: "skill bar".to_string(),
+                enabled: true,
+            },
         ];
         let result = process_transcript("open the scale bar", &cfg);
         assert_eq!(result.text, "open the skill bar");
@@ -196,4 +259,3 @@ mod tests {
         assert_eq!(result.noise_removed, true);
     }
 }
-

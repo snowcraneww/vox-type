@@ -820,7 +820,7 @@ dd { font-size: 12px; }
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  height: 36px;
+  height: 44px;
   overflow: visible;
   padding: 0;
   position: relative;
@@ -829,9 +829,9 @@ dd { font-size: 12px; }
 
 .wave-ripple-svg {
   display: block;
-  height: 36px;
+  height: 44px;
   overflow: visible;
-  width: 120px;
+  width: 132px;
 }
 
 .ripple-capsule {
@@ -1924,7 +1924,7 @@ kbd {
   margin: 0;
 }
 
-.readiness-grid div {
+.readiness-item {
   background: rgba(0,0,0,0.22);
   border: 1px solid rgba(255,255,255,0.060);
   border-radius: 14px;
@@ -1933,7 +1933,7 @@ kbd {
   position: relative;
 }
 
-.readiness-grid div::after {
+.readiness-item::after {
   background: #8e8e93;
   border-radius: 50%;
   content: "";
@@ -1944,16 +1944,14 @@ kbd {
   width: 7px;
 }
 
-.readiness-grid div[data-state="ready"]::after { background: #34c759; }
-.readiness-grid div[data-state="warning"]::after { background: #ffd60a; }
-.readiness-grid div[data-state="busy"]::after { background: #5ac8fa; }
-.readiness-grid div[data-state="error"]::after { background: #ff453a; }
-.readiness-grid div[data-column="model"] {
-  grid-column: 1;
-}
-
-.readiness-grid div[data-column="system"] {
-  grid-column: 2;
+.readiness-item[data-state="ready"]::after { background: #34c759; }
+.readiness-item[data-state="warning"]::after { background: #ffd60a; }
+.readiness-item[data-state="busy"]::after { background: #5ac8fa; }
+.readiness-item[data-state="error"]::after { background: #ff453a; }
+.readiness-column {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
 }
 
 .readiness-grid dt {
@@ -2001,12 +1999,14 @@ kbd {
   .mode-selector { grid-row: auto; }
   .mode-card { flex-direction: column; }
   .readiness-grid { grid-template-columns: 1fr; }
+  .readiness-column { grid-column: auto; }
 }
 
 /* V5.1: recognition history first, with the same refined signal language as the overlay. */
 .control-center.v51 {
   gap: 9px;
-  max-height: calc(100vh - 40px);
+  height: calc(100vh - 40px);
+  min-height: 0;
   overflow: hidden;
   padding: 15px;
   width: min(100%, 980px);
@@ -2248,7 +2248,7 @@ kbd {
   color: rgba(13, 91, 35, 0.86);
 }
 
-.v51 .readiness-grid div {
+.v51 .readiness-item {
   align-items: center;
   display: flex;
   gap: 10px;
@@ -2257,7 +2257,7 @@ kbd {
   padding: 8px 22px 8px 9px;
 }
 
-.v51 .readiness-grid div::after {
+.v51 .readiness-item::after {
   height: 7px;
   right: 8px;
   top: 50%;
@@ -2265,7 +2265,7 @@ kbd {
   width: 7px;
 }
 
-.v51 .readiness-grid div[data-state="ready"]::after {
+.v51 .readiness-item[data-state="ready"]::after {
   box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.12);
 }
 
@@ -2293,10 +2293,11 @@ kbd {
   border: 1px solid rgba(255,255,255,0.060);
   border-radius: 22px;
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
-  min-height: 448px;
-  overflow: clip;
+  min-height: 0;
+  overflow: hidden;
   padding: 11px 12px 12px;
 }
 
@@ -2412,11 +2413,10 @@ kbd {
   flex: 1;
   list-style: none;
   margin: 0;
-  max-height: min(56vh, 560px);
   min-height: 0;
   border-radius: 16px;
   overflow: auto;
-  padding: 0 4px 2px 0;
+  padding: 0 4px 12px 0;
 }
 
 .history-list article {
@@ -2533,7 +2533,7 @@ kbd {
   border-radius: 999px;
   display: grid;
   gap: 4px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 4px;
 }
 
@@ -2792,7 +2792,7 @@ body:has(.diagnostic-shell)::before {
 }
 
 .control-center.v51 .mode-card,
-.control-center.v51 .readiness-grid div,
+.control-center.v51 .readiness-item,
 .history-list article {
   background:
     radial-gradient(ellipse at 50% 0%, rgba(82, 185, 90, 0.09), rgba(176, 224, 151, 0.06) 48%, rgba(255,255,255,0) 82%),
@@ -3348,8 +3348,8 @@ kbd {
   border: 1px solid rgba(53, 107, 74, 0.12);
   border-radius: 999px;
   display: grid;
-  gap: 7px;
-  padding: 7px;
+  gap: 5px;
+  padding: 5px;
 }
 
 .model-page-tabs {
@@ -3360,7 +3360,7 @@ kbd {
 
 .config-model-switch,
 .segmented-models.route-models {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .model-panel .model-page-tabs button,
@@ -3373,12 +3373,12 @@ kbd {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
   color: rgba(31, 75, 45, 0.78);
   display: inline-flex;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 820;
-  gap: 7px;
+  gap: 5px;
   justify-content: center;
-  min-height: 38px;
-  padding: 8px 16px;
+  min-height: 34px;
+  padding: 7px 8px;
 }
 
 .model-panel .model-page-tabs button[data-active="true"],
@@ -3512,9 +3512,9 @@ kbd {
 
 .model-panel .route-model-button,
 .model-panel .config-switch-button {
-  min-height: 38px;
+  min-height: 34px;
   min-width: 0;
-  padding: 8px 16px;
+  padding: 7px 8px;
 }
 
 .model-panel .route-model-button .ready-dot {
@@ -3678,4 +3678,242 @@ kbd {
   border-color: rgba(49, 139, 61, 0.30);
   box-shadow: 0 8px 18px rgba(56, 106, 72, 0.12), inset 0 1px 0 rgba(255,255,255,0.86);
   color: #0b2812;
+}
+/* V9 follow-up: standalone text optimization page and tighter app shell scrolling. */
+body:has(.optimization-shell) {
+  background:
+    radial-gradient(ellipse at 50% 12%, rgba(91, 184, 96, 0.18), rgba(173, 222, 154, 0.14) 38%, rgba(239, 249, 229, 0.06) 74%),
+    radial-gradient(ellipse at 50% 58%, rgba(181, 226, 154, 0.10), rgba(248, 252, 243, 0) 72%),
+    linear-gradient(180deg, #f3faec 0%, #f6fbef 48%, #f8fcf4 100%);
+  color: #102519;
+}
+
+body:has(.optimization-shell)::before {
+  background-image:
+    linear-gradient(rgba(18, 76, 50, 0.030) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 76, 50, 0.026) 1px, transparent 1px);
+  opacity: 0.45;
+}
+
+.control-center.v51 {
+  display: flex;
+  flex-direction: column;
+}
+
+.control-center.v51 .control-topbar,
+.control-center.v51 .v51-top-grid {
+  flex: 0 0 auto;
+}
+
+.control-center.v51 .topbar-actions {
+  flex-wrap: wrap;
+}
+
+.control-center.v51 .readiness-grid {
+  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.control-center.v51 .readiness-column {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+}
+
+.control-center.v51 .transcript-history {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.control-center.v51 .history-list {
+  overflow: auto;
+  padding-bottom: 18px;
+  scrollbar-gutter: stable;
+}
+
+.record-footer .quality-pill {
+  background: rgba(255, 239, 236, 0.86);
+  border-color: rgba(205, 83, 74, 0.18);
+  color: rgba(126, 46, 42, 0.78);
+  flex: 0 1 auto;
+  margin-right: auto;
+}
+
+.optimization-shell {
+  max-width: 1040px;
+}
+
+.optimization-panel {
+  align-self: start;
+  gap: 12px;
+  max-width: 940px;
+}
+
+.optimization-header h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.optimization-hero,
+.optimization-card {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(88, 188, 92, 0.10), rgba(178, 224, 151, 0.07) 44%, rgba(255,255,255,0) 78%),
+    rgba(253,255,250,0.66);
+  border: 1px solid rgba(50, 116, 62, 0.13);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.74);
+}
+
+.optimization-hero {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+}
+
+.optimization-hero span,
+.optimization-card > span,
+.optimization-card .field span,
+.optimization-card.field span {
+  color: rgba(19, 116, 45, 0.78);
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.optimization-hero p,
+.optimization-card small {
+  color: rgba(49, 72, 58, 0.64);
+  font-size: 12px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.optimization-toggles,
+.optimization-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.optimization-toggle-card {
+  align-items: center;
+  background: rgba(255,255,255,0.58);
+  border: 1px solid rgba(54, 107, 75, 0.12);
+  border-radius: 14px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 70px;
+  padding: 12px;
+}
+
+.optimization-toggle-card span {
+  display: grid;
+  gap: 4px;
+}
+
+.optimization-toggle-card strong {
+  color: #102818;
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.optimization-toggle-card input {
+  accent-color: #4fb866;
+  flex: 0 0 auto;
+  min-height: 18px;
+  width: 18px;
+}
+
+.optimization-card.field,
+.preview-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.optimization-card textarea {
+  background: rgba(255,255,255,0.74);
+  border: 1px solid rgba(54, 107, 75, 0.16);
+  border-radius: 12px;
+  color: #14241c;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  min-height: 150px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.optimization-card textarea::placeholder {
+  color: rgba(54, 78, 63, 0.42);
+}
+
+.optimization-card input {
+  background: rgba(255,255,255,0.74);
+  border-color: rgba(54, 107, 75, 0.16);
+  color: #14241c;
+}
+
+.postprocess-output {
+  background: rgba(255,255,255,0.64);
+  border: 1px solid rgba(54, 107, 75, 0.12);
+  border-radius: 14px;
+  color: rgba(15, 39, 23, 0.88);
+  display: block;
+  font-size: 13px;
+  font-weight: 680;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+  padding: 12px;
+}
+
+.optimization-message {
+  background: rgba(255,255,255,0.50);
+  border: 1px solid rgba(54, 107, 75, 0.10);
+  border-radius: 999px;
+  justify-self: start;
+  margin: 0;
+  padding: 7px 11px;
+}
+
+.optimization-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 820px) {
+  .control-center.v51 { height: auto; min-height: calc(100vh - 32px); }
+  .control-center.v51 .readiness-grid,
+  .optimization-toggles,
+  .optimization-grid { grid-template-columns: 1fr; }
+  .optimization-header { align-items: stretch; flex-direction: column; gap: 10px; }
+}
+
+
+/* SenseVoice adds a fourth model; keep model selectors as compact one-line capsules. */
+.config-model-switch,
+.segmented-models.route-models {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.model-panel .route-model-button,
+.model-panel .config-switch-button {
+  font-size: 11px;
+  gap: 5px;
+  min-height: 34px;
+  padding: 7px 8px;
+}
+
+.model-panel .config-switch-button span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  .config-model-switch,
+  .segmented-models.route-models {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

@@ -5,8 +5,8 @@ use tauri::{AppHandle, Manager, PhysicalPosition};
 
 pub const DICTATION_OVERLAY_LABEL: &str = "dictation-overlay";
 pub const DICTATION_OVERLAY_URL: &str = "index.html?view=overlay";
-const OVERLAY_WIDTH: i32 = 120;
-const OVERLAY_HEIGHT: i32 = 36;
+const OVERLAY_WIDTH: i32 = 132;
+const OVERLAY_HEIGHT: i32 = 44;
 const OVERLAY_MARGIN_BOTTOM: i32 = 92;
 
 static BACKEND_STATUS: OnceLock<Mutex<OverlayBackendStatus>> = OnceLock::new();

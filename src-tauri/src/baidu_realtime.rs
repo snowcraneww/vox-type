@@ -1,3 +1,4 @@
+use crate::audio_quality::AudioQualitySummary;
 use crate::error::VoxError;
 use crate::recorder::RecorderManager;
 use serde::{Deserialize, Serialize};
@@ -374,13 +375,14 @@ pub struct BaiduRealtimeSessionStatus {
     pub final_text: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BaiduRealtimeSessionSummary {
     pub status: BaiduRealtimeSessionStatus,
     pub text: String,
     pub duration_ms: u64,
     pub char_count: usize,
+    pub audio_quality: Option<AudioQualitySummary>,
 }
 
 #[derive(Default)]
@@ -511,12 +513,15 @@ impl BaiduRealtimeSessionManager {
             thread::sleep(Duration::from_millis(40));
         }
         drain_worker_results(&mut session);
-        let recorded = recorder.stop();
-        if let Err(error) = recorded {
-            if !error.to_string().contains("没有正在进行的录音") {
-                return Err(error);
+        let audio_quality = match recorder.stop() {
+            Ok(recorded) => Some(recorded.audio_quality),
+            Err(error) => {
+                if !error.to_string().contains("没有正在进行的录音") {
+                    return Err(error);
+                }
+                None
             }
-        }
+        };
         let text = session
             .final_texts
             .join(" ")
@@ -542,6 +547,7 @@ impl BaiduRealtimeSessionManager {
             char_count: text.chars().count(),
             text,
             duration_ms,
+            audio_quality,
         })
     }
 }

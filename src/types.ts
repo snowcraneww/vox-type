@@ -1,4 +1,4 @@
-﻿export type AppPhase = 'idle' | 'recording' | 'transcribing' | 'inserting' | 'succeeded' | 'failed';
+export type AppPhase = 'idle' | 'recording' | 'transcribing' | 'inserting' | 'succeeded' | 'failed';
 
 export interface AppConfig {
   hotkey: string;
@@ -59,7 +59,7 @@ export interface Transcript {
 }
 
 export type InputModeId = 'push-to-talk' | 'toggle-dictation' | 'manual';
-export type TranscriptionModelId = 'local-whisper' | 'baidu-short' | 'baidu-realtime';
+export type TranscriptionModelId = 'local-whisper' | 'sensevoice-small' | 'baidu-short' | 'baidu-realtime';
 
 export interface ModeModelPreferences {
   pushToTalkModel: TranscriptionModelId;
@@ -82,8 +82,8 @@ export interface TranscriptRecord {
   inputMode: InputModeId;
   modelId: TranscriptionModelId;
   charCount: number;
-  postprocessRulesApplied: number;
   audioQuality: AudioQualitySummary | null;
+  postprocessRulesApplied: number;
 }
 
 export interface TranscriptStats {
@@ -116,6 +116,26 @@ export interface AsrConfigStatus extends AsrConfig {
   message: string;
 }
 
+
+export interface SenseVoiceConfig {
+  runtimePath: string | null;
+  modelPath: string | null;
+  tokensPath: string | null;
+  language: string;
+}
+
+export interface SenseVoiceConfigStatus {
+  config: SenseVoiceConfig;
+  runtimeConfigured: boolean;
+  modelConfigured: boolean;
+  tokensConfigured: boolean;
+  runtimeExists: boolean;
+  modelExists: boolean;
+  tokensExists: boolean;
+  ready: boolean;
+  source: string;
+  message: string;
+}
 export interface UserPreferences {
   selectedInputDeviceName: string | null;
   pushToTalkHotkey: string | null;
@@ -183,6 +203,7 @@ export interface BaiduRealtimeSessionSummary {
   text: string;
   durationMs: number;
   charCount: number;
+  audioQuality: AudioQualitySummary | null;
 }
 
 export interface ReplacementRule {

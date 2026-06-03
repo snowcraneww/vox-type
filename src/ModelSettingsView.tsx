@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AsrConfigStatus, CloudAsrConfigStatus, ModelReadiness, TranscriptPostprocessConfig, TranscriptionModelId } from './types';
+import type { AsrConfigStatus, CloudAsrConfigStatus, ModelReadiness, SenseVoiceConfigStatus, TranscriptionModelId } from './types';
 
 const text = {
   title: '\u6a21\u578b\u9009\u62e9\u914d\u7f6e',
@@ -14,6 +14,15 @@ const text = {
   modelConfig: '\u6a21\u578b\u914d\u7f6e',
   configDetail: '\u9009\u62e9\u4e00\u4e2a\u6a21\u578b\u540e\u7f16\u8f91\u5bf9\u5e94\u914d\u7f6e',
   local: '\u672c\u5730 whisper.cpp',
+  senseVoice: 'SenseVoice Small',
+  senseVoiceConfig: 'SenseVoice Small \u914d\u7f6e',
+  senseVoiceRuntime: 'sherpa-onnx \u672c\u5730\u8fd0\u884c\u65f6',
+  senseVoiceModelFile: 'SenseVoice ONNX \u6a21\u578b\u6587\u4ef6',
+  senseVoiceTokens: 'tokens.txt',
+  installingSenseVoice: '\u6b63\u5728\u5b89\u88c5 SenseVoice Small',
+  installSenseVoice: '\u4e00\u952e\u5b89\u88c5 SenseVoice Small',
+  checkSenseVoice: '\u68c0\u6d4b SenseVoice \u914d\u7f6e',
+  saveSenseVoice: '\u4fdd\u5b58 SenseVoice \u914d\u7f6e',
   executable: 'whisper.cpp \u53ef\u6267\u884c\u6587\u4ef6',
   modelFile: 'Whisper \u6a21\u578b\u6587\u4ef6',
   language: '\u8bc6\u522b\u8bed\u8a00',
@@ -59,24 +68,13 @@ const text = {
   baiduRealtimeUserLabel: '\u767e\u5ea6 WebSocket user',
   lmPlaceholder: '\u81ea\u8bad\u7ec3\u5e73\u53f0\u6a21\u578b ID',
   ready: '\u5df2\u5c31\u7eea',
-  textOptimization: '\u6587\u672c\u4f18\u5316',
-  textOptimizationDetail: '\u7ba1\u7406\u8f6c\u5199\u540e\u7684\u786e\u5b9a\u6027\u66ff\u6362\u548c\u566a\u58f0\u8fc7\u6ee4',
-  enablePostprocess: '\u542f\u7528\u6587\u672c\u4f18\u5316',
-  cleanupNoise: '\u8fc7\u6ee4\u5b57\u5e55\u7c7b\u566a\u58f0',
-  replacements: '\u66ff\u6362\u89c4\u5219',
-  glossary: '\u4e13\u6709\u8bcd\u8868',
-  previewInput: '\u9884\u89c8\u8f93\u5165',
-  previewOutput: '\u9884\u89c8\u7ed3\u679c',
-  saveTextOptimization: '\u4fdd\u5b58\u6587\u672c\u4f18\u5316',
-  previewTextOptimization: '\u9884\u89c8\u4f18\u5316\u6548\u679c',
-  replacementPlaceholder: 'scale => skill',
-  glossaryPlaceholder: 'WebSocket\nwhisper.cpp\nVoxType',
   notReady: '\u672a\u5c31\u7eea',
 };
 
 interface ModelSettingsViewProps {
   asrConfigStatus: AsrConfigStatus;
   cloudAsrConfigStatus: CloudAsrConfigStatus;
+  senseVoiceConfigStatus: SenseVoiceConfigStatus;
   pushToTalkModel: TranscriptionModelId;
   toggleDictationModel: TranscriptionModelId;
   modelReadiness: Record<TranscriptionModelId, ModelReadiness>;
@@ -97,15 +95,14 @@ interface ModelSettingsViewProps {
   cloudApiKeyInput: string;
   cloudSecretKeyInput: string;
   cloudMessage: string | null;
-  transcriptPostprocessConfig: TranscriptPostprocessConfig;
-  postprocessReplacementText: string;
-  postprocessGlossaryText: string;
-  postprocessPreviewInput: string;
-  postprocessPreviewOutput: string | null;
-  postprocessMessage: string | null;
   whisperBinaryPath: string;
   whisperModelPath: string;
   asrLanguage: string;
+  senseVoiceRuntimePath: string;
+  senseVoiceModelPath: string;
+  senseVoiceTokensPath: string;
+  senseVoiceLanguage: string;
+  isInstallingSenseVoice: boolean;
   isInstallingAsr: boolean;
   onBack: () => void;
   onPushToTalkModelChange: (value: TranscriptionModelId) => void;
@@ -113,6 +110,10 @@ interface ModelSettingsViewProps {
   onWhisperBinaryPathChange: (value: string) => void;
   onWhisperModelPathChange: (value: string) => void;
   onAsrLanguageChange: (value: string) => void;
+  onSenseVoiceRuntimePathChange: (value: string) => void;
+  onSenseVoiceModelPathChange: (value: string) => void;
+  onSenseVoiceTokensPathChange: (value: string) => void;
+  onSenseVoiceLanguageChange: (value: string) => void;
   onCloudBaseUrlChange: (value: string) => void;
   onCloudModelChange: (value: string) => void;
   onCloudLanguageChange: (value: string) => void;
@@ -129,14 +130,10 @@ interface ModelSettingsViewProps {
   onCloudBaiduRealtimeUserChange: (value: string) => void;
   onCloudApiKeyInputChange: (value: string) => void;
   onCloudSecretKeyInputChange: (value: string) => void;
-  onTranscriptPostprocessEnabledChange: (value: boolean) => void;
-  onTranscriptPostprocessCleanupNoiseChange: (value: boolean) => void;
-  onPostprocessReplacementTextChange: (value: string) => void;
-  onPostprocessGlossaryTextChange: (value: string) => void;
-  onPostprocessPreviewInputChange: (value: string) => void;
-  onSaveTranscriptPostprocessConfig: () => void;
-  onPreviewTranscriptPostprocess: () => void;
   onInstallManagedAsr: () => void;
+  onInstallManagedSenseVoice: () => void;
+  onSaveSenseVoiceConfig: () => void;
+  onRefreshSenseVoiceConfig: () => void;
   onSaveAsrConfig: () => void;
   onRefreshAsrConfig: () => void;
   onSaveCloudAsrConfig: () => void;
@@ -145,10 +142,11 @@ interface ModelSettingsViewProps {
   onTestCloudAsrConfig: () => void;
 }
 
-const modelOptions: TranscriptionModelId[] = ['local-whisper', 'baidu-short', 'baidu-realtime'];
+const modelOptions: TranscriptionModelId[] = ['local-whisper', 'sensevoice-small', 'baidu-short', 'baidu-realtime'];
 
 function displayModelLabel(id: TranscriptionModelId) {
   if (id === 'local-whisper') return text.local;
+  if (id === 'sensevoice-small') return text.senseVoice;
   if (id === 'baidu-short') return text.baiduShortLabel;
   return text.baiduRealtimeLabel;
 }
@@ -212,6 +210,17 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             <p className="runtime-message">{props.asrConfigStatus.message}</p>
             <div className="button-row"><button type="button" onClick={props.onInstallManagedAsr} disabled={props.isInstallingAsr}>{props.isInstallingAsr ? text.installing : text.install}</button><button type="button" onClick={props.onRefreshAsrConfig}>{text.checkAsr}</button><button type="button" onClick={props.onSaveAsrConfig}>{text.saveAsr}</button></div>
           </section> : null}
+          {activeConfig === 'sensevoice-small' ? <section className="model-config active-config-panel" aria-label={text.senseVoiceConfig}>
+            <div className="model-config-title"><div><span>{text.senseVoice}</span><strong>{props.senseVoiceConfigStatus.ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.senseVoiceConfigStatus.ready} /></div>
+            <div className="compact-field-grid">
+              <label className="field wide"><span>{text.senseVoiceRuntime}</span><input aria-label={text.senseVoiceRuntime} value={props.senseVoiceRuntimePath} onChange={(event) => props.onSenseVoiceRuntimePathChange(event.target.value)} placeholder="managed-asr\sensevoice-small\bin\sherpa-onnx-non-streaming-asr-x64.exe" /></label>
+              <label className="field wide"><span>{text.senseVoiceModelFile}</span><input aria-label={text.senseVoiceModelFile} value={props.senseVoiceModelPath} onChange={(event) => props.onSenseVoiceModelPathChange(event.target.value)} placeholder="managed-asr\sensevoice-small\models\model.int8.onnx" /></label>
+              <label className="field wide"><span>{text.senseVoiceTokens}</span><input aria-label={text.senseVoiceTokens} value={props.senseVoiceTokensPath} onChange={(event) => props.onSenseVoiceTokensPathChange(event.target.value)} placeholder="managed-asr\sensevoice-small\models\tokens.txt" /></label>
+              <label className="field"><span>{text.language}</span><input aria-label="SenseVoice language" value={props.senseVoiceLanguage} onChange={(event) => props.onSenseVoiceLanguageChange(event.target.value)} placeholder="auto" /></label>
+            </div>
+            <p className="runtime-message">{props.senseVoiceConfigStatus.message}</p>
+            <div className="button-row"><button type="button" onClick={props.onInstallManagedSenseVoice} disabled={props.isInstallingSenseVoice}>{props.isInstallingSenseVoice ? text.installingSenseVoice : text.installSenseVoice}</button><button type="button" onClick={props.onRefreshSenseVoiceConfig}>{text.checkSenseVoice}</button><button type="button" onClick={props.onSaveSenseVoiceConfig}>{text.saveSenseVoice}</button></div>
+          </section> : null}
           {activeConfig === 'baidu-short' ? <section className="model-config active-config-panel cloud-config" aria-label={text.baiduShortConfig}>
             <div className="model-config-title"><div><span>{text.baiduShort}</span><strong>{props.cloudAsrConfigStatus.ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.cloudAsrConfigStatus.ready} /></div>
             {baiduCredentialFields}
@@ -227,21 +236,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             <p className="runtime-message">{props.cloudMessage ?? props.cloudAsrConfigStatus.message}</p>
             <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
           </section> : null}
-          <section className="text-optimization-panel" aria-label={text.textOptimization}>
-            <div className="section-heading model-config-heading"><span>{text.textOptimization}</span><strong>{text.textOptimizationDetail}</strong></div>
-            <div className="toggle-row">
-              <label><input type="checkbox" checked={props.transcriptPostprocessConfig.enabled} onChange={(event) => props.onTranscriptPostprocessEnabledChange(event.target.checked)} />{text.enablePostprocess}</label>
-              <label><input type="checkbox" checked={props.transcriptPostprocessConfig.cleanupNoise} onChange={(event) => props.onTranscriptPostprocessCleanupNoiseChange(event.target.checked)} />{text.cleanupNoise}</label>
-            </div>
-            <div className="postprocess-grid">
-              <label className="field"><span>{text.replacements}</span><textarea aria-label={text.replacements} value={props.postprocessReplacementText} onChange={(event) => props.onPostprocessReplacementTextChange(event.target.value)} placeholder={text.replacementPlaceholder} /></label>
-              <label className="field"><span>{text.glossary}</span><textarea aria-label={text.glossary} value={props.postprocessGlossaryText} onChange={(event) => props.onPostprocessGlossaryTextChange(event.target.value)} placeholder={text.glossaryPlaceholder} /></label>
-              <label className="field wide"><span>{text.previewInput}</span><input aria-label={text.previewInput} value={props.postprocessPreviewInput} onChange={(event) => props.onPostprocessPreviewInputChange(event.target.value)} /></label>
-              <div className="postprocess-output" aria-label={text.previewOutput}>{props.postprocessPreviewOutput ?? text.previewOutput}</div>
-            </div>
-            {props.postprocessMessage ? <p className="runtime-message">{props.postprocessMessage}</p> : null}
-            <div className="button-row"><button type="button" onClick={props.onSaveTranscriptPostprocessConfig}>{text.saveTextOptimization}</button><button type="button" onClick={props.onPreviewTranscriptPostprocess}>{text.previewTextOptimization}</button></div>
-          </section>          {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
+          {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
             <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>{props.modelReadiness['baidu-realtime'].ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.modelReadiness['baidu-realtime'].ready} /></div>
             <p className="runtime-message">{props.cloudMessage ?? props.modelReadiness['baidu-realtime'].message}</p>
             {baiduCredentialFields}

@@ -3,11 +3,17 @@ use std::{
     fs::File,
     io::{Seek, SeekFrom, Write},
     path::PathBuf,
-    process::Command,
+    process::{Command, Output},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use crate::error::VoxError;
+
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -86,6 +92,133 @@ impl AsrEngine for WhisperCppEngine {
             engine: "whisper.cpp".to_string(),
         })
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SenseVoiceSmallEngine {
+    pub runtime_path: String,
+    pub model_path: String,
+    pub tokens_path: String,
+    pub language: String,
+}
+
+impl AsrEngine for SenseVoiceSmallEngine {
+    fn transcribe(&self, pcm_16khz_mono: &[i16]) -> Result<Transcript, VoxError> {
+        let runtime = PathBuf::from(&self.runtime_path);
+        if !runtime.is_file() {
+            return Err(VoxError::Asr(format!(
+                "sherpa-onnx 本地运行时不存在：{}",
+                self.runtime_path
+            )));
+        }
+        let model = PathBuf::from(&self.model_path);
+        if !model.is_file() {
+            return Err(VoxError::Model(format!(
+                "SenseVoice ONNX 模型文件不存在：{}",
+                self.model_path
+            )));
+        }
+        let tokens = PathBuf::from(&self.tokens_path);
+        if !tokens.is_file() {
+            return Err(VoxError::Model(format!(
+                "SenseVoice tokens 文件不存在：{}",
+                self.tokens_path
+            )));
+        }
+
+        let wav_path = temp_wav_path();
+        write_pcm_wav(&wav_path, pcm_16khz_mono)?;
+        let wav_path_string = wav_path.to_string_lossy().to_string();
+        let args = build_sensevoice_args(
+            &self.model_path,
+            &self.tokens_path,
+            &self.language,
+            &wav_path_string,
+        );
+        let output = run_sensevoice_command(&runtime, &args).map_err(|error| {
+            VoxError::Asr(format!("Failed to start SenseVoice Small runtime: {error}"))
+        })?;
+        let _ = std::fs::remove_file(&wav_path);
+
+        if !output.status.success() {
+            return Err(VoxError::Asr(format!(
+                "SenseVoice Small failed: {}",
+                summarize_command_output(&output)
+            )));
+        }
+        let text = parse_sherpa_text(&String::from_utf8_lossy(&output.stdout));
+        if text.trim().is_empty() {
+            return Err(VoxError::Asr(format!(
+                "SenseVoice Small returned no text; {}",
+                summarize_command_output(&output)
+            )));
+        }
+        Ok(Transcript {
+            text,
+            engine: "sensevoice-small".to_string(),
+        })
+    }
+}
+
+fn run_sensevoice_command(runtime: &PathBuf, args: &[String]) -> std::io::Result<Output> {
+    let mut command = Command::new(runtime);
+    command.args(args);
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW);
+    command.output()
+}
+
+fn build_sensevoice_args(
+    model_path: &str,
+    tokens_path: &str,
+    language: &str,
+    wav_path: &str,
+) -> Vec<String> {
+    vec![
+        format!("--sense-voice-model={model_path}"),
+        format!("--tokens={tokens_path}"),
+        format!("--sense-voice-language={language}"),
+        "--debug=0".to_string(),
+        wav_path.to_string(),
+    ]
+}
+
+fn summarize_command_output(output: &Output) -> String {
+    let stdout = compact_output_tail(&String::from_utf8_lossy(&output.stdout));
+    let stderr = compact_output_tail(&String::from_utf8_lossy(&output.stderr));
+    format!("stdout={stdout}; stderr={stderr}")
+}
+
+fn compact_output_tail(value: &str) -> String {
+    let compact = value
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if compact.is_empty() {
+        return "<empty>".to_string();
+    }
+    let chars = compact.chars().collect::<Vec<_>>();
+    let start = chars.len().saturating_sub(240);
+    chars[start..].iter().collect()
+}
+
+fn parse_sherpa_text(output: &str) -> String {
+    let line = output
+        .lines()
+        .rev()
+        .map(str::trim)
+        .find(|line| {
+            !line.is_empty() && !line.starts_with("Started") && !line.starts_with("Elapsed")
+        })
+        .unwrap_or_default();
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(line) {
+        if let Some(text) = value.get("text").and_then(|text| text.as_str()) {
+            return text.trim().to_string();
+        }
+    }
+    line.trim_matches(|value| value == '[' || value == ']' || value == '"')
+        .trim()
+        .to_string()
 }
 
 fn build_whisper_args(model_path: &str, wav_path: &str, language: &str) -> Vec<String> {
@@ -185,6 +318,41 @@ mod tests {
         assert!(args.contains(&"--prompt".to_string()));
         assert!(args.contains(&"请使用简体中文输出。".to_string()));
     }
+    #[test]
+    fn sensevoice_args_use_sherpa_equals_option_format() {
+        let args = build_sensevoice_args("model.onnx", "tokens.txt", "auto", "input.wav");
+
+        assert_eq!(
+            args,
+            vec![
+                "--sense-voice-model=model.onnx",
+                "--tokens=tokens.txt",
+                "--sense-voice-language=auto",
+                "--debug=0",
+                "input.wav",
+            ]
+        );
+    }
+
+    #[test]
+    fn sherpa_output_parser_extracts_text_from_json_line() {
+        let text = parse_sherpa_text(
+            r#"Started
+{"lang":"<|ko|>","emotion":"<|EMO_UNKNOWN|>","event":"<|Speech|>","text":"?? VoxType"}
+Elapsed: 0.1s
+"#,
+        );
+
+        assert_eq!(text, "?? VoxType");
+    }
+
+    #[test]
+    fn sherpa_output_parser_uses_last_non_empty_text_line() {
+        let text = parse_sherpa_text("Started\n你好 VoxType\nElapsed: 0.1s\n");
+
+        assert_eq!(text, "你好 VoxType");
+    }
+
     #[test]
     fn write_pcm_wav_creates_16khz_mono_header() {
         let temp = tempfile::NamedTempFile::new().unwrap();

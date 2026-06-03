@@ -5,6 +5,7 @@ const text = {
   controlCenter: '\u8bed\u97f3\u8f93\u5165\u63a7\u5236\u4e2d\u5fc3',
   modelSettings: '\u6a21\u578b\u9009\u62e9\u914d\u7f6e',
   diagnostic: '\u8bca\u65ad',
+  textOptimization: '\u6587\u672c\u4f18\u5316',
   inputMode: '\u8f93\u5165\u6a21\u5f0f',
   hotkeyStatus: '\u5feb\u6377\u952e\u72b6\u6001',
   hotkeySettings: '\u81ea\u5b9a\u4e49\u5feb\u6377\u952e',
@@ -54,6 +55,7 @@ interface MainWindowProps {
   historyMessage: string | null;
   onOpenDiagnostic: () => void;
   onOpenModelSettings: () => void;
+  onOpenTextOptimization: () => void;
   onCopyRecord: (record: TranscriptRecord) => void;
   onReinsertRecord: (record: TranscriptRecord) => void;
   onDeleteRecord: (id: string) => void;
@@ -115,13 +117,15 @@ function formatInputMode(source: TranscriptRecord['inputMode']) {
   return text.manual;
 }
 
-export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDictationHotkey, pushToTalkModelReadiness, toggleDictationModelReadiness, recorderInfo, records, stats, historyMessage, onOpenDiagnostic, onOpenModelSettings, onCopyRecord, onReinsertRecord, onDeleteRecord, onClearRecords, onExportRecords, onOpenHotkeySettings }: MainWindowProps) {
+export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDictationHotkey, pushToTalkModelReadiness, toggleDictationModelReadiness, recorderInfo, records, stats, historyMessage, onOpenDiagnostic, onOpenModelSettings, onOpenTextOptimization, onCopyRecord, onReinsertRecord, onDeleteRecord, onClearRecords, onExportRecords, onOpenHotkeySettings }: MainWindowProps) {
   const hotkeysReady = hotkeyStatus.registered;
-  const readinessItems = [
-    { label: text.pushToTalkModel, value: pushToTalkModelReadiness.label, state: pushToTalkModelReadiness.ready ? 'ready' : 'warning', title: pushToTalkModelReadiness.message, column: 'model' },
-    { label: text.toggleDictationModel, value: toggleDictationModelReadiness.label, state: toggleDictationModelReadiness.ready ? 'ready' : 'warning', title: toggleDictationModelReadiness.message, column: 'model' },
-    { label: text.microphone, value: recorderInfo?.deviceName ?? text.waitingDevice, state: recorderInfo ? 'ready' : 'warning', title: recorderInfo ? `${recorderInfo.sampleRate} Hz / ${recorderInfo.channels}` : 'Waiting for input device.', column: 'system' },
-    { label: text.paste, value: 'Clipboard', state: status.phase === 'failed' ? 'error' : 'ready', title: 'Clipboard paste path.', column: 'system' },
+  const readinessModelItems = [
+    { label: text.pushToTalkModel, value: pushToTalkModelReadiness.label, state: pushToTalkModelReadiness.ready ? 'ready' : 'warning', title: pushToTalkModelReadiness.message },
+    { label: text.toggleDictationModel, value: toggleDictationModelReadiness.label, state: toggleDictationModelReadiness.ready ? 'ready' : 'warning', title: toggleDictationModelReadiness.message },
+  ];
+  const readinessSystemItems = [
+    { label: text.microphone, value: recorderInfo?.deviceName ?? text.waitingDevice, state: recorderInfo ? 'ready' : 'warning', title: recorderInfo ? `${recorderInfo.sampleRate} Hz / ${recorderInfo.channels}` : 'Waiting for input device.' },
+    { label: text.paste, value: 'Clipboard', state: status.phase === 'failed' ? 'error' : 'ready', title: 'Clipboard paste path.' },
   ];
 
   return (
@@ -129,7 +133,7 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
       <section className="control-center v51" aria-labelledby="app-title">
         <header className="control-topbar">
           <div className="brand-block"><span className="product-mark">VoxType</span><h1 id="app-title">{text.controlCenter}</h1></div>
-          <div className="topbar-actions"><button className="ghost-button" type="button" onClick={onOpenModelSettings}>{text.modelSettings}</button><button className="ghost-button" type="button" onClick={onOpenDiagnostic}>{text.diagnostic}</button></div>
+          <div className="topbar-actions"><button className="ghost-button" type="button" onClick={onOpenModelSettings}>{text.modelSettings}</button><button className="ghost-button" type="button" onClick={onOpenTextOptimization}>{text.textOptimization}</button><button className="ghost-button" type="button" onClick={onOpenDiagnostic}>{text.diagnostic}</button></div>
         </header>
         <div className="v51-top-grid">
           <section className="control-section mode-selector" aria-label={text.inputMode}>
@@ -139,9 +143,10 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
           </section>
           <section className="control-section readiness-panel" aria-label={text.readiness}>
             <div className="section-heading"><span>{text.readiness}</span><strong>{text.capabilities}</strong></div>
-            <dl className="readiness-grid">
-              {readinessItems.map((item) => <div key={item.label} data-state={item.state} data-column={item.column} title={item.title}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
-            </dl>
+            <div className="readiness-grid">
+              <dl className="readiness-column" data-column="model">{readinessModelItems.map((item) => <div className="readiness-item" key={item.label} data-state={item.state} title={item.title}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>
+              <dl className="readiness-column" data-column="system">{readinessSystemItems.map((item) => <div className="readiness-item" key={item.label} data-state={item.state} title={item.title}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>
+            </div>
           </section>
         </div>
         <section className="transcript-history" aria-label={text.history}>

@@ -9,6 +9,7 @@ const PREFERENCES_FILE_NAME: &str = "user-preferences.json";
 #[serde(rename_all = "kebab-case")]
 pub enum TranscriptionModelId {
     LocalWhisper,
+    SensevoiceSmall,
     BaiduShort,
     BaiduRealtime,
 }

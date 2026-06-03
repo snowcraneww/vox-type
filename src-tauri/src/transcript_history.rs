@@ -1,4 +1,4 @@
-﻿use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -22,21 +22,29 @@ pub struct PersistedTranscriptEntry {
     pub audio_quality: Option<AudioQualitySummary>,
 }
 
-pub fn load_transcript_history(config_dir: PathBuf) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
+pub fn load_transcript_history(
+    config_dir: PathBuf,
+) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
     let path = history_path(&config_dir);
     if !path.exists() {
         return Ok(Vec::new());
     }
-    let text = std::fs::read_to_string(&path).map_err(|error| VoxError::Config(format!("failed to read transcript history: {error}")))?;
+    let text = std::fs::read_to_string(&path)
+        .map_err(|error| VoxError::Config(format!("failed to read transcript history: {error}")))?;
     match serde_json::from_str::<Vec<PersistedTranscriptEntry>>(&text) {
         Ok(entries) => Ok(entries),
         Err(_) => Ok(Vec::new()),
     }
 }
 
-pub fn save_transcript_history_entry(config_dir: PathBuf, entry: PersistedTranscriptEntry) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
+pub fn save_transcript_history_entry(
+    config_dir: PathBuf,
+    entry: PersistedTranscriptEntry,
+) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
     if entry.id.trim().is_empty() || entry.text.trim().is_empty() {
-        return Err(VoxError::Config("transcript history entry requires id and text".to_string()));
+        return Err(VoxError::Config(
+            "transcript history entry requires id and text".to_string(),
+        ));
     }
     let mut entries = load_transcript_history(config_dir.clone())?;
     entries.retain(|existing| existing.id != entry.id);
@@ -46,14 +54,19 @@ pub fn save_transcript_history_entry(config_dir: PathBuf, entry: PersistedTransc
     Ok(entries)
 }
 
-pub fn delete_transcript_history_entry(config_dir: PathBuf, id: String) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
+pub fn delete_transcript_history_entry(
+    config_dir: PathBuf,
+    id: String,
+) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
     let mut entries = load_transcript_history(config_dir.clone())?;
     entries.retain(|entry| entry.id != id);
     write_history(&config_dir, &entries)?;
     Ok(entries)
 }
 
-pub fn clear_transcript_history(config_dir: PathBuf) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
+pub fn clear_transcript_history(
+    config_dir: PathBuf,
+) -> Result<Vec<PersistedTranscriptEntry>, VoxError> {
     write_history(&config_dir, &[])?;
     Ok(Vec::new())
 }
@@ -63,9 +76,16 @@ fn history_path(config_dir: &Path) -> PathBuf {
 }
 
 fn write_history(config_dir: &Path, entries: &[PersistedTranscriptEntry]) -> Result<(), VoxError> {
-    std::fs::create_dir_all(config_dir).map_err(|error| VoxError::Config(format!("failed to create transcript history directory: {error}")))?;
-    let text = serde_json::to_string_pretty(entries).map_err(|error| VoxError::Config(format!("failed to serialize transcript history: {error}")))?;
-    std::fs::write(history_path(config_dir), text).map_err(|error| VoxError::Config(format!("failed to write transcript history: {error}")))
+    std::fs::create_dir_all(config_dir).map_err(|error| {
+        VoxError::Config(format!(
+            "failed to create transcript history directory: {error}"
+        ))
+    })?;
+    let text = serde_json::to_string_pretty(entries).map_err(|error| {
+        VoxError::Config(format!("failed to serialize transcript history: {error}"))
+    })?;
+    std::fs::write(history_path(config_dir), text)
+        .map_err(|error| VoxError::Config(format!("failed to write transcript history: {error}")))
 }
 
 #[cfg(test)]
@@ -83,7 +103,13 @@ mod tests {
             duration_ms: 1200,
             character_count: 5,
             postprocess_rules_applied: 1,
-            audio_quality: Some(AudioQualitySummary { rms: 0.01, peak: 0.5, silence_ratio: 0.7, active_speech_ms: 300, warnings: vec![AudioQualityWarning::LowVolume] }),
+            audio_quality: Some(AudioQualitySummary {
+                rms: 0.01,
+                peak: 0.5,
+                silence_ratio: 0.7,
+                active_speech_ms: 300,
+                warnings: vec![AudioQualityWarning::LowVolume],
+            }),
         }
     }
 
@@ -92,17 +118,31 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let saved = save_transcript_history_entry(dir.path().to_path_buf(), entry("a")).unwrap();
         assert_eq!(saved.len(), 1);
-        assert_eq!(load_transcript_history(dir.path().to_path_buf()).unwrap()[0].id, "a");
-        assert!(load_transcript_history(dir.path().to_path_buf()).unwrap()[0].audio_quality.is_some());
-        assert!(delete_transcript_history_entry(dir.path().to_path_buf(), "a".to_string()).unwrap().is_empty());
-        assert!(clear_transcript_history(dir.path().to_path_buf()).unwrap().is_empty());
+        assert_eq!(
+            load_transcript_history(dir.path().to_path_buf()).unwrap()[0].id,
+            "a"
+        );
+        assert!(
+            load_transcript_history(dir.path().to_path_buf()).unwrap()[0]
+                .audio_quality
+                .is_some()
+        );
+        assert!(
+            delete_transcript_history_entry(dir.path().to_path_buf(), "a".to_string())
+                .unwrap()
+                .is_empty()
+        );
+        assert!(clear_transcript_history(dir.path().to_path_buf())
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
     fn keeps_latest_500_entries() {
         let dir = tempfile::tempdir().unwrap();
         for i in 0..505 {
-            save_transcript_history_entry(dir.path().to_path_buf(), entry(&format!("id-{i}"))).unwrap();
+            save_transcript_history_entry(dir.path().to_path_buf(), entry(&format!("id-{i}")))
+                .unwrap();
         }
         let loaded = load_transcript_history(dir.path().to_path_buf()).unwrap();
         assert_eq!(loaded.len(), 500);
@@ -115,6 +155,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path()).unwrap();
         std::fs::write(dir.path().join("transcript-history.json"), "not json").unwrap();
-        assert!(load_transcript_history(dir.path().to_path_buf()).unwrap().is_empty());
+        assert!(load_transcript_history(dir.path().to_path_buf())
+            .unwrap()
+            .is_empty());
     }
 }

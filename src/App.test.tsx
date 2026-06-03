@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { getOverlayBackendStatus, hideDictationOverlay, insertTextWithClipboard, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { getOverlayBackendStatus, getSenseVoiceConfigStatus, hideDictationOverlay, showDictationOverlay, insertTextWithClipboard, installManagedSenseVoice, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, saveSenseVoiceConfig, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
@@ -14,6 +14,9 @@ vi.mock('./tauriClient', async (importOriginal) => {
     isTauriRuntime: () => true,
     getConfig: vi.fn().mockResolvedValue({ hotkey: 'Ctrl+Alt+Space', language: 'zh-CN', asrEngine: 'whisper.cpp', insertionStrategy: 'clipboard', showStatusIndicator: true }),
     getAsrConfigStatus: vi.fn().mockResolvedValue({ whisperBinaryPath: null, whisperModelPath: null, language: 'zh', binaryConfigured: false, modelConfigured: false, binaryExists: false, modelExists: false, ready: false, source: 'default', message: 'ASR 未就绪' }),
+    getSenseVoiceConfigStatus: vi.fn().mockResolvedValue({ config: { runtimePath: null, modelPath: null, tokensPath: null, language: 'auto' }, runtimeConfigured: false, modelConfigured: false, tokensConfigured: false, runtimeExists: false, modelExists: false, tokensExists: false, ready: false, source: 'default', message: 'SenseVoice Small not ready.' }),
+    saveSenseVoiceConfig: vi.fn().mockImplementation((config) => Promise.resolve({ config, runtimeConfigured: Boolean(config.runtimePath), modelConfigured: Boolean(config.modelPath), tokensConfigured: Boolean(config.tokensPath), runtimeExists: false, modelExists: false, tokensExists: false, ready: false, source: 'app', message: 'SenseVoice Small not ready.' })),
+    installManagedSenseVoice: vi.fn().mockResolvedValue({ config: { runtimePath: 'C:/voxtype/bin/sherpa-onnx-non-streaming-asr-x64.exe', modelPath: 'C:/voxtype/models/model.int8.onnx', tokensPath: 'C:/voxtype/models/tokens.txt', language: 'auto' }, runtimeConfigured: true, modelConfigured: true, tokensConfigured: true, runtimeExists: true, modelExists: true, tokensExists: true, ready: true, source: 'app', message: 'SenseVoice Small ready.' }),
     getCloudAsrConfigStatus: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeAppId: '10500017', baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' }),
     saveCloudAsrConfig: vi.fn().mockImplementation((config) => Promise.resolve({ config, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: '百度短语音 API 配置完整。' })),
     saveModeModelPreferences: vi.fn().mockImplementation((pushToTalkModel, toggleDictationModel) => Promise.resolve({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel, toggleDictationModel })),
@@ -32,7 +35,7 @@ vi.mock('./tauriClient', async (importOriginal) => {
     previewTranscriptPostprocess: vi.fn().mockImplementation((text: string) => Promise.resolve({ text: text.replace(/scale/gi, 'skill').replace(/websocket/gi, 'WebSocket').replace(/whisper cpp/gi, 'whisper.cpp'), rulesApplied: /scale/i.test(text) ? 1 : 0, noiseRemoved: false })),
     listInputDevices: vi.fn().mockResolvedValue([{ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }]),
     startBaiduRealtimeSession: vi.fn().mockResolvedValue({ state: 'streaming', message: 'Baidu realtime WebSocket session started.', startedAtMs: 1000, durationMs: 0, finalText: '' }),
-    finishBaiduRealtimeSession: vi.fn().mockResolvedValue({ status: { state: 'finished', message: 'stopped', startedAtMs: 1000, durationMs: 1800, finalText: 'realtime final text' }, text: 'realtime final text', durationMs: 1800, charCount: 6 }),
+    finishBaiduRealtimeSession: vi.fn().mockResolvedValue({ status: { state: 'finished', message: 'stopped', startedAtMs: 1000, durationMs: 1800, finalText: 'realtime final text' }, text: 'realtime final text', durationMs: 1800, charCount: 6, audioQuality: null }),
     cancelBaiduRealtimeSession: vi.fn().mockResolvedValue({ state: 'idle', message: 'cancelled', startedAtMs: null, durationMs: 0, finalText: '' }),
     getBaiduRealtimeSessionStatus: vi.fn().mockResolvedValue({ state: 'idle', message: 'idle', startedAtMs: null, durationMs: 0, finalText: '' }),
     startRecording: vi.fn().mockResolvedValue({ state: 'recording', sampleRate: 44100, channels: 1, sampleCount: 0, durationMs: 0 }),
@@ -42,6 +45,7 @@ vi.mock('./tauriClient', async (importOriginal) => {
     transcribeLastRecordingChunk: vi.fn().mockResolvedValue({ transcript: { engine: 'whisper.cpp', text: '尾段' }, fromSampleIndex: 44100, toSampleIndex: 52000, asrSampleCount: 2866 }),
     insertTextWithClipboard: vi.fn().mockResolvedValue(undefined),
     hideDictationOverlay: vi.fn().mockResolvedValue(undefined),
+    showDictationOverlay: vi.fn().mockResolvedValue(undefined),
     showTranscribingOverlay: vi.fn().mockResolvedValue(undefined),
     listenToPushToTalk: vi.fn().mockImplementation((handler: (payload: PushToTalkPayload) => void) => {
       pushToTalkHandler = handler;
@@ -74,6 +78,7 @@ describe('App', () => {
     vi.mocked(transcribeLastRecordingChunk).mockClear();
     vi.mocked(insertTextWithClipboard).mockClear();
     vi.mocked(hideDictationOverlay).mockClear();
+    vi.mocked(showDictationOverlay).mockClear();
     vi.mocked(showTranscribingOverlay).mockClear();
     vi.mocked(getOverlayBackendStatus).mockClear();
     vi.mocked(loadTranscriptHistory).mockResolvedValue([]);
@@ -94,6 +99,9 @@ describe('App', () => {
     vi.mocked(saveTranscriptPostprocessConfig).mockClear();
     vi.mocked(saveCloudAsrConfig).mockClear();
     vi.mocked(saveModeModelPreferences).mockClear();
+    vi.mocked(getSenseVoiceConfigStatus).mockClear();
+    vi.mocked(saveSenseVoiceConfig).mockClear();
+    vi.mocked(installManagedSenseVoice).mockClear();
     vi.mocked(saveBaiduAsrApiKey).mockClear();
     vi.mocked(saveBaiduAsrSecretKey).mockClear();
   });
@@ -114,6 +122,10 @@ describe('App', () => {
     expect(screen.getByText('上屏')).toBeInTheDocument();
     expect(screen.getAllByText('百度短语音 API').length).toBeGreaterThanOrEqual(2);
     expect(within(readiness).getAllByRole('term').map((term) => term.textContent)).toEqual(['按住说话模型', '连续输入模型', '麦克风', '上屏']);
+    const readinessColumns = readiness.querySelectorAll('.readiness-column');
+    expect(readinessColumns).toHaveLength(2);
+    expect(Array.from(readinessColumns[0].querySelectorAll('dt')).map((term) => term.textContent)).toEqual(['按住说话模型', '连续输入模型']);
+    expect(Array.from(readinessColumns[1].querySelectorAll('dt')).map((term) => term.textContent)).toEqual(['麦克风', '上屏']);
     expect(screen.queryByText('本地识别')).not.toBeInTheDocument();
     expect(screen.queryByText('云端 API')).not.toBeInTheDocument();
     expect(screen.queryByText('快捷键')).not.toBeInTheDocument();
@@ -133,6 +145,50 @@ describe('App', () => {
     expect(screen.queryByRole('button', { name: '安装 whisper.cpp' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '诊断工作台' })).not.toBeInTheDocument();
     expect(document.querySelector('.traffic-lights')).not.toBeInTheDocument();
+  });
+
+  it('adds SenseVoice Small after whisper.cpp in model selection and config', async () => {
+    render(<App />);
+
+    const topbarButtons = Array.from(document.querySelectorAll('.topbar-actions button'));
+    fireEvent.click(topbarButtons[0]);
+
+    const firstRouteGroup = document.querySelector('.segmented-models.route-models')!;
+    const routeButtons = Array.from(firstRouteGroup.querySelectorAll('button'));
+    expect(routeButtons).toHaveLength(4);
+    expect(routeButtons[1]).toHaveTextContent('SenseVoice Small');
+    expect(routeButtons[0]).toHaveTextContent('whisper.cpp');
+
+    fireEvent.click(Array.from(document.querySelectorAll('.model-page-tabs button'))[1]);
+    fireEvent.click(screen.getByRole('tab', { name: /SenseVoice Small/ }));
+
+    expect(screen.getByLabelText(/sherpa-onnx/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/SenseVoice ONNX/)).toBeInTheDocument();
+    expect(screen.getByLabelText('tokens.txt')).toBeInTheDocument();
+    expect(screen.getByLabelText('SenseVoice language')).toHaveValue('auto');
+    expect(screen.getByRole('button', { name: /SenseVoice Small/ })).toBeInTheDocument();
+  });
+  it('uses refreshed SenseVoice readiness when starting continuous input from the global shortcut', async () => {
+    render(<App />);
+
+    const topbarButtons = Array.from(document.querySelectorAll('.topbar-actions button'));
+    fireEvent.click(topbarButtons[0]);
+    fireEvent.click(Array.from(document.querySelectorAll('.model-page-tabs button'))[1]);
+    fireEvent.click(screen.getByRole('tab', { name: /SenseVoice Small/ }));
+    fireEvent.click(document.querySelector('.active-config-panel .button-row button') as HTMLButtonElement);
+
+    expect(await screen.findByText('SenseVoice Small ready.')).toBeInTheDocument();
+
+    fireEvent.click(Array.from(document.querySelectorAll('.model-page-tabs button'))[0]);
+    const toggleRouteGroup = document.querySelectorAll('.segmented-models.route-models')[1];
+    fireEvent.click(Array.from(toggleRouteGroup.querySelectorAll('button'))[1]);
+    await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'sensevoice-small'));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(showDictationOverlay).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/SenseVoice Small not ready/)).not.toBeInTheDocument();
   });
 
   it('shows Baidu cloud readiness on the main window when Baidu is configured', async () => {
@@ -225,6 +281,10 @@ describe('App', () => {
     expect(transcribeLastRecording).toHaveBeenCalledWith('baidu-short');
     expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本');
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(2));
   });
 
   it('keeps session transcript records in reverse chronological order with stats and row actions', async () => {
@@ -289,6 +349,22 @@ describe('App', () => {
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
   });
 
+  it('opens text optimization as a standalone page', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '文本优化' }));
+
+    expect(screen.getByRole('heading', { name: '文本优化' })).toBeInTheDocument();
+    expect(screen.getByLabelText('替换规则')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '保存并预览' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '返回主界面' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
+
+    expect(screen.getByRole('heading', { name: '模型选择配置' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('替换规则')).not.toBeInTheDocument();
+  });
+
   it('loads persisted transcript history and renders compact audio warnings', async () => {
     vi.mocked(loadTranscriptHistory).mockResolvedValueOnce([{
       id: 'persisted-1',
@@ -308,6 +384,7 @@ describe('App', () => {
     const qualityPill = screen.getByText('音量低 / 静音多');
     expect(qualityPill).toBeInTheDocument();
     expect(qualityPill.closest('footer')?.firstElementChild).toBe(qualityPill);
+    expect(document.querySelector('.history-list')).toBeInstanceOf(HTMLOListElement);
     expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
   });
 
@@ -553,8 +630,9 @@ describe('App', () => {
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
 
     await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(showDictationOverlay).toHaveBeenCalledTimes(1));
 
-    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
 
     await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
     expect(showTranscribingOverlay).toHaveBeenCalledTimes(1);
@@ -563,6 +641,52 @@ describe('App', () => {
     expect(transcribeLastRecording).toHaveBeenCalledWith('baidu-short');
     expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本');
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(2));
+  });
+
+  it('ignores duplicate continuous-input toggle events while start is in flight', async () => {
+    let resolveStart!: (value: { state: 'recording'; sampleRate: number; channels: number; sampleCount: number; durationMs: number }) => void;
+    vi.mocked(startRecording).mockImplementationOnce(() => new Promise((resolve) => {
+      resolveStart = resolve;
+    }));
+
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    await waitForBaiduReadiness();
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    expect(startRecording).toHaveBeenCalledTimes(1);
+    expect(stopRecording).not.toHaveBeenCalled();
+
+    resolveStart({ state: 'recording', sampleRate: 44100, channels: 1, sampleCount: 0, durationMs: 0 });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
+  });
+
+  it('lets the frontend own continuous-input toggle state', async () => {
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    await waitForBaiduReadiness();
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
+
+    await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
   });
 
   it('keeps the toggle overlay in transcribing mode while waiting for final model transcription', async () => {
@@ -578,7 +702,7 @@ describe('App', () => {
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
 
     await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
-    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
 
     await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(showTranscribingOverlay).toHaveBeenCalledTimes(1));
@@ -611,7 +735,7 @@ describe('App', () => {
       expect(transcribeActiveRecordingChunk).not.toHaveBeenCalled();
 
       await act(async () => {
-        pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
+        pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
         await Promise.resolve();
       });
 
@@ -638,6 +762,7 @@ describe('App', () => {
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
 
     await waitFor(() => expect(startBaiduRealtimeSession).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(showDictationOverlay).toHaveBeenCalledTimes(1));
     expect(startRecording).not.toHaveBeenCalled();
   });
 
@@ -655,10 +780,16 @@ describe('App', () => {
     baiduRealtimeHandler?.({ text: 'realtime final text', isFinal: true, sequence: 1, startedAtMs: 1000, durationMs: 1800 });
     await waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('realtime final text'));
 
-    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStopAndTranscribe' });
+    vi.mocked(finishBaiduRealtimeSession).mockResolvedValueOnce({ status: { state: 'finished', message: 'stopped', startedAtMs: 1000, durationMs: 1800, finalText: 'realtime final text' }, text: 'realtime final text', durationMs: 1800, charCount: 19, audioQuality: { rms: 0.02, peak: 0.2, silenceRatio: 0.2, activeSpeechMs: 1200, warnings: ['possible_far_microphone'] } });
+    pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
 
     await waitFor(() => expect(finishBaiduRealtimeSession).toHaveBeenCalledTimes(1));
     expect(screen.getByText('realtime final text')).toBeInTheDocument();
+    await waitFor(() => expect(saveTranscriptHistoryEntry).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'baidu-realtime',
+      audioQuality: expect.objectContaining({ warnings: ['possible_far_microphone'] }),
+    })));
+    expect(screen.getByText('离麦远')).toBeInTheDocument();
     expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
   });
 

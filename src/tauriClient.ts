@@ -1,6 +1,6 @@
-﻿import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptPostprocessConfig, PostprocessResult, PersistedTranscriptEntry, TranscriptionModelId, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptPostprocessConfig, PostprocessResult, PersistedTranscriptEntry, SenseVoiceConfig, SenseVoiceConfigStatus, TranscriptionModelId, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -110,6 +110,18 @@ export async function saveAsrConfig(config: AsrConfig): Promise<AsrConfigStatus>
 
 export async function installManagedAsr(): Promise<AsrConfigStatus> {
   return invoke<AsrConfigStatus>('install_managed_asr');
+}
+
+export async function getSenseVoiceConfigStatus(): Promise<SenseVoiceConfigStatus> {
+  return invoke<SenseVoiceConfigStatus>('get_sensevoice_config_status');
+}
+
+export async function saveSenseVoiceConfig(config: SenseVoiceConfig): Promise<SenseVoiceConfigStatus> {
+  return invoke<SenseVoiceConfigStatus>('save_sensevoice_config', { config });
+}
+
+export async function installManagedSenseVoice(): Promise<SenseVoiceConfigStatus> {
+  return invoke<SenseVoiceConfigStatus>('install_managed_sensevoice');
 }
 
 

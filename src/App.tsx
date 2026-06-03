@@ -4,10 +4,11 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { HotkeySettingsDialog } from './HotkeySettingsDialog';
 import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
+import { TextOptimizationView } from './TextOptimizationView';
 import { formatError } from './errorFormat';
-import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getTranscriptPostprocessConfig, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, isTauriRuntime, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, saveTranscriptPostprocessConfig, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getSenseVoiceConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getTranscriptPostprocessConfig, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, installManagedSenseVoice, isTauriRuntime, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, saveSenseVoiceConfig, saveTranscriptPostprocessConfig, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, AudioQualitySummary, PersistedTranscriptEntry, TranscriptPostprocessConfig, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, SenseVoiceConfigStatus, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, AudioQualitySummary, PersistedTranscriptEntry, TranscriptPostprocessConfig, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -69,6 +70,19 @@ const initialOverlayBackendStatus: OverlayBackendStatus = {
   lastError: null,
 };
 
+
+const initialSenseVoiceConfigStatus: SenseVoiceConfigStatus = {
+  config: { runtimePath: null, modelPath: null, tokensPath: null, language: 'auto' },
+  runtimeConfigured: false,
+  modelConfigured: false,
+  tokensConfigured: false,
+  runtimeExists: false,
+  modelExists: false,
+  tokensExists: false,
+  ready: false,
+  source: 'default',
+  message: 'SenseVoice Small not ready.',
+};
 const initialCloudAsrConfigStatus: CloudAsrConfigStatus = {
   config: {
     provider: 'baidu',
@@ -99,7 +113,7 @@ const initialCloudAsrConfigStatus: CloudAsrConfigStatus = {
 };
 
 export function App() {
-  const [viewMode, setViewMode] = useState<'user' | 'diagnostic' | 'model'>('user');
+  const [viewMode, setViewMode] = useState<'user' | 'diagnostic' | 'model' | 'text-optimization'>('user');
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
   const [status, setStatus] = useState<AppStatus>(initialStatus);
   const [recorderInfo, setRecorderInfo] = useState<RecorderInfo | null>(null);
@@ -116,11 +130,16 @@ export function App() {
   const [runtimeMessage, setRuntimeMessage] = useState('浏览器预览模式：系统能力需要在 Tauri 中验证');
   const [asrConfigStatus, setAsrConfigStatus] = useState<AsrConfigStatus>(initialAsrConfigStatus);
   const [cloudAsrConfigStatus, setCloudAsrConfigStatus] = useState<CloudAsrConfigStatus>(initialCloudAsrConfigStatus);
+  const [senseVoiceConfigStatus, setSenseVoiceConfigStatus] = useState<SenseVoiceConfigStatus>(initialSenseVoiceConfigStatus);
   const [hotkeyStatus, setHotkeyStatus] = useState<HotkeyRegistrationStatus>(initialHotkeyStatus);
   const [overlayBackendStatus, setOverlayBackendStatus] = useState<OverlayBackendStatus>(initialOverlayBackendStatus);
   const [whisperBinaryPath, setWhisperBinaryPath] = useState('');
   const [whisperModelPath, setWhisperModelPath] = useState('');
   const [asrLanguage, setAsrLanguage] = useState('zh');
+  const [senseVoiceRuntimePath, setSenseVoiceRuntimePath] = useState('');
+  const [senseVoiceModelPath, setSenseVoiceModelPath] = useState('');
+  const [senseVoiceTokensPath, setSenseVoiceTokensPath] = useState('');
+  const [senseVoiceLanguage, setSenseVoiceLanguage] = useState('auto');
   const [cloudBaseUrl, setCloudBaseUrl] = useState('http://vop.baidu.com/server_api');
   const [cloudModel, setCloudModel] = useState('1537');
   const [cloudLanguage, setCloudLanguage] = useState('zh');
@@ -139,6 +158,7 @@ export function App() {
   const [cloudSecretKeyInput, setCloudSecretKeyInput] = useState('');
   const [cloudMessage, setCloudMessage] = useState<string | null>(null);
   const [isInstallingAsr, setIsInstallingAsr] = useState(false);
+  const [isInstallingSenseVoice, setIsInstallingSenseVoice] = useState(false);
   const [isHotkeyDialogOpen, setIsHotkeyDialogOpen] = useState(false);
   const [pushToTalkHotkey, setPushToTalkHotkey] = useState(defaultPushToTalkHotkey);
   const [toggleDictationHotkeyInput, setToggleDictationHotkeyInput] = useState(defaultToggleDictationHotkey);
@@ -161,12 +181,14 @@ export function App() {
   const liveTimerRef = useRef<number | null>(null);
   const liveCursorRef = useRef(0);
   const liveInFlightRef = useRef(false);
+  const toggleActionInFlightRef = useRef(false);
   const liveInsertedTextRef = useRef(false);
   const liveSessionTextsRef = useRef<string[]>([]);
   const liveSessionDurationMsRef = useRef(0);
   const lastAudioQualityRef = useRef<AudioQualitySummary | null>(null);
   const asrConfigStatusRef = useRef(asrConfigStatus);
   const cloudAsrConfigStatusRef = useRef(cloudAsrConfigStatus);
+  const senseVoiceConfigStatusRef = useRef(senseVoiceConfigStatus);
   const pushToTalkModelRef = useRef(pushToTalkModel);
   const toggleDictationModelRef = useRef(toggleDictationModel);
   const diagnosticsEndRef = useRef<HTMLDivElement | null>(null);
@@ -191,9 +213,12 @@ export function App() {
     ]);
   }
 
-  function getModelReadiness(modelId: TranscriptionModelId, asrStatus = asrConfigStatus, cloudStatus = cloudAsrConfigStatus): ModelReadiness {
+  function getModelReadiness(modelId: TranscriptionModelId, asrStatus = asrConfigStatus, cloudStatus = cloudAsrConfigStatus, senseVoiceStatus = senseVoiceConfigStatus): ModelReadiness {
     if (modelId === 'local-whisper') {
       return { id: modelId, label: 'whisper.cpp', ready: asrStatus.ready, message: asrStatus.message, availableInV7: true };
+    }
+    if (modelId === 'sensevoice-small') {
+      return { id: modelId, label: 'SenseVoice Small', ready: senseVoiceStatus.ready, message: senseVoiceStatus.message, availableInV7: true };
     }
     if (modelId === 'baidu-short') {
       return { id: modelId, label: '\u767e\u5ea6\u77ed\u8bed\u97f3 API', ready: cloudStatus.config.provider === 'baidu' && cloudStatus.ready, message: cloudStatus.message, availableInV7: true };
@@ -227,6 +252,15 @@ export function App() {
     return `${shortState}\uff1b${realtimeState}`;
   }
 
+
+  function applySenseVoiceConfigStatus(nextStatus: SenseVoiceConfigStatus) {
+    senseVoiceConfigStatusRef.current = nextStatus;
+    setSenseVoiceConfigStatus(nextStatus);
+    setSenseVoiceRuntimePath(nextStatus.config.runtimePath ?? '');
+    setSenseVoiceModelPath(nextStatus.config.modelPath ?? '');
+    setSenseVoiceTokensPath(nextStatus.config.tokensPath ?? '');
+    setSenseVoiceLanguage(nextStatus.config.language);
+  }
   function applyAsrConfigStatus(nextStatus: AsrConfigStatus) {
     setAsrConfigStatus(nextStatus);
     setWhisperBinaryPath(nextStatus.whisperBinaryPath ?? '');
@@ -314,6 +348,10 @@ export function App() {
       const detail = formatError(error);
       setRuntimeMessage(`读取 ASR 配置失败：${detail}`);
       addDiagnostic({ title: '读取 ASR 配置失败', result: 'error', detail });
+    });
+    void getSenseVoiceConfigStatus().then(applySenseVoiceConfigStatus).catch((error: unknown) => {
+      const detail = formatError(error);
+      addDiagnostic({ title: 'SenseVoice config load failed', result: 'error', detail });
     });
     void getCloudAsrConfigStatus().then(applyCloudAsrConfigStatus).catch((error: unknown) => {
       const detail = formatError(error);
@@ -410,6 +448,7 @@ export function App() {
   isRecordingRef.current = isRecording;
   asrConfigStatusRef.current = asrConfigStatus;
   cloudAsrConfigStatusRef.current = cloudAsrConfigStatus;
+  senseVoiceConfigStatusRef.current = senseVoiceConfigStatus;
   pushToTalkModelRef.current = pushToTalkModel;
   toggleDictationModelRef.current = toggleDictationModel;
 
@@ -439,6 +478,16 @@ export function App() {
       return { text: text.trim(), rulesApplied: 0, noiseRemoved: false };
     }
   }
+
+  function addTranscriptDebug(source: string, rawText: string, processed: { text: string; rulesApplied: number; noiseRemoved: boolean }) {
+    const optimizedText = processed.noiseRemoved ? '\u5df2\u8fc7\u6ee4' : processed.text.trim();
+    addDiagnostic({
+      title: `${source} \u539f\u59cb\u8bc6\u522b`,
+      result: processed.noiseRemoved ? 'warning' : processed.rulesApplied > 0 || rawText.trim() !== optimizedText ? 'success' : 'info',
+      detail: `\u539f\u59cb\uff1a${rawText.trim() || '\u7a7a'}\uff1b\u6587\u672c\u4f18\u5316\uff1a${optimizedText || '\u7a7a'}\uff1b\u89c4\u5219\uff1a${processed.rulesApplied}`,
+    });
+  }
+
   const transcriptStats = useMemo<TranscriptStats>(() => {
     const totalDurationMs = transcriptRecords.reduce((sum, record) => sum + record.durationMs, 0);
     const totalChars = transcriptRecords.reduce((sum, record) => sum + record.charCount, 0);
@@ -942,6 +991,57 @@ export function App() {
     }
   }
 
+
+  async function handleRefreshSenseVoiceConfig() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: 'SenseVoice config not checked', result: 'warning', detail: 'Browser preview cannot read Tauri app config.' });
+      return;
+    }
+    try {
+      const nextStatus = await getSenseVoiceConfigStatus();
+      applySenseVoiceConfigStatus(nextStatus);
+      addDiagnostic({ title: nextStatus.ready ? 'SenseVoice config ready' : 'SenseVoice config not ready', result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
+    } catch (error) {
+      addDiagnostic({ title: 'SenseVoice config check failed', result: 'error', detail: formatError(error) });
+    }
+  }
+
+  async function handleSaveSenseVoiceConfig() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: 'SenseVoice config not saved', result: 'warning', detail: 'Browser preview cannot write Tauri app config.' });
+      return;
+    }
+    try {
+      const nextStatus = await saveSenseVoiceConfig({
+        runtimePath: senseVoiceRuntimePath.trim() || null,
+        modelPath: senseVoiceModelPath.trim() || null,
+        tokensPath: senseVoiceTokensPath.trim() || null,
+        language: senseVoiceLanguage.trim() || 'auto',
+      });
+      applySenseVoiceConfigStatus(nextStatus);
+      addDiagnostic({ title: nextStatus.ready ? 'SenseVoice config saved and ready' : 'SenseVoice config saved but not ready', result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
+    } catch (error) {
+      addDiagnostic({ title: 'SenseVoice config save failed', result: 'error', detail: formatError(error) });
+    }
+  }
+
+  async function handleInstallManagedSenseVoice() {
+    if (!isTauriRuntime()) {
+      addDiagnostic({ title: 'SenseVoice install not started', result: 'warning', detail: 'Browser preview cannot install local dependencies.' });
+      return;
+    }
+    setIsInstallingSenseVoice(true);
+    addDiagnostic({ title: 'SenseVoice install started', result: 'info', detail: 'Downloading sherpa-onnx runtime and SenseVoice ONNX model files.' });
+    try {
+      const nextStatus = await installManagedSenseVoice();
+      applySenseVoiceConfigStatus(nextStatus);
+      addDiagnostic({ title: nextStatus.ready ? 'SenseVoice install complete' : 'SenseVoice install complete but not ready', result: nextStatus.ready ? 'success' : 'warning', detail: nextStatus.message });
+    } catch (error) {
+      addDiagnostic({ title: 'SenseVoice install failed', result: 'error', detail: formatError(error) });
+    } finally {
+      setIsInstallingSenseVoice(false);
+    }
+  }
   async function handleStartRecording() {
     if (!isTauriRuntime()) {
       addDiagnostic({ title: '录音未启动', result: 'warning', detail: '浏览器预览模式不能访问系统麦克风录音流。' });
@@ -949,6 +1049,7 @@ export function App() {
     }
     try {
       const nextStatus = await startRecording();
+      isRecordingRef.current = true;
       setRecordingStatus(nextStatus);
       setStatus({ phase: 'recording', message: '正在录音，说完后点击停止录音', lastTranscript: null });
       addDiagnostic({ title: '录音已启动', result: 'success', detail: `采样率 ${nextStatus.sampleRate ?? '未知'} Hz，输入声道 ${nextStatus.channels ?? '未知'}。` });
@@ -1019,7 +1120,7 @@ export function App() {
 
   async function handleStartLiveToggleRecording() {
     const selectedModel = toggleDictationModelRef.current;
-    const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current);
+    const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current, senseVoiceConfigStatusRef.current);
     try {
       assertModelUsable(model);
     } catch (error) {
@@ -1043,6 +1144,9 @@ export function App() {
         lastAudioQualityRef.current = null;
         const realtimeStatus = await startBaiduRealtimeSession();
         isRecordingRef.current = true;
+        await showDictationOverlay().catch((error: unknown) => {
+          addDiagnostic({ title: 'Desktop overlay show failed', result: 'error', detail: formatError(error) });
+        });
         setRecordingStatus({ state: 'recording', sampleRate: 16000, channels: 1, sampleCount: 0, durationMs: realtimeStatus.durationMs });
         setStatus({ phase: 'recording', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u4e2d\uff0c\u6700\u7ec8\u7ed3\u679c\u4f1a\u5b9e\u65f6\u4e0a\u5c4f', lastTranscript: null });
         addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165\u5df2\u542f\u52a8', result: 'success', detail: realtimeStatus.message });
@@ -1058,6 +1162,9 @@ export function App() {
     if (!started) {
       return;
     }
+    await showDictationOverlay().catch((error: unknown) => {
+      addDiagnostic({ title: 'Desktop overlay show failed', result: 'error', detail: formatError(error) });
+    });
     if (selectedModel === 'local-whisper') {
       setStatus({ phase: 'recording', message: '实验实时输入中：会每隔几秒分段转写并上屏', lastTranscript: null });
       addDiagnostic({ title: '实验实时输入已启动', result: 'info', detail: '当前不是 whisper.cpp 真流式 partial，而是录音中定时切片、转写新增片段并上屏。' });
@@ -1077,6 +1184,7 @@ export function App() {
       try {
         setStatus({ phase: 'transcribing', message: '\u6b63\u5728\u7ed3\u675f\u767e\u5ea6\u5b9e\u65f6 WebSocket \u8f93\u5165', lastTranscript: null });
         const summary = await finishBaiduRealtimeSession();
+        lastAudioQualityRef.current = summary.audioQuality;
         isRecordingRef.current = false;
         setRecordingStatus({ state: 'idle', sampleRate: 16000, channels: 1, sampleCount: 0, durationMs: summary.durationMs });
         const summaryText = summary.text.trim();
@@ -1111,6 +1219,7 @@ export function App() {
     }
     try {
       const audio = await stopRecording();
+      isRecordingRef.current = false;
       lastAudioQualityRef.current = audio.audioQuality;
       setRecordingStatus({ state: 'idle', sampleRate: audio.sampleRate, channels: audio.channels, sampleCount: audio.asrSampleCount, durationMs: audio.asrDurationMs });
       setStatus({ phase: 'transcribing', message: '录音已停止，正在处理最后一段', lastTranscript: null });
@@ -1125,6 +1234,7 @@ export function App() {
       if (!liveInsertedTextRef.current) {
         const transcript = await transcribeLastRecording(selectedModel);
         const processed = await postprocessText(transcript.text);
+        addTranscriptDebug('\u8fde\u7eed\u8f93\u5165\u6574\u6bb5', transcript.text, processed);
         const finalText = processed.text.trim();
         if (!finalText || processed.noiseRemoved) {
           return;
@@ -1177,10 +1287,11 @@ export function App() {
       if (selectedModel === 'baidu-realtime') {
         throw new Error('\u767e\u5ea6\u5b9e\u65f6 WebSocket API \u4ec5\u652f\u6301\u8fde\u7eed\u8f93\u5165\u6a21\u5f0f\u3002');
       }
-      const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current);
+      const model = getModelReadiness(selectedModel, asrConfigStatusRef.current, cloudAsrConfigStatusRef.current, senseVoiceConfigStatusRef.current);
       assertModelUsable(model);
       const transcript = await transcribeLastRecording(selectedModel);
       const processed = await postprocessText(transcript.text);
+      addTranscriptDebug('\u6309\u4f4f\u8bf4\u8bdd', transcript.text, processed);
       const finalText = processed.text.trim();
       if (!finalText || processed.noiseRemoved) {
         return;
@@ -1356,6 +1467,7 @@ export function App() {
       if (payload.isFinal) {
         void (async () => {
           const processed = await postprocessText(text);
+          addTranscriptDebug('\u767e\u5ea6\u5b9e\u65f6\u7247\u6bb5', text, processed);
           const finalText = processed.text.trim();
           if (!finalText || processed.noiseRemoved) {
             return;
@@ -1404,16 +1516,32 @@ export function App() {
         result: 'info',
         detail: `事件 ${payload.state}，动作 ${payload.action}。如果你在目标输入框里按快捷键但这里没有日志，说明系统没有把快捷键事件交给 VoxType。`,
       });
-      if (payload.action === 'toggleStartRecording' && !isRecordingRef.current) {
-        void handleStartLiveToggleRecording();
+      if (payload.action === 'toggleStartRecording') {
+        if (toggleActionInFlightRef.current) {
+          addDiagnostic({ title: '连续输入快捷键处理中', result: 'warning', detail: '上一轮连续输入开始/停止还未完成，已忽略重复按键事件。' });
+          return;
+        }
+        toggleActionInFlightRef.current = true;
+        const action = isRecordingRef.current ? handleStopLiveToggleRecording() : handleStartLiveToggleRecording();
+        void action.finally(() => {
+          toggleActionInFlightRef.current = false;
+        });
         return;
       }
       if (payload.action === 'startRecording' && !isRecordingRef.current) {
         void handleStartRecording();
         return;
       }
-      if (payload.action === 'toggleStopAndTranscribe' && isRecordingRef.current) {
-        void handleStopLiveToggleRecording();
+      if (payload.action === 'toggleStopAndTranscribe') {
+        if (toggleActionInFlightRef.current) {
+          addDiagnostic({ title: '连续输入快捷键处理中', result: 'warning', detail: '上一轮连续输入开始/停止还未完成，已忽略重复按键事件。' });
+          return;
+        }
+        toggleActionInFlightRef.current = true;
+        const action = isRecordingRef.current ? handleStopLiveToggleRecording() : handleStartLiveToggleRecording();
+        void action.finally(() => {
+          toggleActionInFlightRef.current = false;
+        });
         return;
       }
       if (payload.action === 'stopAndTranscribe' && isRecordingRef.current) {
@@ -1490,6 +1618,7 @@ export function App() {
         historyMessage={historyMessage}
         onOpenDiagnostic={() => setViewMode('diagnostic')}
         onOpenModelSettings={() => setViewMode('model')}
+        onOpenTextOptimization={() => setViewMode('text-optimization')}
         onCopyRecord={(record) => void handleCopyRecord(record)}
         onReinsertRecord={(record) => void handleReinsertRecord(record)}
         onDeleteRecord={handleDeleteRecord}
@@ -1518,9 +1647,10 @@ export function App() {
       <ModelSettingsView
         asrConfigStatus={asrConfigStatus}
         cloudAsrConfigStatus={cloudAsrConfigStatus}
+        senseVoiceConfigStatus={senseVoiceConfigStatus}
         pushToTalkModel={pushToTalkModel}
         toggleDictationModel={toggleDictationModel}
-        modelReadiness={{ 'local-whisper': getModelReadiness('local-whisper'), 'baidu-short': getModelReadiness('baidu-short'), 'baidu-realtime': getModelReadiness('baidu-realtime') }}
+        modelReadiness={{ 'local-whisper': getModelReadiness('local-whisper'), 'sensevoice-small': getModelReadiness('sensevoice-small'), 'baidu-short': getModelReadiness('baidu-short'), 'baidu-realtime': getModelReadiness('baidu-realtime') }}
         cloudBaseUrl={cloudBaseUrl}
         cloudModel={cloudModel}
         cloudLanguage={cloudLanguage}
@@ -1538,20 +1668,23 @@ export function App() {
         cloudApiKeyInput={cloudApiKeyInput}
         cloudSecretKeyInput={cloudSecretKeyInput}
         cloudMessage={cloudMessage}
-        transcriptPostprocessConfig={transcriptPostprocessConfig}
-        postprocessReplacementText={postprocessReplacementText}
-        postprocessGlossaryText={postprocessGlossaryText}
-        postprocessPreviewInput={postprocessPreviewInput}
-        postprocessPreviewOutput={postprocessPreviewOutput}
-        postprocessMessage={postprocessMessage}
         whisperBinaryPath={whisperBinaryPath}
         whisperModelPath={whisperModelPath}
         asrLanguage={asrLanguage}
+        senseVoiceRuntimePath={senseVoiceRuntimePath}
+        senseVoiceModelPath={senseVoiceModelPath}
+        senseVoiceTokensPath={senseVoiceTokensPath}
+        senseVoiceLanguage={senseVoiceLanguage}
+        isInstallingSenseVoice={isInstallingSenseVoice}
         isInstallingAsr={isInstallingAsr}
         onBack={() => setViewMode('user')}
         onWhisperBinaryPathChange={setWhisperBinaryPath}
         onWhisperModelPathChange={setWhisperModelPath}
         onAsrLanguageChange={setAsrLanguage}
+        onSenseVoiceRuntimePathChange={setSenseVoiceRuntimePath}
+        onSenseVoiceModelPathChange={setSenseVoiceModelPath}
+        onSenseVoiceTokensPathChange={setSenseVoiceTokensPath}
+        onSenseVoiceLanguageChange={setSenseVoiceLanguage}
         onPushToTalkModelChange={(value) => void handleChangeModeModelPreference('push-to-talk', value)}
         onToggleDictationModelChange={(value) => void handleChangeModeModelPreference('toggle-dictation', value)}
         onCloudBaseUrlChange={setCloudBaseUrl}
@@ -1570,6 +1703,31 @@ export function App() {
         onCloudBaiduRealtimeUserChange={setCloudBaiduRealtimeUser}
         onCloudApiKeyInputChange={setCloudApiKeyInput}
         onCloudSecretKeyInputChange={setCloudSecretKeyInput}
+        onInstallManagedAsr={() => void handleInstallManagedAsr()}
+        onInstallManagedSenseVoice={() => void handleInstallManagedSenseVoice()}
+        onSaveSenseVoiceConfig={() => void handleSaveSenseVoiceConfig()}
+        onRefreshSenseVoiceConfig={() => void handleRefreshSenseVoiceConfig()}
+        onSaveAsrConfig={() => void handleSaveAsrConfig()}
+        onRefreshAsrConfig={() => void handleRefreshAsrConfig()}
+        onSaveCloudAsrConfig={() => void handleSaveCloudAsrConfig()}
+        onSaveBaiduAsrApiKey={() => void handleSaveBaiduAsrApiKey()}
+        onSaveBaiduAsrSecretKey={() => void handleSaveBaiduAsrSecretKey()}
+        onTestCloudAsrConfig={() => void handleTestCloudAsrConfig()}
+      />
+    );
+  }
+
+
+  function renderTextOptimizationView() {
+    return (
+      <TextOptimizationView
+        transcriptPostprocessConfig={transcriptPostprocessConfig}
+        postprocessReplacementText={postprocessReplacementText}
+        postprocessGlossaryText={postprocessGlossaryText}
+        postprocessPreviewInput={postprocessPreviewInput}
+        postprocessPreviewOutput={postprocessPreviewOutput}
+        postprocessMessage={postprocessMessage}
+        onBack={() => setViewMode('user')}
         onTranscriptPostprocessEnabledChange={(value) => setTranscriptPostprocessConfig((current) => ({ ...current, enabled: value }))}
         onTranscriptPostprocessCleanupNoiseChange={(value) => setTranscriptPostprocessConfig((current) => ({ ...current, cleanupNoise: value }))}
         onPostprocessReplacementTextChange={setPostprocessReplacementText}
@@ -1577,13 +1735,6 @@ export function App() {
         onPostprocessPreviewInputChange={setPostprocessPreviewInput}
         onSaveTranscriptPostprocessConfig={() => void handleSaveTranscriptPostprocessConfig()}
         onPreviewTranscriptPostprocess={() => void handlePreviewTranscriptPostprocess()}
-        onInstallManagedAsr={() => void handleInstallManagedAsr()}
-        onSaveAsrConfig={() => void handleSaveAsrConfig()}
-        onRefreshAsrConfig={() => void handleRefreshAsrConfig()}
-        onSaveCloudAsrConfig={() => void handleSaveCloudAsrConfig()}
-        onSaveBaiduAsrApiKey={() => void handleSaveBaiduAsrApiKey()}
-        onSaveBaiduAsrSecretKey={() => void handleSaveBaiduAsrSecretKey()}
-        onTestCloudAsrConfig={() => void handleTestCloudAsrConfig()}
       />
     );
   }
@@ -1634,6 +1785,9 @@ export function App() {
   }
   if (viewMode === 'model') {
     return renderModelSettingsView();
+  }
+  if (viewMode === 'text-optimization') {
+    return renderTextOptimizationView();
   }
   return renderUserView();
 }
