@@ -30,6 +30,26 @@ export interface RecorderRuntimeStatus {
 
 export type AudioQualityWarning = 'low_volume' | 'clipping_risk' | 'mostly_silence' | 'possible_far_microphone';
 
+
+export interface AudioPreprocessConfig {
+  enabled: boolean;
+  removeDcOffset: boolean;
+  highPassEnabled: boolean;
+  normalizeEnabled: boolean;
+  vadTrimEnabled: boolean;
+  denoiseEnabled: boolean;
+}
+
+export interface AudioPreprocessSummary {
+  applied: boolean;
+  originalSampleCount: number;
+  processedSampleCount: number;
+  trimmedFrontSamples: number;
+  trimmedBackSamples: number;
+  gainApplied: number;
+  fallbackToRaw?: boolean;
+}
+
 export interface AudioQualitySummary {
   rms: number;
   peak: number;
@@ -56,6 +76,7 @@ export interface RecordedAudio {
 export interface Transcript {
   text: string;
   engine: string;
+  audioPreprocess?: AudioPreprocessSummary | null;
 }
 
 export type InputModeId = 'push-to-talk' | 'toggle-dictation' | 'manual';
@@ -83,6 +104,7 @@ export interface TranscriptRecord {
   modelId: TranscriptionModelId;
   charCount: number;
   audioQuality: AudioQualitySummary | null;
+  audioPreprocess: AudioPreprocessSummary | null;
   postprocessRulesApplied: number;
 }
 
@@ -204,6 +226,7 @@ export interface BaiduRealtimeSessionSummary {
   durationMs: number;
   charCount: number;
   audioQuality: AudioQualitySummary | null;
+  audioPreprocess?: AudioPreprocessSummary | null;
 }
 
 export interface ReplacementRule {
@@ -235,4 +258,5 @@ export interface PersistedTranscriptEntry {
   characterCount: number;
   postprocessRulesApplied: number;
   audioQuality: AudioQualitySummary | null;
+  audioPreprocess?: AudioPreprocessSummary | null;
 }

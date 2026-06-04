@@ -1,12 +1,16 @@
-import { useState } from 'react';
-import type { AsrConfigStatus, CloudAsrConfigStatus, ModelReadiness, SenseVoiceConfigStatus, TranscriptionModelId } from './types';
+import { useState, type ReactNode } from 'react';
+import type { AsrConfigStatus, AudioPreprocessConfig, CloudAsrConfigStatus, ModelReadiness, SenseVoiceConfigStatus, TranscriptionModelId } from './types';
 
 const text = {
-  title: '\u6a21\u578b\u9009\u62e9\u914d\u7f6e',
+  title: '\u8bbe\u7f6e',
   back: '\u8fd4\u56de\u4e3b\u754c\u9762',
   defaultModels: '\u8f93\u5165\u6a21\u5f0f\u9ed8\u8ba4\u6a21\u578b',
-  selectionPage: '\u6a21\u578b\u9009\u62e9',
-  configPage: '\u6a21\u578b\u914d\u7f6e',
+  inputPage: '\u8f93\u5165',
+  modelPage: '\u6a21\u578b',
+  enhancementPage: '\u97f3\u9891\u589e\u5f3a',
+  textOptimizationPage: '\u6587\u672c\u4f18\u5316',
+  diagnosticPage: '\u8bca\u65ad',
+  hotkeySettings: '\u5feb\u6377\u952e\u8bbe\u7f6e',
   pushToTalk: '\u6309\u4f4f\u8bf4\u8bdd',
   toggleDictation: '\u8fde\u7eed\u8f93\u5165',
   selectPrefix: '\u9009\u62e9',
@@ -69,6 +73,23 @@ const text = {
   lmPlaceholder: '\u81ea\u8bad\u7ec3\u5e73\u53f0\u6a21\u578b ID',
   ready: '\u5df2\u5c31\u7eea',
   notReady: '\u672a\u5c31\u7eea',
+  audioEnhancement: '\u97f3\u9891\u589e\u5f3a',
+  audioEnhancementDetail: '\u4fdd\u5b88\u5904\u7406 stop-then-transcribe \u5f55\u97f3',
+  enhancementProcessors: '\u589e\u5f3a\u9879\u76ee',
+  enhancementModeDetail: '\u4ec5\u7528\u4e8e\u505c\u6b62\u540e\u8f6c\u5199\uff0c\u767e\u5ea6\u5b9e\u65f6 WebSocket \u4fdd\u6301\u539f\u59cb\u97f3\u9891',
+  enhancementScope: '\u4f5c\u7528\u8303\u56f4',
+  stopThenTranscribe: '\u505c\u6b62\u540e\u8f6c\u5199',
+  realtimeRawAudio: '\u5b9e\u65f6\u8f93\u5165',
+  rawAudio: '\u539f\u59cb\u97f3\u9891',
+  audioEnhancementOn: '\u5df2\u5f00\u542f',
+  audioEnhancementOff: '\u5df2\u5173\u95ed',
+  enableAudioEnhancement: '\u542f\u7528\u97f3\u9891\u589e\u5f3a',
+  disableAudioEnhancement: '\u5173\u95ed\u97f3\u9891\u589e\u5f3a',
+  dcOffset: 'DC offset',
+  normalization: '\u97f3\u91cf\u5f52\u4e00',
+  vadTrim: '\u9759\u97f3\u88c1\u526a',
+  highPass: '\u4f4e\u9891\u8fc7\u6ee4',
+  denoise: '\u964d\u566a',
 };
 
 interface ModelSettingsViewProps {
@@ -104,6 +125,11 @@ interface ModelSettingsViewProps {
   senseVoiceLanguage: string;
   isInstallingSenseVoice: boolean;
   isInstallingAsr: boolean;
+  audioPreprocessConfig: AudioPreprocessConfig;
+  audioPreprocessMessage: string | null;
+  inputSettingsContent: ReactNode;
+  textOptimizationContent: ReactNode;
+  diagnosticContent: ReactNode;
   onBack: () => void;
   onPushToTalkModelChange: (value: TranscriptionModelId) => void;
   onToggleDictationModelChange: (value: TranscriptionModelId) => void;
@@ -140,6 +166,7 @@ interface ModelSettingsViewProps {
   onSaveBaiduAsrApiKey: () => void;
   onSaveBaiduAsrSecretKey: () => void;
   onTestCloudAsrConfig: () => void;
+  onSaveAudioPreprocessConfig: (config: AudioPreprocessConfig) => void;
 }
 
 const modelOptions: TranscriptionModelId[] = ['local-whisper', 'sensevoice-small', 'baidu-short', 'baidu-realtime'];
@@ -167,8 +194,9 @@ function ModeModelSelector({ modeName, value, onChange, readiness }: { modeName:
 }
 
 export function ModelSettingsView(props: ModelSettingsViewProps) {
-  const [activePage, setActivePage] = useState<'selection' | 'config'>('selection');
+  const [activePage, setActivePage] = useState<'input' | 'model' | 'enhancement' | 'textOptimization' | 'diagnostic'>('input');
   const [activeConfig, setActiveConfig] = useState<TranscriptionModelId>(props.pushToTalkModel);
+  const audioEnhancementState = props.audioPreprocessConfig.enabled ? text.audioEnhancementOn : text.audioEnhancementOff;
   const apiKeyState = props.cloudAsrConfigStatus.apiKeyConfigured ? '\u5df2\u914d\u7f6e' : '\u672a\u914d\u7f6e';
   const apiKeyDetail = props.cloudAsrConfigStatus.apiKeyPreview ?? text.waitingEnv;
   const secretKeyState = props.cloudAsrConfigStatus.secretKeyConfigured ? '\u5df2\u914d\u7f6e' : '\u672a\u914d\u7f6e';
@@ -188,16 +216,21 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
           <button className="secondary-button" type="button" onClick={props.onBack}>{text.back}</button>
         </header>
         <nav className="model-page-tabs" aria-label={text.title}>
-          <button type="button" data-active={activePage === 'selection'} onClick={() => setActivePage('selection')}>{text.selectionPage}</button>
-          <button type="button" data-active={activePage === 'config'} onClick={() => setActivePage('config')}>{text.configPage}</button>
+          <button type="button" data-active={activePage === 'input'} onClick={() => setActivePage('input')}>{text.inputPage}</button>
+          <button type="button" data-active={activePage === 'model'} onClick={() => setActivePage('model')}>{text.modelPage}</button>
+          <button type="button" data-active={activePage === 'enhancement'} onClick={() => setActivePage('enhancement')}>{text.enhancementPage}</button>
+          <button type="button" data-active={activePage === 'textOptimization'} onClick={() => setActivePage('textOptimization')}>{text.textOptimizationPage}</button>
+          <button type="button" data-active={activePage === 'diagnostic'} onClick={() => setActivePage('diagnostic')}>{text.diagnosticPage}</button>
         </nav>
-        {activePage === 'selection' ? <section className="model-routing-section" aria-label={text.defaultModels}>
+        {activePage === 'input' ? props.inputSettingsContent : null}
+        {activePage === 'model' ? <>
+        <section className="model-routing-section" aria-label={text.defaultModels}>
           <div className="mode-routing-card">
             <ModeModelSelector modeName={text.pushToTalk} value={props.pushToTalkModel} onChange={props.onPushToTalkModelChange} readiness={props.modelReadiness} />
             <ModeModelSelector modeName={text.toggleDictation} value={props.toggleDictationModel} onChange={props.onToggleDictationModelChange} readiness={props.modelReadiness} />
           </div>
-        </section> : null}
-        {activePage === 'config' ? <section className="model-config-section" aria-label={text.modelConfig}>
+        </section>
+        <section className="model-config-section" aria-label={text.modelConfig}>
           <div className="section-heading model-config-heading"><span>{text.modelConfig}</span><strong>{text.configDetail}</strong></div>
           <div className="config-model-switch" role="tablist" aria-label={text.modelConfig}>
             {modelOptions.map((id) => <button key={id} className="config-switch-button" type="button" role="tab" aria-selected={activeConfig === id} data-active={activeConfig === id} data-available={props.modelReadiness[id].availableInV7} onClick={() => setActiveConfig(id)} title={props.modelReadiness[id].message}><span className="ready-dot" data-ready={props.modelReadiness[id].ready} aria-hidden="true" /><span>{displayModelLabel(id)}</span></button>)}
@@ -236,6 +269,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             <p className="runtime-message">{props.cloudMessage ?? props.cloudAsrConfigStatus.message}</p>
             <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
           </section> : null}
+
           {activeConfig === 'baidu-realtime' ? <section className="model-config active-config-panel cloud-config realtime-config" aria-label={text.realtimeConfig}>
             <div className="model-config-title"><div><span>{text.baiduRealtime}</span><strong>{props.modelReadiness['baidu-realtime'].ready ? text.ready : text.notReady}</strong></div><span className="ready-dot" data-ready={props.modelReadiness['baidu-realtime'].ready} /></div>
             <p className="runtime-message">{props.cloudMessage ?? props.modelReadiness['baidu-realtime'].message}</p>
@@ -251,7 +285,29 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             </div>
             <div className="button-row"><button type="button" onClick={props.onSaveCloudAsrConfig}>{text.saveBaidu}</button><button type="button" onClick={props.onTestCloudAsrConfig}>{text.testBaidu}</button></div>
           </section> : null}
+        </section>
+        </> : null}
+        {activePage === 'enhancement' ? <section className="model-config-section">
+          <section className="model-config active-config-panel audio-enhancement-panel" aria-label={text.audioEnhancement}>
+            <div className="model-config-title"><div><span>{text.audioEnhancement}</span><strong>{audioEnhancementState}</strong></div><span className="ready-dot" data-ready={props.audioPreprocessConfig.enabled} /></div>
+            {props.audioPreprocessMessage ? <p className="runtime-message">{props.audioPreprocessMessage}</p> : null}
+            <div className="audio-enhancement-layout">
+              <div className="enhancement-processors" role="group" aria-label={text.enhancementProcessors}>
+                <span>{text.dcOffset}</span>
+                <span>{text.normalization}</span>
+                <span>{text.vadTrim}</span>
+                <span>{text.denoise}</span>
+              </div>
+              <div className="enhancement-summary" aria-label={text.audioEnhancementDetail}>
+                <div><span>{text.enhancementScope}</span><strong>{text.stopThenTranscribe}</strong></div>
+                <div><span>{text.realtimeRawAudio}</span><strong>{text.rawAudio}</strong></div>
+              </div>
+            </div>
+            <div className="button-row"><button type="button" onClick={() => props.onSaveAudioPreprocessConfig({ ...props.audioPreprocessConfig, enabled: !props.audioPreprocessConfig.enabled })}>{props.audioPreprocessConfig.enabled ? text.disableAudioEnhancement : text.enableAudioEnhancement}</button></div>
+          </section>
         </section> : null}
+        {activePage === 'textOptimization' ? props.textOptimizationContent : null}
+        {activePage === 'diagnostic' ? props.diagnosticContent : null}
       </section>
     </main>
   );

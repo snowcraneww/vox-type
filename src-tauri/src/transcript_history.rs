@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::audio_preprocess::AudioPreprocessSummary;
 use crate::audio_quality::AudioQualitySummary;
 use crate::error::VoxError;
 
@@ -20,6 +21,7 @@ pub struct PersistedTranscriptEntry {
     pub character_count: usize,
     pub postprocess_rules_applied: usize,
     pub audio_quality: Option<AudioQualitySummary>,
+    pub audio_preprocess: Option<AudioPreprocessSummary>,
 }
 
 pub fn load_transcript_history(
@@ -110,7 +112,35 @@ mod tests {
                 active_speech_ms: 300,
                 warnings: vec![AudioQualityWarning::LowVolume],
             }),
+            audio_preprocess: None,
         }
+    }
+
+    #[test]
+    fn saves_and_loads_audio_preprocess_metadata() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut next = entry("with-preprocess");
+        next.audio_preprocess = Some(AudioPreprocessSummary {
+            applied: true,
+            original_sample_count: 32_000,
+            processed_sample_count: 28_000,
+            trimmed_front_samples: 2_000,
+            trimmed_back_samples: 2_000,
+            gain_applied: 2.0,
+            fallback_to_raw: true,
+        });
+
+        save_transcript_history_entry(dir.path().to_path_buf(), next).unwrap();
+        let loaded = load_transcript_history(dir.path().to_path_buf()).unwrap();
+
+        assert_eq!(
+            loaded[0].audio_preprocess.as_ref().unwrap().fallback_to_raw,
+            true
+        );
+        assert_eq!(
+            loaded[0].audio_preprocess.as_ref().unwrap().gain_applied,
+            2.0
+        );
     }
 
     #[test]

@@ -6,6 +6,7 @@
 
 ## 已归档问题
 
+- [V10 音频增强与 SenseVoice 空文本、metadata 丢失、配置不持久](2026-06-04-v10-audio-enhancement-sensevoice-metadata.md)
 - [Ctrl+Alt+V 连续输入间歇失败](2026-06-03-continuous-input-toggle-race.md)
 - [双声道录音被错误当作 mono 导致变音](2026-05-27-stereo-recording-channel-collapse.md)
 - [剪贴板上屏粘贴旧内容](2026-05-27-clipboard-restore-race.md)
@@ -17,3 +18,4 @@
 - 新增复杂 bug 时，不要只写最终修复，要写清楚排除过的错误假设。
 - 如果问题跨 Rust/Tauri/React/Windows/第三方 API 边界，必须记录边界处的数据或状态如何流动。
 - 如果修复依赖真实桌面验证，也要写明自动测试覆盖不到的部分。
+- 同一问题反复修复三轮仍未稳定时，必须在这里留下文档；不要只把经验留在聊天记录或临时日志里。

@@ -7,7 +7,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::error::VoxError;
+use crate::{audio_preprocess::AudioPreprocessSummary, error::VoxError};
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
@@ -15,11 +15,12 @@ use std::os::windows::process::CommandExt;
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Transcript {
     pub text: String,
     pub engine: String,
+    pub audio_preprocess: Option<AudioPreprocessSummary>,
 }
 
 pub trait AsrEngine {
@@ -34,6 +35,7 @@ impl AsrEngine for MockAsrEngine {
         Ok(Transcript {
             text: "这是 VoxType 的模拟转写结果。".to_string(),
             engine: "mock".to_string(),
+            audio_preprocess: None,
         })
     }
 }
@@ -90,6 +92,7 @@ impl AsrEngine for WhisperCppEngine {
         Ok(Transcript {
             text,
             engine: "whisper.cpp".to_string(),
+            audio_preprocess: None,
         })
     }
 }
@@ -156,6 +159,7 @@ impl AsrEngine for SenseVoiceSmallEngine {
         Ok(Transcript {
             text,
             engine: "sensevoice-small".to_string(),
+            audio_preprocess: None,
         })
     }
 }
@@ -190,10 +194,7 @@ fn summarize_command_output(output: &Output) -> String {
 }
 
 fn compact_output_tail(value: &str) -> String {
-    let compact = value
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
+    let compact = value.split_whitespace().collect::<Vec<_>>().join(" ");
     if compact.is_empty() {
         return "<empty>".to_string();
     }

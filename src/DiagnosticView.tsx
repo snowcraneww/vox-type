@@ -36,17 +36,18 @@ interface DiagnosticViewProps {
   onTranscribeAndInsert: () => void;
   onSimulateDictation: () => void;
   onClipboardInsert: () => void;
+  embedded?: boolean;
 }
 
 export function DiagnosticView(props: DiagnosticViewProps) {
   const { config, status, runtimeMessage, recorderInfo, recordingStatus, isRecording, hotkeyStatus, overlayBackendStatus, asrConfigStatus, whisperBinaryPath, whisperModelPath, asrLanguage, isInstallingAsr, deviceSelect, diagnosticsPanel } = props;
-  return (
-    <main className="app-shell diagnostic-shell">
-      <section className="hero diagnostic-hero" aria-labelledby="diagnostic-title">
+  const content = (
+    <>
+      {props.embedded ? null : <section className="hero diagnostic-hero" aria-labelledby="diagnostic-title">
         <div><p className="eyebrow">DIAGNOSTICS</p><h1 id="diagnostic-title">诊断工作台</h1><p>系统能力、ASR 配置、快捷键和上屏链路。</p></div>
         <button className="secondary-button" type="button" onClick={props.onBack}>返回主界面</button>
-      </section>
-      <section className="panel" aria-labelledby="settings-title">
+      </section>}
+      <section className="panel" aria-labelledby="settings-title" aria-label={props.embedded ? '诊断' : undefined}>
         <h2 id="settings-title">运行状态</h2>
         <dl className="settings-grid">
           <div><dt>快捷键</dt><dd>{config.hotkey}</dd></div>
@@ -62,7 +63,7 @@ export function DiagnosticView(props: DiagnosticViewProps) {
         <div className="config-form single-row-form">{deviceSelect}</div>
       </section>
       <section className="panel" aria-labelledby="asr-config-title">
-        <div className="panel-heading-row"><h2 id="asr-config-title">ASR 配置</h2><span className="status-pill" data-phase={asrConfigStatus.ready ? 'succeeded' : 'failed'}>{asrConfigStatus.ready ? '已就绪' : '未就绪'}</span></div>
+        <div className="panel-heading-row"><h2 id="asr-config-title">ASR 配置</h2><span className="diagnostic-ready-state"><span className="ready-dot" data-ready={asrConfigStatus.ready} aria-hidden="true" />{asrConfigStatus.ready ? '已就绪' : '未就绪'}</span></div>
         <p className="runtime-message">{asrConfigStatus.message}</p>
         <div className="config-form">
           <label className="field"><span>whisper.cpp 可执行文件</span><input value={whisperBinaryPath} onChange={(event) => props.onWhisperBinaryPathChange(event.target.value)} placeholder="例如 C:\tools\whisper.cpp\whisper-cli.exe" /></label>
@@ -88,6 +89,8 @@ export function DiagnosticView(props: DiagnosticViewProps) {
         </div>
       </section>
       {diagnosticsPanel}
-    </main>
+    </>
   );
+  if (props.embedded) return <section className="model-config-section embedded-diagnostic" aria-label="诊断">{content}</section>;
+  return <main className="app-shell diagnostic-shell">{content}</main>;
 }

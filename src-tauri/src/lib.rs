@@ -2,6 +2,7 @@ pub mod asr;
 pub mod asr_config;
 pub mod asr_installer;
 pub mod audio;
+pub mod audio_preprocess;
 pub mod audio_quality;
 pub mod baidu_realtime;
 pub mod cloud_asr;
@@ -37,7 +38,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 type HotkeyStatusState = Mutex<hotkey::HotkeyRegistrationStatus>;
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LiveTranscriptionChunk {
     pub transcript: Transcript,
@@ -309,6 +310,23 @@ fn preview_transcript_postprocess(
     Ok(text_postprocess::process_transcript(&text, &config))
 }
 #[tauri::command]
+fn get_audio_preprocess_config(
+    app: AppHandle,
+) -> Result<audio_preprocess::AudioPreprocessConfig, error::VoxError> {
+    Ok(audio_preprocess::load_audio_preprocess_config(
+        app_config_dir(&app)?,
+    ))
+}
+
+#[tauri::command]
+fn save_audio_preprocess_config(
+    app: AppHandle,
+    config: audio_preprocess::AudioPreprocessConfig,
+) -> Result<audio_preprocess::AudioPreprocessConfig, error::VoxError> {
+    audio_preprocess::save_audio_preprocess_config(app_config_dir(&app)?, config)
+}
+
+#[tauri::command]
 fn get_asr_config_status(app: AppHandle) -> Result<AsrConfigStatus, error::VoxError> {
     let config_dir = app_config_dir(&app)?;
     Ok(asr_config::get_asr_config_status(config_dir))
@@ -359,7 +377,13 @@ fn transcribe_last_recording(
     recorder: State<'_, RecorderManager>,
     model_id: Option<preferences::TranscriptionModelId>,
 ) -> Result<Transcript, error::VoxError> {
-    let samples = recorder.last_asr_samples()?;
+    let raw_samples = recorder.last_asr_samples()?;
+    let preprocess_config = audio_preprocess::load_audio_preprocess_config(app_config_dir(&app)?);
+    let (samples, _preprocess_summary) = audio_preprocess::preprocess_i16_asr_samples(
+        &raw_samples,
+        audio::TARGET_SAMPLE_RATE,
+        &preprocess_config,
+    );
     let selected_model = model_id.unwrap_or(preferences::TranscriptionModelId::BaiduShort);
     if selected_model == preferences::TranscriptionModelId::BaiduRealtime {
         return Err(error::VoxError::Asr(
@@ -367,10 +391,16 @@ fn transcribe_last_recording(
         ));
     }
     if selected_model == preferences::TranscriptionModelId::LocalWhisper {
-        return transcribe_with_local_whisper(&app, &samples);
+        return transcribe_with_local_whisper(&app, &samples)
+            .map(|transcript| attach_audio_preprocess_summary(transcript, _preprocess_summary));
     }
     if selected_model == preferences::TranscriptionModelId::SensevoiceSmall {
-        return transcribe_with_sensevoice_small(&app, &samples);
+        return transcribe_sensevoice_with_preprocess_fallback(
+            &raw_samples,
+            &samples,
+            _preprocess_summary,
+            |candidate_samples| transcribe_with_sensevoice_small(&app, candidate_samples),
+        );
     }
     let cloud_status = cloud_asr_config::get_cloud_asr_config_status(app_config_dir(&app)?);
     if cloud_status.config.provider == "baidu" {
@@ -397,10 +427,54 @@ fn transcribe_last_recording(
             config.baidu_lm_id.as_deref(),
             &samples,
         )?;
-        return cloud_asr::transcribe_with_baidu_short_speech(request);
+        return cloud_asr::transcribe_with_baidu_short_speech(request)
+            .map(|transcript| attach_audio_preprocess_summary(transcript, _preprocess_summary));
     }
 
     transcribe_with_local_whisper(&app, &samples)
+        .map(|transcript| attach_audio_preprocess_summary(transcript, _preprocess_summary))
+}
+
+fn attach_audio_preprocess_summary(
+    mut transcript: Transcript,
+    summary: audio_preprocess::AudioPreprocessSummary,
+) -> Transcript {
+    if summary.applied {
+        transcript.audio_preprocess = Some(summary);
+    }
+    transcript
+}
+
+fn transcribe_sensevoice_with_preprocess_fallback<F>(
+    raw_samples: &[i16],
+    processed_samples: &[i16],
+    summary: audio_preprocess::AudioPreprocessSummary,
+    mut transcribe: F,
+) -> Result<Transcript, error::VoxError>
+where
+    F: FnMut(&[i16]) -> Result<Transcript, error::VoxError>,
+{
+    if !summary.applied {
+        return transcribe(processed_samples);
+    }
+    match transcribe(processed_samples) {
+        Ok(transcript) => Ok(attach_audio_preprocess_summary(transcript, summary)),
+        Err(error) if is_sensevoice_empty_text_error(&error) => {
+            let mut transcript = transcribe(raw_samples)?;
+            let mut fallback_summary = summary;
+            fallback_summary.fallback_to_raw = true;
+            transcript.audio_preprocess = Some(fallback_summary);
+            Ok(transcript)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn is_sensevoice_empty_text_error(error: &error::VoxError) -> bool {
+    match error {
+        error::VoxError::Asr(message) => message.contains("SenseVoice Small returned no text"),
+        _ => false,
+    }
 }
 
 fn transcribe_with_local_whisper(
@@ -699,6 +773,8 @@ pub fn run() {
             get_transcript_postprocess_config,
             save_transcript_postprocess_config,
             preview_transcript_postprocess,
+            get_audio_preprocess_config,
+            save_audio_preprocess_config,
             get_asr_config_status,
             save_asr_config,
             get_sensevoice_config_status,
@@ -744,11 +820,57 @@ mod tests {
     }
 
     #[test]
+    fn sensevoice_empty_preprocessed_result_retries_raw_audio() {
+        let summary = audio_preprocess::AudioPreprocessSummary {
+            applied: true,
+            original_sample_count: 32_000,
+            processed_sample_count: 28_000,
+            trimmed_front_samples: 2_000,
+            trimmed_back_samples: 2_000,
+            gain_applied: 2.0,
+            fallback_to_raw: false,
+        };
+        let mut calls = Vec::new();
+
+        let transcript = transcribe_sensevoice_with_preprocess_fallback(
+            &[1, 2, 3],
+            &[4, 5],
+            summary,
+            |samples| {
+                calls.push(samples.to_vec());
+                if samples == [4, 5] {
+                    Err(error::VoxError::Asr(
+                        "SenseVoice Small returned no text; stdout={}".to_string(),
+                    ))
+                } else {
+                    Ok(Transcript {
+                        text: "raw text".to_string(),
+                        engine: "sensevoice-small".to_string(),
+                        audio_preprocess: None,
+                    })
+                }
+            },
+        )
+        .unwrap();
+
+        assert_eq!(calls, vec![vec![4, 5], vec![1, 2, 3]]);
+        assert_eq!(transcript.text, "raw text");
+        assert_eq!(
+            transcript
+                .audio_preprocess
+                .as_ref()
+                .map(|summary| summary.fallback_to_raw),
+            Some(true)
+        );
+    }
+
+    #[test]
     fn live_transcription_chunk_records_sample_range() {
         let chunk = LiveTranscriptionChunk {
             transcript: Transcript {
                 text: "你好".to_string(),
                 engine: "mock".to_string(),
+                audio_preprocess: None,
             },
             from_sample_index: 10,
             to_sample_index: 42,

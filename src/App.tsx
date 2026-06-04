@@ -4,11 +4,11 @@ import { formatDiagnosticsForCopy } from './diagnostics';
 import { HotkeySettingsDialog } from './HotkeySettingsDialog';
 import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
-import { TextOptimizationView } from './TextOptimizationView';
+import { TextOptimizationPanel, TextOptimizationView } from './TextOptimizationView';
 import { formatError } from './errorFormat';
-import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getSenseVoiceConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getTranscriptPostprocessConfig, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, installManagedSenseVoice, isTauriRuntime, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, saveSenseVoiceConfig, saveTranscriptPostprocessConfig, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getSenseVoiceConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getTranscriptPostprocessConfig, getAudioPreprocessConfig, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, installManagedSenseVoice, isTauriRuntime, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, saveSenseVoiceConfig, saveTranscriptPostprocessConfig, saveAudioPreprocessConfig, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, SenseVoiceConfigStatus, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, AudioQualitySummary, PersistedTranscriptEntry, TranscriptPostprocessConfig, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, SenseVoiceConfigStatus, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, AudioQualitySummary, PersistedTranscriptEntry, AudioPreprocessConfig, TranscriptPostprocessConfig, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -32,6 +32,16 @@ const defaultConfig: AppConfig = {
 
 const defaultPushToTalkHotkey = 'Ctrl+Alt+Space';
 const defaultToggleDictationHotkey = 'Ctrl+Alt+V';
+
+
+const defaultAudioPreprocessConfig: AudioPreprocessConfig = {
+  enabled: false,
+  removeDcOffset: true,
+  highPassEnabled: false,
+  normalizeEnabled: true,
+  vadTrimEnabled: true,
+  denoiseEnabled: false,
+};
 
 const defaultTranscriptPostprocessConfig: TranscriptPostprocessConfig = {
   enabled: true,
@@ -169,6 +179,8 @@ export function App() {
   const [transcriptRecords, setTranscriptRecords] = useState<TranscriptRecord[]>([]);
   const [historyMessage, setHistoryMessage] = useState<string | null>(null);
   const [transcriptPostprocessConfig, setTranscriptPostprocessConfig] = useState<TranscriptPostprocessConfig>(defaultTranscriptPostprocessConfig);
+  const [audioPreprocessConfig, setAudioPreprocessConfig] = useState<AudioPreprocessConfig>(defaultAudioPreprocessConfig);
+  const [audioPreprocessMessage, setAudioPreprocessMessage] = useState<string | null>(null);
   const [postprocessReplacementText, setPostprocessReplacementText] = useState('scale => skill');
   const [postprocessGlossaryText, setPostprocessGlossaryText] = useState('WebSocket\nwhisper.cpp\nVoxType');
   const [postprocessPreviewInput, setPostprocessPreviewInput] = useState('scale websocket whisper cpp');
@@ -411,6 +423,14 @@ export function App() {
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取文本优化配置失败', result: 'warning', detail: formatError(error) });
       });
+    void getAudioPreprocessConfig()
+      .then((config) => {
+        setAudioPreprocessConfig(config);
+        setAudioPreprocessMessage(null);
+      })
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '读取音频增强配置失败', result: 'warning', detail: formatError(error) });
+      });
     void listInputDevices()
       .then((devices) => {
         setInputDevices(devices);
@@ -464,6 +484,7 @@ export function App() {
       charCount: entry.characterCount,
       postprocessRulesApplied: entry.postprocessRulesApplied,
       audioQuality: entry.audioQuality,
+      audioPreprocess: entry.audioPreprocess ?? null,
     };
   }
 
@@ -499,7 +520,7 @@ export function App() {
     };
   }, [transcriptRecords]);
 
-  async function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short', processedOverride?: { text: string; rulesApplied: number; noiseRemoved: boolean }) {
+  async function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short', processedOverride?: { text: string; rulesApplied: number; noiseRemoved: boolean }, audioPreprocessOverride?: import('./types').AudioPreprocessSummary | null) {
     const processed = processedOverride ?? await postprocessText(text);
     const normalizedText = processed.text.trim();
     if (!normalizedText || processed.noiseRemoved) {
@@ -519,6 +540,7 @@ export function App() {
       characterCount: normalizedText.length,
       postprocessRulesApplied: processed.rulesApplied,
       audioQuality,
+      audioPreprocess: audioPreprocessOverride ?? null,
     };
     const record = mapPersistedEntry(entry);
     setTranscriptRecords((current) => [record, ...current]);
@@ -605,6 +627,25 @@ export function App() {
       }
     }
     addDiagnostic({ title: '识别记录已清空', result: 'info', detail: '识别记录已清空。' });
+  }
+
+
+  async function handleSaveAudioPreprocessConfig(nextConfig: AudioPreprocessConfig) {
+    setAudioPreprocessConfig(nextConfig);
+    setAudioPreprocessMessage(null);
+    if (!isTauriRuntime()) {
+      return;
+    }
+    try {
+      const saved = await saveAudioPreprocessConfig(nextConfig);
+      setAudioPreprocessConfig(saved);
+      setAudioPreprocessMessage(null);
+      addDiagnostic({ title: '音频增强配置已保存', result: 'success', detail: saved.enabled ? '已开启' : '已关闭' });
+    } catch (error) {
+      const detail = formatError(error);
+      setAudioPreprocessMessage(detail);
+      addDiagnostic({ title: '保存音频增强配置失败', result: 'error', detail });
+    }
   }
 
   async function handleSaveTranscriptPostprocessConfig() {
@@ -1240,7 +1281,7 @@ export function App() {
           return;
         }
         await insertTextWithClipboard(finalText);
-        await addTranscriptRecord(finalText, audio.asrDurationMs, 'toggle-dictation', selectedModel, processed);
+        await addTranscriptRecord(finalText, audio.asrDurationMs, 'toggle-dictation', selectedModel, processed, transcript.audioPreprocess);
         setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: finalText });
         addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${finalText}` });
       } else {
@@ -1298,7 +1339,7 @@ export function App() {
       }
       setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: finalText });
       await insertTextWithClipboard(finalText);
-      await addTranscriptRecord(finalText, audio.asrDurationMs, 'push-to-talk', selectedModel, processed);
+      await addTranscriptRecord(finalText, audio.asrDurationMs, 'push-to-talk', selectedModel, processed, transcript.audioPreprocess);
       setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: finalText });
       addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${finalText}` });
     } catch (error) {
@@ -1367,7 +1408,7 @@ export function App() {
     try {
       setStatus({ phase: 'transcribing', message: '正在调用 whisper.cpp 转写最近录音', lastTranscript: null });
       const transcript = await transcribeLastRecording();
-      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
+      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short', undefined, transcript.audioPreprocess);
       setStatus({ phase: 'succeeded', message: '真实转写完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实转写成功', result: 'success', detail: `${transcript.engine} 返回文本：${transcript.text}` });
     } catch (error) {
@@ -1389,7 +1430,7 @@ export function App() {
       addDiagnostic({ title: '真实转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
-      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short');
+      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short', undefined, transcript.audioPreprocess);
       setStatus({ phase: 'succeeded', message: '真实语音输入闭环完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实闭环上屏请求已发送', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1438,7 +1479,7 @@ export function App() {
       addDiagnostic({ title: '主界面转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
       await insertTextWithClipboard(transcript.text);
-      await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual', 'baidu-short');
+      await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual', 'baidu-short', undefined, transcript.audioPreprocess);
       setStatus({ phase: 'succeeded', message: '语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '主界面语音输入完成', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1580,6 +1621,92 @@ export function App() {
     );
   }
 
+  function openHotkeySettings() {
+    setHotkeySaveMessage(null);
+    setIsHotkeyDialogOpen(true);
+  }
+
+  function renderInputSettingsContent() {
+    const hotkeyStateLabel = hotkeyStatus.registered ? '已注册' : '未注册';
+
+    return (
+      <section className="model-config-section input-settings-section" aria-label="输入">
+        <section className="model-config active-config-panel input-settings-panel">
+          <div className="model-config-title">
+            <div>
+              <span>输入</span>
+              <strong>设备与快捷键</strong>
+            </div>
+            <span className="ready-dot" data-ready={hotkeyStatus.registered} />
+          </div>
+          <div className="input-settings-grid">
+            <section className="input-settings-card" role="group" aria-label="输入设备">
+              <div className="input-settings-card-title"><span>输入设备</span><strong>麦克风来源</strong></div>
+              <div className="input-settings-device">
+                {renderDeviceSelect(true)}
+              </div>
+            </section>
+            <section className="input-settings-card" role="group" aria-label="快捷键">
+              <div className="input-settings-card-title"><span>快捷键</span><strong>全局状态：{hotkeyStateLabel}</strong></div>
+              <div className="hotkey-summary-grid">
+                <div className="hotkey-summary-row">
+                  <span>按住说话</span>
+                  <kbd>{pushToTalkHotkey}</kbd>
+                </div>
+                <div className="hotkey-summary-row">
+                  <span>连续输入</span>
+                  <kbd>{toggleDictationHotkeyInput}</kbd>
+                </div>
+              </div>
+            </section>
+          </div>
+          <div className="button-row"><button type="button" onClick={openHotkeySettings}>快捷键设置</button><button type="button" onClick={() => void handleRefreshHotkeyStatus()}>刷新全局快捷键状态</button></div>
+        </section>
+      </section>
+    );
+  }
+
+  function renderEmbeddedDiagnosticView() {
+    return (
+      <DiagnosticView
+        embedded
+        config={config}
+        status={status}
+        runtimeMessage={runtimeMessage}
+        recorderInfo={recorderInfo}
+        recordingStatus={recordingStatus}
+        isRecording={isRecording}
+        hotkeyStatus={hotkeyStatus}
+        overlayBackendStatus={overlayBackendStatus}
+        asrConfigStatus={asrConfigStatus}
+        whisperBinaryPath={whisperBinaryPath}
+        whisperModelPath={whisperModelPath}
+        asrLanguage={asrLanguage}
+        isInstallingAsr={isInstallingAsr}
+        deviceSelect={renderDeviceSelect(true)}
+        diagnosticsPanel={renderDiagnosticsPanel()}
+        onBack={() => setViewMode('user')}
+        onRefreshHotkeyStatus={() => void handleRefreshHotkeyStatus()}
+        onShowOverlayTest={() => void handleShowOverlayTest()}
+        onHideOverlayTest={() => void handleHideOverlayTest()}
+        onWhisperBinaryPathChange={setWhisperBinaryPath}
+        onWhisperModelPathChange={setWhisperModelPath}
+        onAsrLanguageChange={setAsrLanguage}
+        onInstallManagedAsr={() => void handleInstallManagedAsr()}
+        onSaveAsrConfig={() => void handleSaveAsrConfig()}
+        onRefreshAsrConfig={() => void handleRefreshAsrConfig()}
+        onStartRecording={() => void handleStartRecording()}
+        onStopRecording={() => void handleStopRecording()}
+        onRefreshRecordingStatus={() => void handleRefreshRecordingStatus()}
+        onExportLastRecordingWav={() => void handleExportLastRecordingWav()}
+        onTranscribeLastRecording={() => void handleTranscribeLastRecording()}
+        onTranscribeAndInsert={() => void handleTranscribeAndInsert()}
+        onSimulateDictation={() => void handleSimulateDictation()}
+        onClipboardInsert={() => void handleClipboardInsert()}
+      />
+    );
+  }
+
   function renderDiagnosticsPanel() {
     return (
       <section className="panel diagnostics-panel" aria-labelledby="diagnostics-title">
@@ -1616,15 +1743,13 @@ export function App() {
         records={transcriptRecords}
         stats={transcriptStats}
         historyMessage={historyMessage}
-        onOpenDiagnostic={() => setViewMode('diagnostic')}
         onOpenModelSettings={() => setViewMode('model')}
-        onOpenTextOptimization={() => setViewMode('text-optimization')}
         onCopyRecord={(record) => void handleCopyRecord(record)}
         onReinsertRecord={(record) => void handleReinsertRecord(record)}
         onDeleteRecord={handleDeleteRecord}
         onClearRecords={handleClearRecords}
         onExportRecords={() => void handleExportRecords()}
-        onOpenHotkeySettings={() => { setHotkeySaveMessage(null); setIsHotkeyDialogOpen(true); }}
+        onOpenHotkeySettings={openHotkeySettings}
       />
       {isHotkeyDialogOpen ? (
         <HotkeySettingsDialog
@@ -1644,6 +1769,7 @@ export function App() {
 
   function renderModelSettingsView() {
     return (
+      <>
       <ModelSettingsView
         asrConfigStatus={asrConfigStatus}
         cloudAsrConfigStatus={cloudAsrConfigStatus}
@@ -1677,6 +1803,25 @@ export function App() {
         senseVoiceLanguage={senseVoiceLanguage}
         isInstallingSenseVoice={isInstallingSenseVoice}
         isInstallingAsr={isInstallingAsr}
+        audioPreprocessConfig={audioPreprocessConfig}
+        audioPreprocessMessage={audioPreprocessMessage}
+        inputSettingsContent={renderInputSettingsContent()}
+        textOptimizationContent={<TextOptimizationPanel
+          transcriptPostprocessConfig={transcriptPostprocessConfig}
+          postprocessReplacementText={postprocessReplacementText}
+          postprocessGlossaryText={postprocessGlossaryText}
+          postprocessPreviewInput={postprocessPreviewInput}
+          postprocessPreviewOutput={postprocessPreviewOutput}
+          postprocessMessage={postprocessMessage}
+          onTranscriptPostprocessEnabledChange={(value) => setTranscriptPostprocessConfig((current) => ({ ...current, enabled: value }))}
+          onTranscriptPostprocessCleanupNoiseChange={(value) => setTranscriptPostprocessConfig((current) => ({ ...current, cleanupNoise: value }))}
+          onPostprocessReplacementTextChange={setPostprocessReplacementText}
+          onPostprocessGlossaryTextChange={setPostprocessGlossaryText}
+          onPostprocessPreviewInputChange={setPostprocessPreviewInput}
+          onSaveTranscriptPostprocessConfig={() => void handleSaveTranscriptPostprocessConfig()}
+          onPreviewTranscriptPostprocess={() => void handlePreviewTranscriptPostprocess()}
+        />}
+        diagnosticContent={renderEmbeddedDiagnosticView()}
         onBack={() => setViewMode('user')}
         onWhisperBinaryPathChange={setWhisperBinaryPath}
         onWhisperModelPathChange={setWhisperModelPath}
@@ -1713,7 +1858,21 @@ export function App() {
         onSaveBaiduAsrApiKey={() => void handleSaveBaiduAsrApiKey()}
         onSaveBaiduAsrSecretKey={() => void handleSaveBaiduAsrSecretKey()}
         onTestCloudAsrConfig={() => void handleTestCloudAsrConfig()}
+        onSaveAudioPreprocessConfig={(config) => void handleSaveAudioPreprocessConfig(config)}
       />
+      {isHotkeyDialogOpen ? (
+        <HotkeySettingsDialog
+          pushToTalkHotkey={pushToTalkHotkey}
+          toggleDictationHotkey={toggleDictationHotkeyInput}
+          isSaving={isSavingHotkeys}
+          message={hotkeySaveMessage}
+          onPushToTalkHotkeyChange={setPushToTalkHotkey}
+          onToggleDictationHotkeyChange={setToggleDictationHotkeyInput}
+          onSave={() => void handleSaveHotkeyPreferences()}
+          onClose={() => setIsHotkeyDialogOpen(false)}
+        />
+      ) : null}
+      </>
     );
   }
 

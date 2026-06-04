@@ -3,9 +3,8 @@ import type { AppStatus, HotkeyRegistrationStatus, ModelReadiness, RecorderInfo,
 
 const text = {
   controlCenter: '\u8bed\u97f3\u8f93\u5165\u63a7\u5236\u4e2d\u5fc3',
-  modelSettings: '\u6a21\u578b\u9009\u62e9\u914d\u7f6e',
+  modelSettings: '\u8bbe\u7f6e',
   diagnostic: '\u8bca\u65ad',
-  textOptimization: '\u6587\u672c\u4f18\u5316',
   inputMode: '\u8f93\u5165\u6a21\u5f0f',
   hotkeyStatus: '\u5feb\u6377\u952e\u72b6\u6001',
   hotkeySettings: '\u81ea\u5b9a\u4e49\u5feb\u6377\u952e',
@@ -53,9 +52,7 @@ interface MainWindowProps {
   records: TranscriptRecord[];
   stats: TranscriptStats;
   historyMessage: string | null;
-  onOpenDiagnostic: () => void;
   onOpenModelSettings: () => void;
-  onOpenTextOptimization: () => void;
   onCopyRecord: (record: TranscriptRecord) => void;
   onReinsertRecord: (record: TranscriptRecord) => void;
   onDeleteRecord: (id: string) => void;
@@ -100,6 +97,15 @@ function formatModelLabel(modelId: TranscriptionModelId) {
 }
 
 
+function formatAudioPreprocess(record: TranscriptRecord) {
+  const summary = record.audioPreprocess;
+  if (!summary?.applied) return null;
+  if (summary.fallbackToRaw) return '\u589e\u5f3a / \u5df2\u56de\u9000';
+  const trimMs = Math.round(((summary.trimmedFrontSamples + summary.trimmedBackSamples) / 16000) * 1000);
+  if (trimMs > 0) return `\u589e\u5f3a / \u88c1\u526a ${trimMs}ms`;
+  if (summary.gainApplied > 1.01) return `\u589e\u5f3a / ${summary.gainApplied.toFixed(1)}x`;
+  return '\u589e\u5f3a / \u65e0\u660e\u663e\u53d8\u5316';
+}
 function formatAudioWarnings(record: TranscriptRecord) {
   const warnings = record.audioQuality?.warnings ?? [];
   if (warnings.length === 0) return null;
@@ -117,7 +123,7 @@ function formatInputMode(source: TranscriptRecord['inputMode']) {
   return text.manual;
 }
 
-export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDictationHotkey, pushToTalkModelReadiness, toggleDictationModelReadiness, recorderInfo, records, stats, historyMessage, onOpenDiagnostic, onOpenModelSettings, onOpenTextOptimization, onCopyRecord, onReinsertRecord, onDeleteRecord, onClearRecords, onExportRecords, onOpenHotkeySettings }: MainWindowProps) {
+export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDictationHotkey, pushToTalkModelReadiness, toggleDictationModelReadiness, recorderInfo, records, stats, historyMessage, onOpenModelSettings, onCopyRecord, onReinsertRecord, onDeleteRecord, onClearRecords, onExportRecords, onOpenHotkeySettings }: MainWindowProps) {
   const hotkeysReady = hotkeyStatus.registered;
   const readinessModelItems = [
     { label: text.pushToTalkModel, value: pushToTalkModelReadiness.label, state: pushToTalkModelReadiness.ready ? 'ready' : 'warning', title: pushToTalkModelReadiness.message },
@@ -133,13 +139,13 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
       <section className="control-center v51" aria-labelledby="app-title">
         <header className="control-topbar">
           <div className="brand-block"><span className="product-mark">VoxType</span><h1 id="app-title">{text.controlCenter}</h1></div>
-          <div className="topbar-actions"><button className="ghost-button" type="button" onClick={onOpenModelSettings}>{text.modelSettings}</button><button className="ghost-button" type="button" onClick={onOpenTextOptimization}>{text.textOptimization}</button><button className="ghost-button" type="button" onClick={onOpenDiagnostic}>{text.diagnostic}</button></div>
+          <div className="topbar-actions"><button className="ghost-button" type="button" onClick={onOpenModelSettings}>{text.modelSettings}</button></div>
         </header>
         <div className="v51-top-grid">
           <section className="control-section mode-selector" aria-label={text.inputMode}>
-            <div className="section-heading"><span>{text.inputMode}</span><strong>{text.hotkeyStatus}</strong><button className="icon-only-button section-action" type="button" onClick={onOpenHotkeySettings} title={text.hotkeySettings} aria-label={text.hotkeySettings}><Icon name="settings" /></button></div>
-            <article className="mode-card compact"><div className="mode-line"><h2>{text.pushToTalk}</h2><kbd>{pushToTalkHotkey}</kbd><span className="ready-dot" data-ready={hotkeysReady} title={hotkeysReady ? text.registered : text.unregistered} aria-label={hotkeysReady ? text.registered : text.unregistered} /></div></article>
-            <article className="mode-card compact"><div className="mode-line"><h2>{text.toggleDictation}</h2><kbd>{toggleDictationHotkey}</kbd><span className="ready-dot" data-ready={hotkeysReady} title={hotkeysReady ? text.registered : text.unregistered} aria-label={hotkeysReady ? text.registered : text.unregistered} /></div></article>
+            <div className="section-heading"><span>{text.inputMode}</span><strong>{text.hotkeyStatus}</strong></div>
+            <article className="mode-card compact"><div className="mode-line"><h2>{text.pushToTalk}</h2><button className="hotkey-pill-button" type="button" onClick={onOpenHotkeySettings} aria-label={pushToTalkHotkey} title={text.hotkeySettings}><kbd>{pushToTalkHotkey}</kbd></button><span className="ready-dot" data-ready={hotkeysReady} title={hotkeysReady ? text.registered : text.unregistered} aria-label={hotkeysReady ? text.registered : text.unregistered} /></div></article>
+            <article className="mode-card compact"><div className="mode-line"><h2>{text.toggleDictation}</h2><button className="hotkey-pill-button" type="button" onClick={onOpenHotkeySettings} aria-label={toggleDictationHotkey} title={text.hotkeySettings}><kbd>{toggleDictationHotkey}</kbd></button><span className="ready-dot" data-ready={hotkeysReady} title={hotkeysReady ? text.registered : text.unregistered} aria-label={hotkeysReady ? text.registered : text.unregistered} /></div></article>
           </section>
           <section className="control-section readiness-panel" aria-label={text.readiness}>
             <div className="section-heading"><span>{text.readiness}</span><strong>{text.capabilities}</strong></div>
@@ -152,7 +158,7 @@ export function MainWindow({ status, hotkeyStatus, pushToTalkHotkey, toggleDicta
         <section className="transcript-history" aria-label={text.history}>
           <header className="history-header" data-testid="history-toolbar"><div className="history-title"><span>{text.history}</span></div><div className="history-stats"><StatPill icon="count" value={`${stats.count} ${text.itemUnit}`} title={text.countTitle} tone="count" /><StatPill icon="duration" value={formatDuration(stats.totalDurationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${stats.totalChars} ${text.charUnit}`} title={text.charsTitle} tone="chars" /><StatPill icon="speed" value={`${stats.charsPerMinute}/m`} title={text.speedTitle} tone="speed" /></div><div className="history-actions"><button type="button" onClick={onClearRecords} disabled={records.length === 0} aria-label={text.clearAll} title={text.clearAll}>{text.clear}</button><button type="button" onClick={onExportRecords} disabled={records.length === 0} aria-label={text.exportAll} title={text.exportAll}>{text.export}</button></div></header>
           {historyMessage ? <p className="history-message" role="status">{historyMessage}</p> : null}
-          {records.length === 0 ? <div className="empty-history"><span>{text.empty}</span><strong>{text.emptyDetail}</strong></div> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`${text.history} ${record.time}`}><div className="record-head"><time>{record.time}</time><p>{record.text}</p></div><footer className="record-footer">{formatAudioWarnings(record) ? <span className="quality-pill" title="录音质量提示">{formatAudioWarnings(record)}</span> : null}<div className="record-meta"><StatPill icon="mode" value={formatInputMode(record.inputMode)} title={text.inputMode} tone="mode" /><StatPill icon="model" value={formatModelLabel(record.modelId)} title={text.modelSettings} tone="model" /><StatPill icon="duration" value={formatDuration(record.durationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${record.charCount} ${text.charUnit}`} title={text.charsTitle} tone="chars" /></div><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label={text.copy} title={text.copy}><Icon name="copy" /></button><button type="button" onClick={() => onReinsertRecord(record)} aria-label={text.reinsert} title={text.reinsert}><Icon name="reinsert" /></button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label={text.delete} title={text.delete}><Icon name="delete" /></button></div></footer></article></li>)}</ol>}
+          {records.length === 0 ? <div className="empty-history"><span>{text.empty}</span><strong>{text.emptyDetail}</strong></div> : <ol className="history-list">{records.map((record) => <li key={record.id}><article aria-label={`${text.history} ${record.time}`}><div className="record-head"><time>{record.time}</time><p>{record.text}</p></div><footer className="record-footer">{formatAudioWarnings(record) ? <span className="quality-pill" title="录音质量提示">{formatAudioWarnings(record)}</span> : null}<div className="record-meta">{formatAudioPreprocess(record) ? <span className="stat-pill" data-tone="model" title={"\u97f3\u9891\u589e\u5f3a"}><span>{formatAudioPreprocess(record)}</span></span> : null}<StatPill icon="mode" value={formatInputMode(record.inputMode)} title={text.inputMode} tone="mode" /><StatPill icon="model" value={formatModelLabel(record.modelId)} title={text.modelSettings} tone="model" /><StatPill icon="duration" value={formatDuration(record.durationMs)} title={text.durationTitle} tone="duration" /><StatPill icon="chars" value={`${record.charCount} ${text.charUnit}`} title={text.charsTitle} tone="chars" /></div><div className="record-actions"><button type="button" onClick={() => onCopyRecord(record)} aria-label={text.copy} title={text.copy}><Icon name="copy" /></button><button type="button" onClick={() => onReinsertRecord(record)} aria-label={text.reinsert} title={text.reinsert}><Icon name="reinsert" /></button><button type="button" onClick={() => onDeleteRecord(record.id)} aria-label={text.delete} title={text.delete}><Icon name="delete" /></button></div></footer></article></li>)}</ol>}
         </section>
       </section>
     </main>

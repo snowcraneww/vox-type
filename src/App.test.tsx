@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { getOverlayBackendStatus, getSenseVoiceConfigStatus, hideDictationOverlay, showDictationOverlay, insertTextWithClipboard, installManagedSenseVoice, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, saveSenseVoiceConfig, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { getAudioPreprocessConfig, saveAudioPreprocessConfig, getOverlayBackendStatus, getSenseVoiceConfigStatus, hideDictationOverlay, showDictationOverlay, insertTextWithClipboard, installManagedSenseVoice, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, saveSenseVoiceConfig, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
@@ -31,6 +31,8 @@ vi.mock('./tauriClient', async (importOriginal) => {
     deleteTranscriptHistoryEntry: vi.fn().mockResolvedValue([]),
     clearTranscriptHistory: vi.fn().mockResolvedValue([]),
     getTranscriptPostprocessConfig: vi.fn().mockResolvedValue({ enabled: true, cleanupNoise: true, glossary: ['WebSocket', 'whisper.cpp', 'VoxType'], replacements: [{ from: 'scale', to: 'skill', enabled: true }] }),
+    getAudioPreprocessConfig: vi.fn().mockResolvedValue({ enabled: false, removeDcOffset: true, highPassEnabled: false, normalizeEnabled: true, vadTrimEnabled: true, denoiseEnabled: false }),
+    saveAudioPreprocessConfig: vi.fn().mockImplementation((config) => Promise.resolve(config)),
     saveTranscriptPostprocessConfig: vi.fn().mockImplementation((config) => Promise.resolve(config)),
     previewTranscriptPostprocess: vi.fn().mockImplementation((text: string) => Promise.resolve({ text: text.replace(/scale/gi, 'skill').replace(/websocket/gi, 'WebSocket').replace(/whisper cpp/gi, 'whisper.cpp'), rulesApplied: /scale/i.test(text) ? 1 : 0, noiseRemoved: false })),
     listInputDevices: vi.fn().mockResolvedValue([{ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }]),
@@ -97,6 +99,10 @@ describe('App', () => {
     vi.mocked(previewTranscriptPostprocess).mockClear();
     vi.mocked(saveTranscriptPostprocessConfig).mockImplementation((config) => Promise.resolve(config));
     vi.mocked(saveTranscriptPostprocessConfig).mockClear();
+    vi.mocked(getAudioPreprocessConfig).mockResolvedValue({ enabled: false, removeDcOffset: true, highPassEnabled: false, normalizeEnabled: true, vadTrimEnabled: true, denoiseEnabled: false });
+    vi.mocked(getAudioPreprocessConfig).mockClear();
+    vi.mocked(saveAudioPreprocessConfig).mockImplementation((config) => Promise.resolve(config));
+    vi.mocked(saveAudioPreprocessConfig).mockClear();
     vi.mocked(saveCloudAsrConfig).mockClear();
     vi.mocked(saveModeModelPreferences).mockClear();
     vi.mocked(getSenseVoiceConfigStatus).mockClear();
@@ -115,7 +121,10 @@ describe('App', () => {
     expect(screen.getAllByText('连续输入').length).toBeGreaterThan(0);
     expect(screen.getByText('Ctrl+Alt+Space')).toBeInTheDocument();
     expect(screen.getByText('Ctrl+Alt+V')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '模型选择配置' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '设置' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '诊断' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '文本优化' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '自定义快捷键' })).not.toBeInTheDocument();
     const readiness = screen.getByRole('region', { name: '准备状态' });
     expect(readiness).toBeInTheDocument();
     expect(screen.getByText('麦克风')).toBeInTheDocument();
@@ -140,11 +149,175 @@ describe('App', () => {
     expect(screen.getByTitle('本次运行累计录音时长')).toHaveTextContent('0:00');
     expect(screen.getByTitle('本次运行累计识别字数')).toHaveTextContent('0 字');
     expect(await screen.findByText('Test Microphone')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '诊断' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '开始一次语音输入' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '安装 whisper.cpp' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '诊断工作台' })).not.toBeInTheDocument();
     expect(document.querySelector('.traffic-lights')).not.toBeInTheDocument();
+  });
+
+
+
+  it('renders audio preprocessing metadata in transcript history', async () => {
+    vi.mocked(loadTranscriptHistory).mockResolvedValueOnce([{
+      id: 'entry-preprocess',
+      text: 'enhanced text',
+      inputMode: 'push-to-talk',
+      model: 'baidu-short',
+      createdAtMs: Date.now(),
+      durationMs: 1200,
+      characterCount: 13,
+      postprocessRulesApplied: 0,
+      audioQuality: null,
+      audioPreprocess: { applied: true, originalSampleCount: 24000, processedSampleCount: 12000, trimmedFrontSamples: 4000, trimmedBackSamples: 8000, gainApplied: 1.0, fallbackToRaw: false },
+    }]);
+
+    render(<App />);
+
+    expect(await screen.findByText('enhanced text')).toBeInTheDocument();
+    expect(await screen.findByTitle('\u97f3\u9891\u589e\u5f3a')).toBeInTheDocument();
+  });
+
+  it('persists audio preprocessing metadata from stop then transcribe results', async () => {
+    vi.mocked(transcribeLastRecording).mockResolvedValueOnce({
+      engine: 'whisper.cpp',
+      text: 'enhanced live text',
+      audioPreprocess: { applied: true, originalSampleCount: 32000, processedSampleCount: 28000, trimmedFrontSamples: 2000, trimmedBackSamples: 2000, gainApplied: 2.0, fallbackToRaw: false },
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u8fd4\u56de\u4e3b\u754c\u9762' }));
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    await waitFor(() => expect(saveTranscriptHistoryEntry).toHaveBeenCalled());
+    const entry = vi.mocked(saveTranscriptHistoryEntry).mock.calls[0][0];
+    expect(entry.audioPreprocess).toEqual({ applied: true, originalSampleCount: 32000, processedSampleCount: 28000, trimmedFrontSamples: 2000, trimmedBackSamples: 2000, gainApplied: 2.0, fallbackToRaw: false });
+    expect(await screen.findByText('enhanced live text')).toBeInTheDocument();
+    expect(await screen.findByText('\u589e\u5f3a / \u88c1\u526a 250ms')).toBeInTheDocument();
+  });
+
+  it('renders audio enhancement fallback metadata', async () => {
+    vi.mocked(loadTranscriptHistory).mockResolvedValueOnce([{
+      id: 'entry-fallback',
+      text: 'raw fallback text',
+      inputMode: 'push-to-talk',
+      model: 'sensevoice-small',
+      createdAtMs: Date.now(),
+      durationMs: 1200,
+      characterCount: 17,
+      postprocessRulesApplied: 0,
+      audioQuality: null,
+      audioPreprocess: { applied: true, originalSampleCount: 32000, processedSampleCount: 28000, trimmedFrontSamples: 2000, trimmedBackSamples: 2000, gainApplied: 2.0, fallbackToRaw: true },
+    }]);
+
+    render(<App />);
+
+    expect(await screen.findByText('raw fallback text')).toBeInTheDocument();
+    expect(await screen.findByText('\u589e\u5f3a / \u5df2\u56de\u9000')).toBeInTheDocument();
+  });
+
+  it('loads persisted audio enhancement config on startup', async () => {
+    vi.mocked(getAudioPreprocessConfig).mockResolvedValueOnce({
+      enabled: true,
+      removeDcOffset: true,
+      highPassEnabled: false,
+      normalizeEnabled: true,
+      vadTrimEnabled: true,
+      denoiseEnabled: false,
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u97f3\u9891\u589e\u5f3a' }));
+
+    expect(await screen.findByRole('button', { name: '\u5173\u95ed\u97f3\u9891\u589e\u5f3a' })).toBeInTheDocument();
+  });
+
+  it('shows audio enhancement state and enabled processors without repeated status text', async () => {
+    vi.mocked(getAudioPreprocessConfig).mockResolvedValueOnce({
+      enabled: true,
+      removeDcOffset: true,
+      highPassEnabled: false,
+      normalizeEnabled: true,
+      vadTrimEnabled: true,
+      denoiseEnabled: false,
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '音频增强' }));
+
+    expect(await screen.findByRole('button', { name: '关闭音频增强' })).toBeInTheDocument();
+    const panel = screen.getByRole('region', { name: '音频增强' });
+    expect(within(panel).getByText('音频增强')).toBeInTheDocument();
+    expect(within(panel).getByText('已开启')).toBeInTheDocument();
+    expect(within(panel).queryByText('音频增强已开启')).not.toBeInTheDocument();
+    const processors = within(panel).getByRole('group', { name: '增强项目' });
+    expect(within(processors).getByText('DC offset')).toBeInTheDocument();
+    expect(within(processors).getByText('音量归一')).toBeInTheDocument();
+    expect(within(processors).getByText('静音裁剪')).toBeInTheDocument();
+    expect(within(processors).getByText('降噪')).toBeInTheDocument();
+  });
+
+  it('shows five settings tabs and saves audio enhancement from its own page', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    const tabs = Array.from(document.querySelectorAll('.model-page-tabs button'));
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['\u8f93\u5165', '\u6a21\u578b', '\u97f3\u9891\u589e\u5f3a', '\u6587\u672c\u4f18\u5316', '\u8bca\u65ad']);
+    fireEvent.click(tabs[2]);
+    await screen.findByRole('region', { name: '\u97f3\u9891\u589e\u5f3a' });
+    expect(screen.queryByRole('region', { name: '\u6a21\u578b\u914d\u7f6e' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '\u542f\u7528\u97f3\u9891\u589e\u5f3a' }));
+
+    await waitFor(() => expect(saveAudioPreprocessConfig).toHaveBeenCalledWith({
+      enabled: true,
+      removeDcOffset: true,
+      highPassEnabled: false,
+      normalizeEnabled: true,
+      vadTrimEnabled: true,
+      denoiseEnabled: false,
+    }));
+  });
+
+  it('opens diagnostic and hotkey settings inside settings', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u8f93\u5165' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u5feb\u6377\u952e\u8bbe\u7f6e' }));
+
+    expect(await screen.findByRole('dialog', { name: '\u5feb\u6377\u952e\u8bbe\u7f6e' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '\u5173\u95ed\u5feb\u6377\u952e\u8bbe\u7f6e' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bca\u65ad' }));
+    expect(screen.getByRole('region', { name: '\u8bca\u65ad' })).toBeInTheDocument();
+    expect(screen.getByText('开始录音采集')).toBeInTheDocument();
+    expect(screen.getByText('测试剪贴板上屏')).toBeInTheDocument();
+  });
+
+  it('opens hotkey settings from main hotkey pills', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ctrl+Alt+Space' }));
+
+    expect(await screen.findByRole('dialog', { name: '\u5feb\u6377\u952e\u8bbe\u7f6e' })).toBeInTheDocument();
+  });
+
+  it('opens text optimization inside settings', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u6587\u672c\u4f18\u5316' }));
+
+    expect(screen.getByRole('region', { name: '\u6587\u672c\u4f18\u5316' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '\u4fdd\u5b58\u6587\u672c\u4f18\u5316' })).toBeInTheDocument();
   });
 
   it('adds SenseVoice Small after whisper.cpp in model selection and config', async () => {
@@ -152,6 +325,7 @@ describe('App', () => {
 
     const topbarButtons = Array.from(document.querySelectorAll('.topbar-actions button'));
     fireEvent.click(topbarButtons[0]);
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
 
     const firstRouteGroup = document.querySelector('.segmented-models.route-models')!;
     const routeButtons = Array.from(firstRouteGroup.querySelectorAll('button'));
@@ -159,27 +333,27 @@ describe('App', () => {
     expect(routeButtons[1]).toHaveTextContent('SenseVoice Small');
     expect(routeButtons[0]).toHaveTextContent('whisper.cpp');
 
-    fireEvent.click(Array.from(document.querySelectorAll('.model-page-tabs button'))[1]);
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(screen.getByRole('tab', { name: /SenseVoice Small/ }));
 
     expect(screen.getByLabelText(/sherpa-onnx/)).toBeInTheDocument();
     expect(screen.getByLabelText(/SenseVoice ONNX/)).toBeInTheDocument();
     expect(screen.getByLabelText('tokens.txt')).toBeInTheDocument();
     expect(screen.getByLabelText('SenseVoice language')).toHaveValue('auto');
-    expect(screen.getByRole('button', { name: /SenseVoice Small/ })).toBeInTheDocument();
+    expect(within(screen.getByRole('tablist', { name: '模型配置' })).getByRole('tab', { name: /SenseVoice Small/ })).toBeInTheDocument();
   });
   it('uses refreshed SenseVoice readiness when starting continuous input from the global shortcut', async () => {
     render(<App />);
 
     const topbarButtons = Array.from(document.querySelectorAll('.topbar-actions button'));
     fireEvent.click(topbarButtons[0]);
-    fireEvent.click(Array.from(document.querySelectorAll('.model-page-tabs button'))[1]);
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(screen.getByRole('tab', { name: /SenseVoice Small/ }));
     fireEvent.click(document.querySelector('.active-config-panel .button-row button') as HTMLButtonElement);
 
     expect(await screen.findByText('SenseVoice Small ready.')).toBeInTheDocument();
 
-    fireEvent.click(Array.from(document.querySelectorAll('.model-page-tabs button'))[0]);
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     const toggleRouteGroup = document.querySelectorAll('.segmented-models.route-models')[1];
     fireEvent.click(Array.from(toggleRouteGroup.querySelectorAll('button'))[1]);
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'sensevoice-small'));
@@ -244,18 +418,21 @@ describe('App', () => {
     await screen.findByText(/Ctrl\+Alt\+Space/);
     await waitForBaiduReadiness();
     pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
     fireEvent.click(screen.getByRole('button', { name: '诊断' }));
 
     expect(await screen.findByText('收到全局快捷键按下')).toBeInTheDocument();
   });
 
-  it('opens and closes hotkey settings from one section-level settings button', async () => {
+  it('opens and closes hotkey settings from settings input tab', async () => {
     render(<App />);
 
     expect(screen.queryByRole('button', { name: '修改按住说话快捷键' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '修改连续输入快捷键' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '自定义快捷键' }));
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '输入' }));
+    fireEvent.click(screen.getByRole('button', { name: '快捷键设置' }));
 
     expect(await screen.findByRole('dialog', { name: '快捷键设置' })).toBeInTheDocument();
     expect(screen.getByLabelText('按住说话快捷键')).toHaveValue('Ctrl+Alt+Space');
@@ -263,6 +440,37 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '关闭快捷键设置' }));
     expect(screen.queryByRole('dialog', { name: '快捷键设置' })).not.toBeInTheDocument();
+  });
+
+  it('shows labeled input device and shortcut summaries in settings input tab', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '输入' }));
+
+    const deviceSettings = screen.getByRole('group', { name: '输入设备' });
+    expect(within(deviceSettings).getByRole('combobox', { name: '输入设备' })).toBeInTheDocument();
+    const hotkeySummary = screen.getByRole('group', { name: '快捷键' });
+    expect(within(hotkeySummary).getByText('按住说话')).toBeInTheDocument();
+    expect(within(hotkeySummary).getByText('Ctrl+Alt+Space')).toBeInTheDocument();
+    expect(within(hotkeySummary).getByText('连续输入')).toBeInTheDocument();
+    expect(within(hotkeySummary).getByText('Ctrl+Alt+V')).toBeInTheDocument();
+    expect(screen.queryByText('全局快捷键已注册：Ctrl+Alt+Space')).not.toBeInTheDocument();
+  });
+
+  it('uses readable embedded diagnostic status styles', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '诊断' }));
+
+    const diagnostics = screen.getByRole('region', { name: '诊断' });
+    expect(within(diagnostics).getByText('Ctrl+Alt+Space')).toBeInTheDocument();
+    expect(within(diagnostics).getByText('中文优先，兼容英文')).toBeInTheDocument();
+    expect(within(diagnostics).getByText('剪贴板粘贴')).toBeInTheDocument();
+    expect(document.querySelector('.embedded-diagnostic .settings-grid dd')).toBeInTheDocument();
+    expect(document.querySelector('.embedded-diagnostic .status-pill')).not.toBeInTheDocument();
+    expect(document.querySelector('.embedded-diagnostic .diagnostic-ready-state .ready-dot')).toBeInTheDocument();
   });
 
   it('runs the shortcut closed loop and hides the desktop overlay after release', async () => {
@@ -323,9 +531,10 @@ describe('App', () => {
   it('shows V7 mode model routing and removes MiniMax from model selection', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
 
-    expect(screen.getByRole('heading', { name: '模型选择配置' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '设置' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: '输入模式默认模型' })).toBeInTheDocument();
     expect(screen.queryByText('输入模式默认模型')).not.toBeInTheDocument();
     expect(screen.getByText('按住说话')).toBeInTheDocument();
@@ -334,7 +543,7 @@ describe('App', () => {
     expect(screen.getAllByText('百度短语音 API').length).toBeGreaterThan(0);
     expect(screen.getAllByText('百度实时 WebSocket API').length).toBeGreaterThan(0);
     expect(screen.queryByText('MiniMax')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(screen.getByRole('tab', { name: /本地 whisper\.cpp/ }));
     expect(screen.getByLabelText('whisper.cpp 可执行文件')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /百度短语音 API/ }));
@@ -342,26 +551,25 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
     expect(screen.getByLabelText('百度 WebSocket AppID')).toHaveValue('10500017');
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     expect(screen.queryByRole('button', { name: '保存默认模型' })).not.toBeInTheDocument();
     fireEvent.click(within(screen.getByRole('group', { name: '连续输入模型默认模型' })).getByRole('button', { name: /WebSocket/ }));
 
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
   });
 
-  it('opens text optimization as a standalone page', async () => {
+  it('opens text optimization inside settings tabs', async () => {
     render(<App />);
 
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
     fireEvent.click(screen.getByRole('button', { name: '文本优化' }));
 
-    expect(screen.getByRole('heading', { name: '文本优化' })).toBeInTheDocument();
     expect(screen.getByLabelText('替换规则')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '保存并预览' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '返回主界面' }));
-    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
 
-    expect(screen.getByRole('heading', { name: '模型选择配置' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '设置' })).toBeInTheDocument();
     expect(screen.queryByLabelText('替换规则')).not.toBeInTheDocument();
   });
 
@@ -475,8 +683,8 @@ describe('App', () => {
   it('configures Baidu short speech ASR without rendering the API key secret', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
-    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
 
     expect(screen.getByRole('region', { name: '百度短语音 API 配置' })).toBeInTheDocument();
     expect(screen.getByText('BAIDU_ASR_API_KEY')).toBeInTheDocument();
@@ -533,8 +741,8 @@ describe('App', () => {
   it('shows explicit feedback when testing Baidu ASR settings', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
-    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(screen.getByRole('button', { name: '检测百度配置' }));
 
     expect(await screen.findByText(/百度配置检测/)).toBeInTheDocument();
@@ -545,8 +753,8 @@ describe('App', () => {
   it('shows realtime WebSocket readiness feedback on the realtime config panel', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
-    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
     expect(screen.getByLabelText('百度 WebSocket AppID')).toHaveValue('10500017');
     expect(screen.getByLabelText('百度 WebSocket Endpoint')).toHaveValue('wss://vop.baidu.com/realtime_asr');
@@ -563,8 +771,8 @@ describe('App', () => {
   it('shows shared Baidu credentials on the realtime WebSocket config panel', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
-    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
 
     expect(screen.getByRole('region', { name: '百度实时 WebSocket API 配置' })).toBeInTheDocument();
@@ -586,8 +794,8 @@ describe('App', () => {
   it('saves realtime WebSocket fields as part of Baidu model configuration', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '模型选择配置' }));
-    fireEvent.click(screen.getByRole('button', { name: '模型配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(screen.getByRole('tab', { name: /百度实时 WebSocket API/ }));
     fireEvent.change(screen.getByLabelText('百度 WebSocket AppID'), { target: { value: '10500017' } });
     fireEvent.change(screen.getByLabelText('百度 WebSocket dev_pid'), { target: { value: '15372' } });
@@ -754,7 +962,8 @@ describe('App', () => {
     render(<App />);
 
     await waitForBaiduReadiness();
-    fireEvent.click(screen.getByRole('button', { name: /\u6a21\u578b\u9009\u62e9\u914d\u7f6e/ }));
+    fireEvent.click(screen.getByRole('button', { name: /\u8bbe\u7f6e/ }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(within(screen.getByRole('group', { name: /\u8fde\u7eed\u8f93\u5165/ })).getByRole('button', { name: /WebSocket/ }));
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
     fireEvent.click(screen.getByRole('button', { name: /\u8fd4\u56de\u4e3b\u754c\u9762/ }));
@@ -770,7 +979,8 @@ describe('App', () => {
     render(<App />);
 
     await waitForBaiduReadiness();
-    fireEvent.click(screen.getByRole('button', { name: /\u6a21\u578b\u9009\u62e9\u914d\u7f6e/ }));
+    fireEvent.click(screen.getByRole('button', { name: /\u8bbe\u7f6e/ }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(within(screen.getByRole('group', { name: /\u8fde\u7eed\u8f93\u5165/ })).getByRole('button', { name: /WebSocket/ }));
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
     fireEvent.click(screen.getByRole('button', { name: /\u8fd4\u56de\u4e3b\u754c\u9762/ }));
@@ -797,7 +1007,8 @@ describe('App', () => {
     render(<App />);
 
     await waitForBaiduReadiness();
-    fireEvent.click(screen.getByRole('button', { name: /\u6a21\u578b\u9009\u62e9\u914d\u7f6e/ }));
+    fireEvent.click(screen.getByRole('button', { name: /\u8bbe\u7f6e/ }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
     fireEvent.click(within(screen.getByRole('group', { name: /\u6309\u4f4f\u8bf4\u8bdd/ })).getByRole('button', { name: /WebSocket/ }));
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-realtime', 'baidu-short'));
     fireEvent.click(screen.getByRole('button', { name: /\u8fd4\u56de\u4e3b\u754c\u9762/ }));
@@ -812,9 +1023,10 @@ describe('App', () => {
   it('opens the diagnostic workbench on request', async () => {
     render(<App />);
 
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
     fireEvent.click(screen.getByRole('button', { name: '诊断' }));
 
-    expect(screen.getByRole('heading', { name: '诊断工作台' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '诊断' })).toBeInTheDocument();
     expect(screen.getByText('开始录音采集')).toBeInTheDocument();
     expect(screen.getByText('停止录音采集')).toBeInTheDocument();
     expect(screen.getByText('转写最近录音')).toBeInTheDocument();

@@ -231,6 +231,7 @@ pub fn parse_baidu_asr_response(body: &str) -> Result<Transcript, VoxError> {
     Ok(Transcript {
         text: text.to_string(),
         engine: "baidu-short-speech".to_string(),
+        audio_preprocess: None,
     })
 }
 

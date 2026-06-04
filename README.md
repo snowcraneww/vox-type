@@ -15,6 +15,8 @@ The project is still early. The current focus is a usable desktop MVP: reliable 
 - Native Windows dictation overlay with recording and transcribing states.
 - Recognition history in the main window with copy, re-insert, delete, clear, export, duration, model, and input-mode metadata.
 - Diagnostics for microphone, model configuration, recording, ASR, overlay, and insertion flow.
+- Conservative audio enhancement for stop-then-transcribe recordings with persisted settings and transcript metadata.
+- Unified Settings tabs for input, models, audio enhancement, text optimization, and diagnostics.
 
 ## Current Limitations
 
@@ -22,8 +24,8 @@ The project is still early. The current focus is a usable desktop MVP: reliable 
 - Text insertion currently uses a clipboard-based strategy.
 - Baidu Realtime WebSocket API inserts final `FIN_TEXT` results; partial `MID_TEXT` results are status-only.
 - Recognition quality depends heavily on microphone distance, noise, model choice, and provider behavior.
-- Recognition history persistence and audio quality diagnostics are planned for the next implementation version.
-- Audio preprocessing such as AGC, denoise, VAD trimming, and normalization is planned after diagnostics are in place.
+- Audio enhancement is conservative and currently applies to stop-then-transcribe recordings; Baidu Realtime WebSocket audio remains raw.
+- Text insertion currently uses a clipboard-based strategy; the next planned milestone is Windows `SendInput(KEYEVENTF_UNICODE)` with clipboard fallback.
 
 ## Tech Stack
 

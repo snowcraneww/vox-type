@@ -22,7 +22,7 @@ const text = {
   glossaryPlaceholder: 'WebSocket\nwhisper.cpp\nVoxType',
 };
 
-interface TextOptimizationViewProps {
+export interface TextOptimizationViewProps {
   transcriptPostprocessConfig: TranscriptPostprocessConfig;
   postprocessReplacementText: string;
   postprocessGlossaryText: string;
@@ -39,12 +39,40 @@ interface TextOptimizationViewProps {
   onPreviewTranscriptPostprocess: () => void;
 }
 
+export type TextOptimizationPanelProps = Omit<TextOptimizationViewProps, 'onBack'>;
+
 function ToggleCard({ checked, title, hint, onChange }: { checked: boolean; title: string; hint: string; onChange: (value: boolean) => void }) {
   return (
     <label className="optimization-toggle-card">
       <span><strong>{title}</strong><small>{hint}</small></span>
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>
+  );
+}
+
+export function TextOptimizationPanel(props: TextOptimizationPanelProps) {
+  return (
+    <>
+      <section className="optimization-hero" aria-label={text.eyebrow}>
+        <span>{text.eyebrow}</span>
+        <p>{text.detail}</p>
+      </section>
+      <section className="optimization-card optimization-toggles" aria-label={text.title}>
+        <ToggleCard checked={props.transcriptPostprocessConfig.enabled} title={text.enablePostprocess} hint={text.enableHint} onChange={props.onTranscriptPostprocessEnabledChange} />
+        <ToggleCard checked={props.transcriptPostprocessConfig.cleanupNoise} title={text.cleanupNoise} hint={text.cleanupHint} onChange={props.onTranscriptPostprocessCleanupNoiseChange} />
+      </section>
+      <section className="optimization-grid">
+        <label className="field optimization-card"><span>{text.replacements}</span><small>{text.replacementsHint}</small><textarea aria-label={text.replacements} value={props.postprocessReplacementText} onChange={(event) => props.onPostprocessReplacementTextChange(event.target.value)} placeholder={text.replacementPlaceholder} /></label>
+        <label className="field optimization-card"><span>{text.glossary}</span><small>{text.glossaryHint}</small><textarea aria-label={text.glossary} value={props.postprocessGlossaryText} onChange={(event) => props.onPostprocessGlossaryTextChange(event.target.value)} placeholder={text.glossaryPlaceholder} /></label>
+      </section>
+      <section className="optimization-card preview-card" aria-label={text.preview}>
+        <div className="section-heading model-config-heading"><span>{text.preview}</span><strong>{text.previewOutput}</strong></div>
+        <label className="field"><span>{text.previewInput}</span><input aria-label={text.previewInput} value={props.postprocessPreviewInput} onChange={(event) => props.onPostprocessPreviewInputChange(event.target.value)} /></label>
+        <output className="postprocess-output" aria-label={text.previewOutput}>{props.postprocessPreviewOutput ?? text.previewOutput}</output>
+      </section>
+      {props.postprocessMessage ? <p className="runtime-message optimization-message">{props.postprocessMessage}</p> : null}
+      <div className="button-row optimization-actions"><button type="button" onClick={props.onSaveTranscriptPostprocessConfig}>{text.saveTextOptimization}</button><button type="button" onClick={props.onPreviewTranscriptPostprocess}>{text.previewTextOptimization}</button></div>
+    </>
   );
 }
 
@@ -56,25 +84,7 @@ export function TextOptimizationView(props: TextOptimizationViewProps) {
           <div className="model-title-line"><span className="product-mark">VoxType</span><h1 id="optimization-title">{text.title}</h1></div>
           <button className="secondary-button" type="button" onClick={props.onBack}>{text.back}</button>
         </header>
-        <section className="optimization-hero" aria-label={text.eyebrow}>
-          <span>{text.eyebrow}</span>
-          <p>{text.detail}</p>
-        </section>
-        <section className="optimization-card optimization-toggles" aria-label={text.title}>
-          <ToggleCard checked={props.transcriptPostprocessConfig.enabled} title={text.enablePostprocess} hint={text.enableHint} onChange={props.onTranscriptPostprocessEnabledChange} />
-          <ToggleCard checked={props.transcriptPostprocessConfig.cleanupNoise} title={text.cleanupNoise} hint={text.cleanupHint} onChange={props.onTranscriptPostprocessCleanupNoiseChange} />
-        </section>
-        <section className="optimization-grid">
-          <label className="field optimization-card"><span>{text.replacements}</span><small>{text.replacementsHint}</small><textarea aria-label={text.replacements} value={props.postprocessReplacementText} onChange={(event) => props.onPostprocessReplacementTextChange(event.target.value)} placeholder={text.replacementPlaceholder} /></label>
-          <label className="field optimization-card"><span>{text.glossary}</span><small>{text.glossaryHint}</small><textarea aria-label={text.glossary} value={props.postprocessGlossaryText} onChange={(event) => props.onPostprocessGlossaryTextChange(event.target.value)} placeholder={text.glossaryPlaceholder} /></label>
-        </section>
-        <section className="optimization-card preview-card" aria-label={text.preview}>
-          <div className="section-heading model-config-heading"><span>{text.preview}</span><strong>{text.previewOutput}</strong></div>
-          <label className="field"><span>{text.previewInput}</span><input aria-label={text.previewInput} value={props.postprocessPreviewInput} onChange={(event) => props.onPostprocessPreviewInputChange(event.target.value)} /></label>
-          <output className="postprocess-output" aria-label={text.previewOutput}>{props.postprocessPreviewOutput ?? text.previewOutput}</output>
-        </section>
-        {props.postprocessMessage ? <p className="runtime-message optimization-message">{props.postprocessMessage}</p> : null}
-        <div className="button-row optimization-actions"><button type="button" onClick={props.onSaveTranscriptPostprocessConfig}>{text.saveTextOptimization}</button><button type="button" onClick={props.onPreviewTranscriptPostprocess}>{text.previewTextOptimization}</button></div>
+        <TextOptimizationPanel {...props} />
       </section>
     </main>
   );

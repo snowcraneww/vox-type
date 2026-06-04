@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptPostprocessConfig, PostprocessResult, PersistedTranscriptEntry, SenseVoiceConfig, SenseVoiceConfigStatus, TranscriptionModelId, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AudioPreprocessConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptPostprocessConfig, PostprocessResult, PersistedTranscriptEntry, SenseVoiceConfig, SenseVoiceConfigStatus, TranscriptionModelId, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -82,6 +82,15 @@ export async function transcribeLastRecordingAndInsert(): Promise<Transcript> {
 
 export async function exportLastRecordingWav(): Promise<string> {
   return invoke<string>('export_last_recording_wav');
+}
+
+
+export async function getAudioPreprocessConfig(): Promise<AudioPreprocessConfig> {
+  return invoke<AudioPreprocessConfig>('get_audio_preprocess_config');
+}
+
+export async function saveAudioPreprocessConfig(config: AudioPreprocessConfig): Promise<AudioPreprocessConfig> {
+  return invoke<AudioPreprocessConfig>('save_audio_preprocess_config', { config });
 }
 
 export async function getAsrConfigStatus(): Promise<AsrConfigStatus> {
