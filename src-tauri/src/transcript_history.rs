@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::audio_preprocess::AudioPreprocessSummary;
 use crate::audio_quality::AudioQualitySummary;
 use crate::error::VoxError;
+use crate::insertion::InsertionResult;
 
 const HISTORY_FILE: &str = "transcript-history.json";
 const MAX_HISTORY_ENTRIES: usize = 500;
@@ -22,6 +23,7 @@ pub struct PersistedTranscriptEntry {
     pub postprocess_rules_applied: usize,
     pub audio_quality: Option<AudioQualitySummary>,
     pub audio_preprocess: Option<AudioPreprocessSummary>,
+    pub insertion: Option<InsertionResult>,
 }
 
 pub fn load_transcript_history(
@@ -113,6 +115,7 @@ mod tests {
                 warnings: vec![AudioQualityWarning::LowVolume],
             }),
             audio_preprocess: None,
+            insertion: None,
         }
     }
 

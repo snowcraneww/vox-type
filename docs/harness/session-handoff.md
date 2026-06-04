@@ -198,3 +198,22 @@
 - Current active item: `v9.5-001` SenseVoice Small local model closeout.
 - Known V9.5 bug: SenseVoice can display ready, but a real recording test fails with a not-ready error and the insertion/status area turns red. Start by tracing readiness checks versus the actual `SenseVoiceSmallEngine` invocation inputs: runtime path, model path, tokens path, language, process spawn, and stderr.
 - Do not mix V9.5 with V10 audio preprocessing. V10 remains planned but not started.
+
+## 2026-06-04 V11/V12 overnight handoff
+
+- V11 code is implemented and automated verification has passed. Use Settings -> 输入 -> 上屏策略 to switch between Clipboard, SendInput, and Auto.
+- V12 automated foundation is implemented: `docs/guide/desktop-compatibility-matrix.md`, `docs/guide/release-checklist.md`, and Settings -> 诊断 build metadata.
+- V12 remains `in_progress` because real Windows target-app compatibility cannot be fully verified by automation in this session.
+
+### Maintainer morning verification
+
+1. Run `npm run tauri -- dev`.
+2. Open Settings -> 输入 -> 上屏策略.
+3. For each strategy (`Clipboard`, `SendInput`, `Auto`), test `Ctrl+Alt+Space` and `Ctrl+Alt+V` in VS Code, Notepad, browser text fields, WeChat or another IME-heavy chat target, and one elevated/permission-boundary target if available.
+4. Check each transcript row for insertion metadata. Auto fallback should appear as `上屏 auto -> clipboard` when fallback is used.
+5. Open Settings -> 诊断 and confirm 应用版本 / 构建通道 display as plain readable status rows.
+6. Fill results in `docs/guide/desktop-compatibility-matrix.md`.
+
+### Known residual issue
+
+`bash init.sh` currently fails on tracked harness/planning files. The V11/V12 code checks pass, but this harness policy should be resolved before marking V12 `passing` or cutting a release.

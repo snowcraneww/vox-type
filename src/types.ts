@@ -4,7 +4,7 @@ export interface AppConfig {
   hotkey: string;
   language: string;
   asrEngine: string;
-  insertionStrategy: string;
+  insertionStrategy: InsertionStrategy;
   showStatusIndicator: boolean;
 }
 
@@ -81,6 +81,14 @@ export interface Transcript {
 
 export type InputModeId = 'push-to-talk' | 'toggle-dictation' | 'manual';
 export type TranscriptionModelId = 'local-whisper' | 'sensevoice-small' | 'baidu-short' | 'baidu-realtime';
+export type InsertionStrategy = 'clipboard' | 'sendinput' | 'auto';
+
+export interface InsertionResult {
+  requestedStrategy: InsertionStrategy;
+  actualStrategy: InsertionStrategy;
+  fallbackUsed: boolean;
+  errorCategory?: string | null;
+}
 
 export interface ModeModelPreferences {
   pushToTalkModel: TranscriptionModelId;
@@ -105,6 +113,7 @@ export interface TranscriptRecord {
   charCount: number;
   audioQuality: AudioQualitySummary | null;
   audioPreprocess: AudioPreprocessSummary | null;
+  insertion: InsertionResult | null;
   postprocessRulesApplied: number;
 }
 
@@ -164,6 +173,7 @@ export interface UserPreferences {
   toggleDictationHotkey: string | null;
   pushToTalkModel: TranscriptionModelId | null;
   toggleDictationModel: TranscriptionModelId | null;
+  insertionStrategy: InsertionStrategy | null;
 }
 
 export interface HotkeyRegistrationStatus {
@@ -259,4 +269,10 @@ export interface PersistedTranscriptEntry {
   postprocessRulesApplied: number;
   audioQuality: AudioQualitySummary | null;
   audioPreprocess?: AudioPreprocessSummary | null;
+  insertion?: InsertionResult | null;
+}
+
+export interface BuildInfo {
+  version: string;
+  channel: string;
 }

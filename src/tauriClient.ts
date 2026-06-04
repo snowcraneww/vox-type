@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AppConfig, AppStatus, AsrConfig, AudioPreprocessConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptPostprocessConfig, PostprocessResult, PersistedTranscriptEntry, SenseVoiceConfig, SenseVoiceConfigStatus, TranscriptionModelId, UserPreferences } from './types';
+import type { AppConfig, AppStatus, AsrConfig, AudioPreprocessConfig, AsrConfigStatus, BaiduRealtimeResultEvent, BaiduRealtimeSessionStatus, BaiduRealtimeSessionSummary, BuildInfo, CloudAsrConfig, CloudAsrConfigStatus, HotkeyRegistrationStatus, InsertionResult, InsertionStrategy, LiveTranscriptionChunk, RecordedAudio, RecorderInfo, RecorderRuntimeStatus, Transcript, TranscriptPostprocessConfig, PostprocessResult, PersistedTranscriptEntry, SenseVoiceConfig, SenseVoiceConfigStatus, TranscriptionModelId, UserPreferences } from './types';
 
 export interface PushToTalkPayload {
   state: 'pressed' | 'released';
@@ -58,6 +58,10 @@ export async function saveHotkeyPreferences(pushToTalkHotkey: string, toggleDict
 
 export async function saveModeModelPreferences(pushToTalkModel: TranscriptionModelId, toggleDictationModel: TranscriptionModelId): Promise<UserPreferences> {
   return invoke<UserPreferences>('save_mode_model_preferences', { pushToTalkModel, toggleDictationModel });
+}
+
+export async function saveInsertionStrategyPreference(insertionStrategy: InsertionStrategy): Promise<UserPreferences> {
+  return invoke<UserPreferences>('save_insertion_strategy_preference', { insertionStrategy });
 }
 
 export async function simulateDictation(): Promise<AppStatus> {
@@ -152,6 +156,14 @@ export async function getBaiduRealtimeSessionStatus(): Promise<BaiduRealtimeSess
 
 export async function insertTextWithClipboard(text: string): Promise<void> {
   return invoke('insert_text_with_clipboard', { text });
+}
+
+export async function insertText(text: string, strategy: InsertionStrategy): Promise<InsertionResult> {
+  return invoke<InsertionResult>('insert_text', { text, strategy });
+}
+
+export async function getBuildInfo(): Promise<BuildInfo> {
+  return invoke<BuildInfo>('get_build_info');
 }
 
 export async function showDictationOverlay(): Promise<void> {

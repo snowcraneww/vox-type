@@ -6,9 +6,9 @@ import { MainWindow } from './MainWindow';
 import { ModelSettingsView } from './ModelSettingsView';
 import { TextOptimizationPanel, TextOptimizationView } from './TextOptimizationView';
 import { formatError } from './errorFormat';
-import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getCloudAsrConfigStatus, getSenseVoiceConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getTranscriptPostprocessConfig, getAudioPreprocessConfig, getUserPreferences, hideDictationOverlay, insertTextWithClipboard, installManagedAsr, installManagedSenseVoice, isTauriRuntime, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveModeModelPreferences, saveSenseVoiceConfig, saveTranscriptPostprocessConfig, saveAudioPreprocessConfig, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { cancelBaiduRealtimeSession, exportLastRecordingWav, finishBaiduRealtimeSession, getAsrConfigStatus, getBuildInfo, getCloudAsrConfigStatus, getSenseVoiceConfigStatus, getConfig, getDefaultInputInfo, getHotkeyStatus, getOverlayBackendStatus, getRecordingStatus, getTranscriptPostprocessConfig, getAudioPreprocessConfig, getUserPreferences, hideDictationOverlay, insertText, installManagedAsr, installManagedSenseVoice, isTauriRuntime, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, listenToBaiduRealtimeResults, listenToPushToTalk, listInputDevices, saveAsrConfig, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveHotkeyPreferences, saveInsertionStrategyPreference, saveModeModelPreferences, saveSenseVoiceConfig, saveTranscriptPostprocessConfig, saveAudioPreprocessConfig, setInputDevice, showDictationOverlay, showTranscribingOverlay, simulateDictation, startBaiduRealtimeSession, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, CloudAsrConfigStatus, HotkeyRegistrationStatus, ModelReadiness, SenseVoiceConfigStatus, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, AudioQualitySummary, PersistedTranscriptEntry, AudioPreprocessConfig, TranscriptPostprocessConfig, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, BuildInfo, CloudAsrConfigStatus, HotkeyRegistrationStatus, InsertionResult, InsertionStrategy, ModelReadiness, SenseVoiceConfigStatus, RecorderInfo, RecorderRuntimeStatus, BaiduRealtimeResultEvent, AudioQualitySummary, PersistedTranscriptEntry, AudioPreprocessConfig, TranscriptPostprocessConfig, TranscriptRecord, TranscriptStats, TranscriptionModelId } from './types';
 
 interface DiagnosticEntry {
   id: number;
@@ -32,6 +32,17 @@ const defaultConfig: AppConfig = {
 
 const defaultPushToTalkHotkey = 'Ctrl+Alt+Space';
 const defaultToggleDictationHotkey = 'Ctrl+Alt+V';
+
+const insertionStrategyLabels: Record<InsertionStrategy, string> = {
+  clipboard: 'Clipboard',
+  sendinput: 'SendInput',
+  auto: 'Auto',
+};
+
+const defaultBuildInfo: BuildInfo = {
+  version: 'unknown',
+  channel: 'unknown',
+};
 
 
 const defaultAudioPreprocessConfig: AudioPreprocessConfig = {
@@ -174,6 +185,8 @@ export function App() {
   const [toggleDictationHotkeyInput, setToggleDictationHotkeyInput] = useState(defaultToggleDictationHotkey);
   const [pushToTalkModel, setPushToTalkModel] = useState<TranscriptionModelId>('baidu-short');
   const [toggleDictationModel, setToggleDictationModel] = useState<TranscriptionModelId>('baidu-short');
+  const [insertionStrategy, setInsertionStrategy] = useState<InsertionStrategy>('clipboard');
+  const [buildInfo, setBuildInfo] = useState<BuildInfo>(defaultBuildInfo);
   const [isSavingHotkeys, setIsSavingHotkeys] = useState(false);
   const [hotkeySaveMessage, setHotkeySaveMessage] = useState<string | null>(null);
   const [transcriptRecords, setTranscriptRecords] = useState<TranscriptRecord[]>([]);
@@ -203,6 +216,7 @@ export function App() {
   const senseVoiceConfigStatusRef = useRef(senseVoiceConfigStatus);
   const pushToTalkModelRef = useRef(pushToTalkModel);
   const toggleDictationModelRef = useRef(toggleDictationModel);
+  const insertionStrategyRef = useRef(insertionStrategy);
   const diagnosticsEndRef = useRef<HTMLDivElement | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([
     {
@@ -391,6 +405,7 @@ export function App() {
         setToggleDictationHotkeyInput(preferences.toggleDictationHotkey ?? defaultToggleDictationHotkey);
         setPushToTalkModel(preferences.pushToTalkModel ?? 'baidu-short');
         setToggleDictationModel(preferences.toggleDictationModel ?? 'baidu-short');
+        setInsertionStrategy(preferences.insertionStrategy ?? 'clipboard');
       })
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取用户偏好失败', result: 'error', detail: formatError(error) });
@@ -410,6 +425,11 @@ export function App() {
       })
       .catch((error: unknown) => {
         addDiagnostic({ title: '读取桌面浮窗后端失败', result: 'error', detail: formatError(error) });
+      });
+    void getBuildInfo()
+      .then(setBuildInfo)
+      .catch((error: unknown) => {
+        addDiagnostic({ title: '读取构建信息失败', result: 'warning', detail: formatError(error) });
       });
     void loadTranscriptHistory()
       .then((entries) => {
@@ -471,6 +491,7 @@ export function App() {
   senseVoiceConfigStatusRef.current = senseVoiceConfigStatus;
   pushToTalkModelRef.current = pushToTalkModel;
   toggleDictationModelRef.current = toggleDictationModel;
+  insertionStrategyRef.current = insertionStrategy;
 
 
   function mapPersistedEntry(entry: PersistedTranscriptEntry): TranscriptRecord {
@@ -485,6 +506,7 @@ export function App() {
       postprocessRulesApplied: entry.postprocessRulesApplied,
       audioQuality: entry.audioQuality,
       audioPreprocess: entry.audioPreprocess ?? null,
+      insertion: entry.insertion ?? null,
     };
   }
 
@@ -509,6 +531,35 @@ export function App() {
     });
   }
 
+  async function insertRecognizedText(text: string): Promise<InsertionResult> {
+    const strategy = insertionStrategyRef.current;
+    const result = await insertText(text, strategy);
+    addDiagnostic({
+      title: result.fallbackUsed ? '上屏策略已回退' : '上屏策略已执行',
+      result: result.fallbackUsed ? 'warning' : 'success',
+      detail: result.fallbackUsed
+        ? `${result.requestedStrategy} -> ${result.actualStrategy}${result.errorCategory ? ` / ${result.errorCategory}` : ''}`
+        : `${result.actualStrategy}`,
+    });
+    return result;
+  }
+
+  async function handleSaveInsertionStrategy(nextStrategy: InsertionStrategy) {
+    setInsertionStrategy(nextStrategy);
+    if (!isTauriRuntime()) {
+      return;
+    }
+    try {
+      const saved = await saveInsertionStrategyPreference(nextStrategy);
+      setInsertionStrategy(saved.insertionStrategy ?? nextStrategy);
+      addDiagnostic({ title: '上屏策略已保存', result: 'success', detail: saved.insertionStrategy ?? nextStrategy });
+    } catch (error) {
+      const detail = formatError(error);
+      addDiagnostic({ title: '保存上屏策略失败', result: 'error', detail });
+      setInsertionStrategy(insertionStrategyRef.current);
+    }
+  }
+
   const transcriptStats = useMemo<TranscriptStats>(() => {
     const totalDurationMs = transcriptRecords.reduce((sum, record) => sum + record.durationMs, 0);
     const totalChars = transcriptRecords.reduce((sum, record) => sum + record.charCount, 0);
@@ -520,7 +571,7 @@ export function App() {
     };
   }, [transcriptRecords]);
 
-  async function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short', processedOverride?: { text: string; rulesApplied: number; noiseRemoved: boolean }, audioPreprocessOverride?: import('./types').AudioPreprocessSummary | null) {
+  async function addTranscriptRecord(text: string, durationMs: number, inputMode: TranscriptRecord['inputMode'], modelId: TranscriptionModelId = inputMode === 'toggle-dictation' ? toggleDictationModel : inputMode === 'push-to-talk' ? pushToTalkModel : 'baidu-short', processedOverride?: { text: string; rulesApplied: number; noiseRemoved: boolean }, audioPreprocessOverride?: import('./types').AudioPreprocessSummary | null, insertionOverride?: InsertionResult | null) {
     const processed = processedOverride ?? await postprocessText(text);
     const normalizedText = processed.text.trim();
     if (!normalizedText || processed.noiseRemoved) {
@@ -541,6 +592,7 @@ export function App() {
       postprocessRulesApplied: processed.rulesApplied,
       audioQuality,
       audioPreprocess: audioPreprocessOverride ?? null,
+      insertion: insertionOverride ?? null,
     };
     const record = mapPersistedEntry(entry);
     setTranscriptRecords((current) => [record, ...current]);
@@ -594,7 +646,7 @@ export function App() {
       return;
     }
     try {
-      await insertTextWithClipboard(record.text);
+      await insertRecognizedText(record.text);
       setStatus({ phase: 'succeeded', message: '识别记录已重新上屏', lastTranscript: record.text });
       addDiagnostic({ title: '识别记录重新上屏请求已发送', result: 'success', detail: `文本：${record.text}` });
     } catch (error) {
@@ -738,7 +790,7 @@ export function App() {
       return;
     }
     try {
-      await insertTextWithClipboard(text);
+      await insertRecognizedText(text);
       setStatus({ phase: 'succeeded', message: '已发送剪贴板上屏请求', lastTranscript: text });
       addDiagnostic({ title: '剪贴板上屏请求已发送', result: 'success', detail: `文本：${text}` });
     } catch (error) {
@@ -1123,7 +1175,7 @@ export function App() {
         return;
       }
       setStatus({ phase: 'recording', message: '实验实时输入中，继续说话即可分段上屏', lastTranscript: text });
-      await insertTextWithClipboard(text);
+      await insertRecognizedText(text);
       rememberLiveSessionText(text, Math.round(chunk.asrSampleCount / 16));
       liveInsertedTextRef.current = true;
       addDiagnostic({ title: '实验实时片段已上屏', result: 'success', detail: `${chunk.transcript.engine} 返回 ${chunk.asrSampleCount} 个 ASR 样本的片段：${text}` });
@@ -1149,7 +1201,7 @@ export function App() {
       if (!text) {
         return;
       }
-      await insertTextWithClipboard(text);
+      await insertRecognizedText(text);
       rememberLiveSessionText(text, Math.round(chunk.asrSampleCount / 16));
       liveInsertedTextRef.current = true;
       setStatus({ phase: 'succeeded', message: '实验实时输入尾段已上屏', lastTranscript: text });
@@ -1232,7 +1284,7 @@ export function App() {
         let sessionText = combinedLiveSessionText();
         if (!sessionText && summaryText) {
           if (!liveInsertedTextRef.current) {
-            await insertTextWithClipboard(summaryText);
+            await insertRecognizedText(summaryText);
             liveInsertedTextRef.current = true;
           }
           rememberLiveSessionText(summaryText, summary.durationMs);
@@ -1280,8 +1332,8 @@ export function App() {
         if (!finalText || processed.noiseRemoved) {
           return;
         }
-        await insertTextWithClipboard(finalText);
-        await addTranscriptRecord(finalText, audio.asrDurationMs, 'toggle-dictation', selectedModel, processed, transcript.audioPreprocess);
+        const insertion = await insertRecognizedText(finalText);
+        await addTranscriptRecord(finalText, audio.asrDurationMs, 'toggle-dictation', selectedModel, processed, transcript.audioPreprocess, insertion);
         setStatus({ phase: 'succeeded', message: '切换录音已整段转写并上屏', lastTranscript: finalText });
         addDiagnostic({ title: '实验实时兜底上屏完成', result: 'success', detail: `${transcript.engine} 返回文本：${finalText}` });
       } else {
@@ -1338,8 +1390,8 @@ export function App() {
         return;
       }
       setStatus({ phase: 'inserting', message: '正在上屏到当前光标位置', lastTranscript: finalText });
-      await insertTextWithClipboard(finalText);
-      await addTranscriptRecord(finalText, audio.asrDurationMs, 'push-to-talk', selectedModel, processed, transcript.audioPreprocess);
+      const insertion = await insertRecognizedText(finalText);
+      await addTranscriptRecord(finalText, audio.asrDurationMs, 'push-to-talk', selectedModel, processed, transcript.audioPreprocess, insertion);
       setStatus({ phase: 'succeeded', message: '快捷键语音输入完成', lastTranscript: finalText });
       addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${finalText}` });
     } catch (error) {
@@ -1429,8 +1481,8 @@ export function App() {
       setStatus({ phase: 'inserting', message: '转写完成，请在 3 秒内切回目标输入框', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
-      await insertTextWithClipboard(transcript.text);
-      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short', undefined, transcript.audioPreprocess);
+      const insertion = await insertRecognizedText(transcript.text);
+      await addTranscriptRecord(transcript.text, recordingStatus.durationMs, 'manual', 'baidu-short', undefined, transcript.audioPreprocess, insertion);
       setStatus({ phase: 'succeeded', message: '真实语音输入闭环完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '真实闭环上屏请求已发送', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1478,8 +1530,8 @@ export function App() {
       setStatus({ phase: 'inserting', message: '转写完成，请在 3 秒内切回目标输入框', lastTranscript: transcript.text });
       addDiagnostic({ title: '主界面转写完成，等待上屏', result: 'info', detail: `${transcript.engine} 返回文本：${transcript.text}。` });
       await new Promise((resolve) => window.setTimeout(resolve, INSERT_DELAY_MS));
-      await insertTextWithClipboard(transcript.text);
-      await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual', 'baidu-short', undefined, transcript.audioPreprocess);
+      const insertion = await insertRecognizedText(transcript.text);
+      await addTranscriptRecord(transcript.text, audio.asrDurationMs, 'manual', 'baidu-short', undefined, transcript.audioPreprocess, insertion);
       setStatus({ phase: 'succeeded', message: '语音输入完成', lastTranscript: transcript.text });
       addDiagnostic({ title: '主界面语音输入完成', result: 'success', detail: `文本：${transcript.text}` });
     } catch (error) {
@@ -1516,7 +1568,7 @@ export function App() {
           liveInsertedTextRef.current = true;
           rememberLiveSessionText(finalText, payload.durationMs);
           setStatus({ phase: 'recording', message: '\u767e\u5ea6\u5b9e\u65f6 WebSocket \u6700\u7ec8\u7247\u6bb5\u5df2\u4e0a\u5c4f', lastTranscript: finalText });
-          await insertTextWithClipboard(finalText);
+          await insertRecognizedText(finalText);
           addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u6700\u7ec8\u7247\u6bb5', result: 'success', detail: finalText });
         })().catch((error: unknown) => {
           addDiagnostic({ title: '\u767e\u5ea6\u5b9e\u65f6\u7247\u6bb5\u4e0a\u5c4f\u5931\u8d25', result: 'error', detail: formatError(error) });
@@ -1659,6 +1711,16 @@ export function App() {
                 </div>
               </div>
             </section>
+            <section className="input-settings-card" role="group" aria-label={"\u4e0a\u5c4f\u7b56\u7565"}>
+              <div className="input-settings-card-title"><span>{"\u4e0a\u5c4f\u7b56\u7565"}</span><strong>{insertionStrategyLabels[insertionStrategy]}</strong></div>
+              <div className="segmented-models route-models insertion-strategy-options" role="group" aria-label={"\u4e0a\u5c4f\u7b56\u7565\u9009\u9879"}>
+                {(['clipboard', 'sendinput', 'auto'] as InsertionStrategy[]).map((strategy) => (
+                  <button key={strategy} className="route-model-button" type="button" aria-pressed={insertionStrategy === strategy} data-active={insertionStrategy === strategy} data-available="true" onClick={() => void handleSaveInsertionStrategy(strategy)}>
+                    <span>{insertionStrategyLabels[strategy]}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
           </div>
           <div className="button-row"><button type="button" onClick={openHotkeySettings}>快捷键设置</button><button type="button" onClick={() => void handleRefreshHotkeyStatus()}>刷新全局快捷键状态</button></div>
         </section>
@@ -1679,6 +1741,7 @@ export function App() {
         hotkeyStatus={hotkeyStatus}
         overlayBackendStatus={overlayBackendStatus}
         asrConfigStatus={asrConfigStatus}
+        buildInfo={buildInfo}
         whisperBinaryPath={whisperBinaryPath}
         whisperModelPath={whisperModelPath}
         asrLanguage={asrLanguage}
@@ -1910,6 +1973,7 @@ export function App() {
         hotkeyStatus={hotkeyStatus}
         overlayBackendStatus={overlayBackendStatus}
         asrConfigStatus={asrConfigStatus}
+        buildInfo={buildInfo}
         whisperBinaryPath={whisperBinaryPath}
         whisperModelPath={whisperModelPath}
         asrLanguage={asrLanguage}

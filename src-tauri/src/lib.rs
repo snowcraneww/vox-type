@@ -40,6 +40,13 @@ type HotkeyStatusState = Mutex<hotkey::HotkeyRegistrationStatus>;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct BuildInfo {
+    pub version: String,
+    pub channel: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct LiveTranscriptionChunk {
     pub transcript: Transcript,
     pub from_sample_index: usize,
@@ -50,6 +57,19 @@ pub struct LiveTranscriptionChunk {
 #[tauri::command]
 fn get_config() -> AppConfig {
     AppConfig::default()
+}
+
+#[tauri::command]
+fn get_build_info() -> BuildInfo {
+    BuildInfo {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        channel: if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        }
+        .to_string(),
+    }
 }
 
 #[tauri::command]
@@ -175,6 +195,17 @@ fn save_mode_model_preferences(
     let mut preferences = preferences::load_user_preferences(config_dir.clone());
     preferences.push_to_talk_model = push_to_talk_model;
     preferences.toggle_dictation_model = toggle_dictation_model;
+    preferences::save_user_preferences(config_dir, preferences)
+}
+
+#[tauri::command]
+fn save_insertion_strategy_preference(
+    app: AppHandle,
+    insertion_strategy: insertion::InsertionStrategyId,
+) -> Result<UserPreferences, error::VoxError> {
+    let config_dir = app_config_dir(&app)?;
+    let mut preferences = preferences::load_user_preferences(config_dir.clone());
+    preferences.insertion_strategy = insertion_strategy;
     preferences::save_user_preferences(config_dir, preferences)
 }
 
@@ -625,6 +656,14 @@ fn app_data_dir(app: &AppHandle) -> Result<std::path::PathBuf, error::VoxError> 
 fn insert_text_with_clipboard(text: String) -> Result<(), error::VoxError> {
     ClipboardInsertion.insert_text(&text)
 }
+
+#[tauri::command]
+fn insert_text(
+    text: String,
+    strategy: insertion::InsertionStrategyId,
+) -> Result<insertion::InsertionResult, error::VoxError> {
+    insertion::insert_text_with_strategy(&text, strategy)
+}
 #[tauri::command]
 fn show_dictation_overlay(app: AppHandle) -> Result<(), error::VoxError> {
     overlay::show_dictation_overlay(&app)
@@ -755,6 +794,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_config,
             get_status,
+            get_build_info,
             simulate_dictation,
             get_default_input_info,
             list_input_devices,
@@ -766,6 +806,7 @@ pub fn run() {
             get_hotkey_status,
             save_hotkey_preferences,
             save_mode_model_preferences,
+            save_insertion_strategy_preference,
             load_transcript_history,
             save_transcript_history_entry,
             delete_transcript_history_entry,
@@ -796,6 +837,7 @@ pub fn run() {
             transcribe_last_recording_and_insert,
             export_last_recording_wav,
             insert_text_with_clipboard,
+            insert_text,
             show_dictation_overlay,
             show_transcribing_overlay,
             hide_dictation_overlay,

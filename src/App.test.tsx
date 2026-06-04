@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { getAudioPreprocessConfig, saveAudioPreprocessConfig, getOverlayBackendStatus, getSenseVoiceConfigStatus, hideDictationOverlay, showDictationOverlay, insertTextWithClipboard, installManagedSenseVoice, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveModeModelPreferences, saveSenseVoiceConfig, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk } from './tauriClient';
+import { getAudioPreprocessConfig, saveAudioPreprocessConfig, getOverlayBackendStatus, getSenseVoiceConfigStatus, hideDictationOverlay, showDictationOverlay, insertText, insertTextWithClipboard, installManagedSenseVoice, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveInsertionStrategyPreference, saveModeModelPreferences, saveSenseVoiceConfig, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk, getBuildInfo } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
@@ -23,7 +23,7 @@ vi.mock('./tauriClient', async (importOriginal) => {
     saveBaiduAsrApiKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeAppId: '10500017', baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: false, secretKeySource: 'missing', secretKeyPreview: null, ready: false, message: 'Missing BAIDU_ASR_SECRET_KEY.' }),
     saveBaiduAsrSecretKey: vi.fn().mockResolvedValue({ config: { provider: 'baidu', groupId: null, baseUrl: 'http://vop.baidu.com/server_api', model: '1537', language: 'zh', baiduCuid: 'voxtype-local', baiduFormat: 'pcm', baiduSampleRate: 16000, baiduLmId: null, baiduRealtimeAppId: '10500017', baiduRealtimeEndpoint: 'wss://vop.baidu.com/realtime_asr', baiduRealtimeDevPid: '15372', baiduRealtimeCuid: 'voxtype-local', baiduRealtimeFormat: 'pcm', baiduRealtimeSampleRate: 16000, baiduRealtimeUser: null }, apiKeyConfigured: true, apiKeySource: 'env:BAIDU_ASR_API_KEY', apiKeyPreview: 'ba***ey', secretKeyConfigured: true, secretKeySource: 'env:BAIDU_ASR_SECRET_KEY', secretKeyPreview: 'sk***ey', ready: true, message: 'Baidu ready.' }),
     getDefaultInputInfo: vi.fn().mockResolvedValue({ deviceName: 'Test Microphone', sampleRate: 44100, channels: 1 }),
-    getUserPreferences: vi.fn().mockResolvedValue({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short' }),
+    getUserPreferences: vi.fn().mockResolvedValue({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short', insertionStrategy: 'clipboard' }),
     getHotkeyStatus: vi.fn().mockResolvedValue({ accelerator: 'Ctrl+Alt+Space', registered: true, message: '全局快捷键已注册：Ctrl+Alt+Space' }),
     getOverlayBackendStatus: vi.fn().mockResolvedValue({ backend: 'native-win32', lastError: null }),
     loadTranscriptHistory: vi.fn().mockResolvedValue([]),
@@ -45,7 +45,10 @@ vi.mock('./tauriClient', async (importOriginal) => {
     transcribeLastRecording: vi.fn().mockResolvedValue({ engine: 'whisper.cpp', text: '测试文本' }),
     transcribeActiveRecordingChunk: vi.fn().mockResolvedValue({ transcript: { engine: 'whisper.cpp', text: '实时片段' }, fromSampleIndex: 0, toSampleIndex: 44100, asrSampleCount: 16000 }),
     transcribeLastRecordingChunk: vi.fn().mockResolvedValue({ transcript: { engine: 'whisper.cpp', text: '尾段' }, fromSampleIndex: 44100, toSampleIndex: 52000, asrSampleCount: 2866 }),
+    insertText: vi.fn().mockResolvedValue({ requestedStrategy: 'clipboard', actualStrategy: 'clipboard', fallbackUsed: false, errorCategory: null }),
     insertTextWithClipboard: vi.fn().mockResolvedValue(undefined),
+    saveInsertionStrategyPreference: vi.fn().mockImplementation((insertionStrategy) => Promise.resolve({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short', insertionStrategy })),
+    getBuildInfo: vi.fn().mockResolvedValue({ version: '0.1.0', channel: 'debug' }),
     hideDictationOverlay: vi.fn().mockResolvedValue(undefined),
     showDictationOverlay: vi.fn().mockResolvedValue(undefined),
     showTranscribingOverlay: vi.fn().mockResolvedValue(undefined),
@@ -79,6 +82,10 @@ describe('App', () => {
     vi.mocked(transcribeActiveRecordingChunk).mockClear();
     vi.mocked(transcribeLastRecordingChunk).mockClear();
     vi.mocked(insertTextWithClipboard).mockClear();
+    vi.mocked(insertText).mockResolvedValue({ requestedStrategy: 'clipboard', actualStrategy: 'clipboard', fallbackUsed: false, errorCategory: null });
+    vi.mocked(insertText).mockClear();
+    vi.mocked(saveInsertionStrategyPreference).mockClear();
+    vi.mocked(getBuildInfo).mockClear();
     vi.mocked(hideDictationOverlay).mockClear();
     vi.mocked(showDictationOverlay).mockClear();
     vi.mocked(showTranscribingOverlay).mockClear();
@@ -458,6 +465,23 @@ describe('App', () => {
     expect(screen.queryByText('全局快捷键已注册：Ctrl+Alt+Space')).not.toBeInTheDocument();
   });
 
+  it('shows insertion strategy controls in settings input tab', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u8f93\u5165' }));
+
+    const strategySettings = screen.getByRole('group', { name: '\u4e0a\u5c4f\u7b56\u7565' });
+    expect(within(strategySettings).getByRole('button', { name: 'Clipboard' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(strategySettings).getByRole('button', { name: 'SendInput' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(strategySettings).getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(within(strategySettings).getByRole('button', { name: 'Auto' }));
+
+    await waitFor(() => expect(saveInsertionStrategyPreference).toHaveBeenCalledWith('auto'));
+    expect(within(strategySettings).getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('uses readable embedded diagnostic status styles', async () => {
     render(<App />);
 
@@ -471,6 +495,21 @@ describe('App', () => {
     expect(document.querySelector('.embedded-diagnostic .settings-grid dd')).toBeInTheDocument();
     expect(document.querySelector('.embedded-diagnostic .status-pill')).not.toBeInTheDocument();
     expect(document.querySelector('.embedded-diagnostic .diagnostic-ready-state .ready-dot')).toBeInTheDocument();
+  });
+
+  it('shows build metadata in diagnostics without button styling', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u8bca\u65ad' }));
+
+    const diagnostics = screen.getByRole('region', { name: '\u8bca\u65ad' });
+    await waitFor(() => expect(getBuildInfo).toHaveBeenCalled());
+    expect(within(diagnostics).getByText('\u5e94\u7528\u7248\u672c')).toBeInTheDocument();
+    expect(within(diagnostics).getByText('0.1.0')).toBeInTheDocument();
+    expect(within(diagnostics).getByText('\u6784\u5efa\u901a\u9053')).toBeInTheDocument();
+    expect(within(diagnostics).getByText('debug')).toBeInTheDocument();
+    expect(document.querySelector('.embedded-diagnostic .status-pill')).not.toBeInTheDocument();
   });
 
   it('runs the shortcut closed loop and hides the desktop overlay after release', async () => {
@@ -487,7 +526,7 @@ describe('App', () => {
     await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
     expect(showTranscribingOverlay).toHaveBeenCalledTimes(1);
     expect(transcribeLastRecording).toHaveBeenCalledWith('baidu-short');
-    expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本');
+    expect(insertText).toHaveBeenCalledWith('\u6d4b\u8bd5\u6587\u672c', 'clipboard');
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
 
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
@@ -518,7 +557,7 @@ describe('App', () => {
     expect(within(screen.getByTestId('history-toolbar')).getByTitle('本次运行累计识别字数')).toHaveTextContent('9 字');
 
     fireEvent.click(screen.getAllByRole('button', { name: '重新上屏此记录' })[0]);
-    expect(insertTextWithClipboard).toHaveBeenLastCalledWith('第二段文本');
+    expect(insertText).toHaveBeenLastCalledWith('\u7b2c\u4e8c\u6bb5\u6587\u672c', 'clipboard');
 
     fireEvent.click(screen.getAllByRole('button', { name: '删除此识别记录' })[0]);
     expect(screen.queryByText('第二段文本')).not.toBeInTheDocument();
@@ -526,6 +565,26 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '清空全部识别记录' }));
     expect(screen.getByText('等待第一次识别')).toBeInTheDocument();
+  });
+
+  it('stores insertion metadata on transcript records', async () => {
+    vi.mocked(insertText).mockResolvedValueOnce({ requestedStrategy: 'auto', actualStrategy: 'clipboard', fallbackUsed: true, errorCategory: 'sendinput_failed' });
+    vi.mocked(saveInsertionStrategyPreference).mockResolvedValueOnce({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short', insertionStrategy: 'auto' });
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u8f93\u5165' }));
+    fireEvent.click(within(screen.getByRole('group', { name: '\u4e0a\u5c4f\u7b56\u7565' })).getByRole('button', { name: 'Auto' }));
+    fireEvent.click(screen.getByRole('button', { name: '\u8fd4\u56de\u4e3b\u754c\u9762' }));
+    await waitForBaiduReadiness();
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    await waitFor(() => expect(saveTranscriptHistoryEntry).toHaveBeenCalled());
+    const entry = vi.mocked(saveTranscriptHistoryEntry).mock.calls[0][0];
+    expect(entry.insertion).toEqual({ requestedStrategy: 'auto', actualStrategy: 'clipboard', fallbackUsed: true, errorCategory: 'sendinput_failed' });
+    expect(await screen.findByText('\u4e0a\u5c4f auto -> clipboard')).toBeInTheDocument();
   });
 
   it('shows V7 mode model routing and removes MiniMax from model selection', async () => {
@@ -620,7 +679,7 @@ describe('App', () => {
     pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
 
     await waitFor(() => expect(previewTranscriptPostprocess).toHaveBeenCalledWith('open scale websocket'));
-    await waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('open skill WebSocket'));
+    await waitFor(() => expect(insertText).toHaveBeenCalledWith('open skill WebSocket', 'clipboard'));
     await waitFor(() => expect(saveTranscriptHistoryEntry).toHaveBeenCalledWith(expect.objectContaining({
       text: 'open skill WebSocket',
       postprocessRulesApplied: 1,
@@ -823,7 +882,7 @@ describe('App', () => {
 
     await screen.findByText('测试文本');
     fireEvent.click(screen.getByRole('button', { name: '重新上屏此记录' }));
-    expect(insertTextWithClipboard).toHaveBeenLastCalledWith('测试文本');
+    expect(insertText).toHaveBeenLastCalledWith('测试文本', 'clipboard');
 
     fireEvent.click(screen.getByRole('button', { name: '清空全部识别记录' }));
     expect(screen.getByText('等待第一次识别')).toBeInTheDocument();
@@ -847,7 +906,7 @@ describe('App', () => {
     expect(transcribeActiveRecordingChunk).not.toHaveBeenCalled();
     expect(transcribeLastRecordingChunk).not.toHaveBeenCalled();
     expect(transcribeLastRecording).toHaveBeenCalledWith('baidu-short');
-    expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本');
+    expect(insertText).toHaveBeenCalledWith('测试文本', 'clipboard');
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
 
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
@@ -915,10 +974,10 @@ describe('App', () => {
     await waitFor(() => expect(stopRecording).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(showTranscribingOverlay).toHaveBeenCalledTimes(1));
     expect(hideDictationOverlay).not.toHaveBeenCalled();
-    expect(insertTextWithClipboard).not.toHaveBeenCalledWith('delayed transcript');
+    expect(insertText).not.toHaveBeenCalledWith('delayed transcript', 'clipboard');
 
     resolveTranscript({ engine: 'baidu-short-speech', text: 'delayed transcript' });
-    await waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('delayed transcript'));
+    await waitFor(() => expect(insertText).toHaveBeenCalledWith('delayed transcript', 'clipboard'));
     await waitFor(() => expect(hideDictationOverlay).toHaveBeenCalledTimes(1));
   });
 
@@ -949,7 +1008,7 @@ describe('App', () => {
 
       expect(stopRecording).toHaveBeenCalledTimes(1);
       await vi.waitFor(() => expect(transcribeLastRecording).toHaveBeenCalledWith('baidu-short'));
-      await vi.waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('测试文本'));
+      await vi.waitFor(() => expect(insertText).toHaveBeenCalledWith('测试文本', 'clipboard'));
       expect(screen.getByText('测试文本')).toBeInTheDocument();
       expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
     } finally {
@@ -988,7 +1047,7 @@ describe('App', () => {
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });
     await waitFor(() => expect(startBaiduRealtimeSession).toHaveBeenCalledTimes(1));
     baiduRealtimeHandler?.({ text: 'realtime final text', isFinal: true, sequence: 1, startedAtMs: 1000, durationMs: 1800 });
-    await waitFor(() => expect(insertTextWithClipboard).toHaveBeenCalledWith('realtime final text'));
+    await waitFor(() => expect(insertText).toHaveBeenCalledWith('realtime final text', 'clipboard'));
 
     vi.mocked(finishBaiduRealtimeSession).mockResolvedValueOnce({ status: { state: 'finished', message: 'stopped', startedAtMs: 1000, durationMs: 1800, finalText: 'realtime final text' }, text: 'realtime final text', durationMs: 1800, charCount: 19, audioQuality: { rms: 0.02, peak: 0.2, silenceRatio: 0.2, activeSpeechMs: 1200, warnings: ['possible_far_microphone'] } });
     pushToTalkHandler?.({ state: 'pressed', action: 'toggleStartRecording' });

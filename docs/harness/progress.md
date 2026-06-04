@@ -15,6 +15,13 @@
 
 
 
+## 2026-06-04 V11 and V12 roadmap expansion
+
+- Expanded the roadmap beyond V10 closeout. V11 remains focused on Windows insertion reliability: SendInput Unicode, clipboard fallback, strategy selection, diagnostics, and transcript insertion metadata.
+- Added V12 as the follow-up hardening phase after V11: desktop compatibility matrix, release-readiness checklist, optional build/version diagnostics, and a TSF decision gate.
+- V12 intentionally does not implement TSF. It gathers evidence to decide whether SendInput plus clipboard fallback is good enough for broader release or whether V13 should be a TSF feasibility spike.
+- V12 spec: docs/superpowers/specs/2026-06-04-v12-compatibility-release-readiness-design.md. V12 plan: docs/superpowers/plans/2026-06-04-v12-compatibility-release-readiness.md.
+
 ## 2026-06-04 V10 closeout and V11 planning
 
 - Maintainer accepted V10 as basically passing after the final Settings review. V10 is now marked passing in docs/harness/feature_list.json.
@@ -981,3 +988,13 @@ pm run typecheck.
 - Root cause 2: Rust `transcript_history::PersistedTranscriptEntry` did not include `audio_preprocess`. The frontend briefly created a record with metadata, but after `saveTranscriptHistoryEntry` returned saved history from Rust, the returned entries had dropped the field and overwrote the UI list.
 - Fix: startup now loads persisted audio enhancement config and updates the Settings state/message. Rust transcript history now serializes/deserializes `audio_preprocess`, including `fallback_to_raw`.
 - Verification passed: `npm test -- --run src/App.test.tsx -t persisted`; `cargo test --manifest-path src-tauri/Cargo.toml saves_and_loads_audio_preprocess_metadata --no-run`; `cargo check --manifest-path src-tauri/Cargo.toml --lib`.
+
+## 2026-06-04 V11 implementation and V12 automated foundation
+
+- Implemented V11 insertion reliability. Settings -> 输入 now includes 上屏策略 with Clipboard, SendInput, and Auto. Clipboard remains the default.
+- Routed final insertion paths through a strategy-aware frontend helper and added transcript insertion metadata such as `上屏 auto -> clipboard` when fallback occurs.
+- Added Rust insertion strategy dispatch, Windows `SendInput(KEYEVENTF_UNICODE)` via direct Win32 FFI, clipboard fallback for Auto, persisted insertion strategy preferences, and non-sensitive build metadata diagnostics.
+- Implemented the V12 automated foundation: `docs/guide/desktop-compatibility-matrix.md` and `docs/guide/release-checklist.md`.
+- Verification passed: `npm test -- --run src/App.test.tsx` (45 tests); `npm test -- --run` (61 tests); `npm run typecheck`; `npm run build`; `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`; `cargo test --manifest-path src-tauri/Cargo.toml transcript_history --no-run`; `python -m json.tool docs/harness/feature_list.json`; `git diff --check` with only CRLF/LF warnings.
+- `bash init.sh` still fails because it treats currently tracked harness/planning files as an internal-file policy violation. This is not a V11/V12 runtime failure, but it remains a harness baseline issue before release closeout.
+- V11 is now `passing`. V12 remains `in_progress` until maintainer fills the real desktop compatibility matrix across target apps.

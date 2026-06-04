@@ -1,6 +1,30 @@
 use std::time::Duration;
 
 use crate::error::VoxError;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum InsertionStrategyId {
+    Clipboard,
+    SendInput,
+    Auto,
+}
+
+impl Default for InsertionStrategyId {
+    fn default() -> Self {
+        Self::Clipboard
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct InsertionResult {
+    pub requested_strategy: InsertionStrategyId,
+    pub actual_strategy: InsertionStrategyId,
+    pub fallback_used: bool,
+    pub error_category: Option<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClipboardPlan {
@@ -55,6 +79,96 @@ impl InsertionStrategy for ClipboardInsertion {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct SendInputInsertion;
+
+impl InsertionStrategy for SendInputInsertion {
+    fn insert_text(&self, text: &str) -> Result<(), VoxError> {
+        let trimmed = text.trim();
+        if trimmed.is_empty() {
+            return Err(VoxError::Insertion("empty insertion text".to_string()));
+        }
+        insert_with_sendinput(trimmed)
+    }
+}
+
+pub fn insert_text_with_strategy(
+    text: &str,
+    strategy: InsertionStrategyId,
+) -> Result<InsertionResult, VoxError> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Err(VoxError::Insertion("empty insertion text".to_string()));
+    }
+
+    match strategy {
+        InsertionStrategyId::Clipboard => {
+            ClipboardInsertion.insert_text(trimmed)?;
+            Ok(insertion_result(
+                InsertionStrategyId::Clipboard,
+                InsertionStrategyId::Clipboard,
+            ))
+        }
+        InsertionStrategyId::SendInput => {
+            SendInputInsertion.insert_text(trimmed)?;
+            Ok(insertion_result(
+                InsertionStrategyId::SendInput,
+                InsertionStrategyId::SendInput,
+            ))
+        }
+        InsertionStrategyId::Auto => match SendInputInsertion.insert_text(trimmed) {
+            Ok(()) => Ok(insertion_result(
+                InsertionStrategyId::Auto,
+                InsertionStrategyId::SendInput,
+            )),
+            Err(sendinput_error) => {
+                ClipboardInsertion.insert_text(trimmed)?;
+                Ok(insertion_result_for_fallback(
+                    InsertionStrategyId::Auto,
+                    InsertionStrategyId::Clipboard,
+                    Some(categorize_insertion_error(&sendinput_error)),
+                ))
+            }
+        },
+    }
+}
+
+fn insertion_result(
+    requested_strategy: InsertionStrategyId,
+    actual_strategy: InsertionStrategyId,
+) -> InsertionResult {
+    InsertionResult {
+        requested_strategy,
+        actual_strategy,
+        fallback_used: false,
+        error_category: None,
+    }
+}
+
+pub fn insertion_result_for_fallback(
+    requested_strategy: InsertionStrategyId,
+    actual_strategy: InsertionStrategyId,
+    error_category: Option<String>,
+) -> InsertionResult {
+    InsertionResult {
+        requested_strategy,
+        actual_strategy,
+        fallback_used: true,
+        error_category,
+    }
+}
+
+fn categorize_insertion_error(error: &VoxError) -> String {
+    let message = error.to_string().to_ascii_lowercase();
+    if message.contains("sendinput") {
+        return "sendinput_failed".to_string();
+    }
+    if message.contains("unsupported") || message.contains("windows") {
+        return "unsupported_platform".to_string();
+    }
+    "insertion_failed".to_string()
+}
+
 #[cfg(windows)]
 fn insert_with_clipboard(plan: &ClipboardPlan) -> Result<(), VoxError> {
     use arboard::Clipboard;
@@ -102,6 +216,94 @@ fn insert_with_clipboard(plan: &ClipboardPlan) -> Result<(), VoxError> {
 fn insert_with_clipboard(_plan: &ClipboardPlan) -> Result<(), VoxError> {
     Err(VoxError::Insertion(
         "剪贴板上屏 MVP 目前只支持 Windows".to_string(),
+    ))
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy)]
+#[repr(C)]
+struct KeyboardInput {
+    w_vk: u16,
+    w_scan: u16,
+    dw_flags: u32,
+    time: u32,
+    dw_extra_info: usize,
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy)]
+#[repr(C)]
+union InputUnion {
+    ki: KeyboardInput,
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy)]
+#[repr(C)]
+struct Input {
+    input_type: u32,
+    union: InputUnion,
+}
+
+#[cfg(windows)]
+extern "system" {
+    fn SendInput(c_inputs: u32, p_inputs: *const Input, cb_size: i32) -> u32;
+}
+
+#[cfg(windows)]
+fn insert_with_sendinput(text: &str) -> Result<(), VoxError> {
+    const INPUT_KEYBOARD: u32 = 1;
+    const KEYEVENTF_KEYUP: u32 = 0x0002;
+    const KEYEVENTF_UNICODE: u32 = 0x0004;
+
+    let mut inputs = Vec::with_capacity(text.encode_utf16().count() * 2);
+    for code_unit in text.encode_utf16() {
+        inputs.push(Input {
+            input_type: INPUT_KEYBOARD,
+            union: InputUnion {
+                ki: KeyboardInput {
+                    w_vk: 0,
+                    w_scan: code_unit,
+                    dw_flags: KEYEVENTF_UNICODE,
+                    time: 0,
+                    dw_extra_info: 0,
+                },
+            },
+        });
+        inputs.push(Input {
+            input_type: INPUT_KEYBOARD,
+            union: InputUnion {
+                ki: KeyboardInput {
+                    w_vk: 0,
+                    w_scan: code_unit,
+                    dw_flags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+                    time: 0,
+                    dw_extra_info: 0,
+                },
+            },
+        });
+    }
+
+    let sent = unsafe {
+        SendInput(
+            inputs.len() as u32,
+            inputs.as_ptr(),
+            std::mem::size_of::<Input>() as i32,
+        )
+    };
+    if sent != inputs.len() as u32 {
+        return Err(VoxError::Insertion(format!(
+            "SendInput failed: {sent}/{}",
+            inputs.len()
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn insert_with_sendinput(_text: &str) -> Result<(), VoxError> {
+    Err(VoxError::Insertion(
+        "SendInput Unicode insertion only supports Windows".to_string(),
     ))
 }
 

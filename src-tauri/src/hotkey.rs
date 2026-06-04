@@ -277,6 +277,7 @@ mod tests {
             toggle_dictation_hotkey: None,
             push_to_talk_model: crate::preferences::TranscriptionModelId::BaiduShort,
             toggle_dictation_model: crate::preferences::TranscriptionModelId::BaiduShort,
+            insertion_strategy: crate::insertion::InsertionStrategyId::Clipboard,
         };
 
         let bindings = runtime_bindings_from_preferences(&preferences).unwrap();

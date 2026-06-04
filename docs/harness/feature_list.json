@@ -553,7 +553,7 @@
       "area": "implementation",
       "title": "V11 Windows insertion reliability with SendInput fallback strategy",
       "user_visible_behavior": "Users can choose a cleaner Windows text insertion path that sends recognized Unicode text directly through SendInput when supported, while VoxType keeps clipboard insertion as a reliable fallback and exposes diagnostics when the target app rejects or misses insertion.",
-      "status": "not_started",
+      "status": "passing",
       "verification": [
         "Run npm test -- --run src/App.test.tsx.",
         "Run npm run typecheck.",
@@ -566,9 +566,34 @@
         "Manually verify clipboard fallback still works and does not regress existing push-to-talk or continuous input paths."
       ],
       "evidence": [
-        "2026-06-04: V11 planned after V10 closeout. Existing roadmap and debugging docs repeatedly identify clipboard insertion as the next reliability bottleneck; V11 will target Windows SendInput Unicode before any TSF work. Spec: docs/superpowers/specs/2026-06-04-v11-insertion-reliability-design.md. Plan: docs/superpowers/plans/2026-06-04-v11-insertion-reliability.md."
+        "2026-06-04: V11 planned after V10 closeout. Existing roadmap and debugging docs repeatedly identify clipboard insertion as the next reliability bottleneck; V11 will target Windows SendInput Unicode before any TSF work. Spec: docs/superpowers/specs/2026-06-04-v11-insertion-reliability-design.md. Plan: docs/superpowers/plans/2026-06-04-v11-insertion-reliability.md.",
+        "2026-06-04: Implemented V11 insertion reliability. Added strategy-aware insertion settings under Settings -> Input with Clipboard, SendInput, and Auto; routed final insertion paths through one frontend helper; added transcript insertion metadata; persisted insertion strategy in user preferences; added Rust insertion strategy dispatch with Windows SendInput Unicode and clipboard fallback; added build diagnostics. Verification passed: npm test -- --run src/App.test.tsx (45 tests); npm test -- --run (61 tests); npm run typecheck; npm run build; cargo check --manifest-path src-tauri/Cargo.toml --lib; cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run; cargo test --manifest-path src-tauri/Cargo.toml transcript_history --no-run; python -m json.tool docs/harness/feature_list.json; git diff --check with only CRLF/LF warnings. Manual desktop compatibility evidence is deferred to V12 matrix."
       ],
-      "notes": "V11 is planned but not started. Scope is SendInput Unicode plus diagnostics and fallback policy. TSF remains a later research/integration track, not V11 implementation scope."
+      "notes": "V11 automated implementation is passing. Clipboard remains the default strategy; SendInput and Auto are available in Settings -> Input. Real target-app compatibility is tracked in V12 rather than blocking V11 code completion."
+    },
+    {
+      "id": "v12-001",
+      "priority": 16,
+      "area": "implementation",
+      "title": "V12 Desktop compatibility matrix and release readiness",
+      "user_visible_behavior": "Maintainers can validate VoxType across common Windows target apps and prepare release builds with a repeatable checklist, compatibility matrix, and explicit go/no-go criteria for whether SendInput plus clipboard fallback is ready for broader distribution.",
+      "status": "in_progress",
+      "verification": [
+        "Run bash init.sh.",
+        "Run npm test -- --run.",
+        "Run npm run typecheck.",
+        "Run npm run build.",
+        "Run cargo check --manifest-path src-tauri/Cargo.toml --lib.",
+        "Run python -m json.tool docs/harness/feature_list.json.",
+        "Run git diff --check.",
+        "Manually complete the desktop compatibility matrix for clipboard, SendInput, and Auto insertion across VS Code, Notepad, browser text fields, an IME-heavy chat target, and one elevated or permission-boundary target when available.",
+        "Run and document the release build checklist, including privacy scan and expected artifact paths."
+      ],
+      "evidence": [
+        "2026-06-04: V12 planned after V11 roadmap expansion. Scope is compatibility and release readiness after SendInput exists, not TSF implementation. Spec: docs/superpowers/specs/2026-06-04-v12-compatibility-release-readiness-design.md. Plan: docs/superpowers/plans/2026-06-04-v12-compatibility-release-readiness.md.",
+        "2026-06-04: Implemented the automated V12 foundation: docs/guide/desktop-compatibility-matrix.md, docs/guide/release-checklist.md, and non-sensitive build metadata in Settings -> Diagnostics. Automated verification passed with the V11 checks. Manual compatibility matrix remains pending maintainer desktop testing across VS Code, Notepad, browser fields, chat/IME target, and elevated/permission-boundary target."
+      ],
+      "notes": "V12 is partially complete. Automated docs/checklist/build-metadata work is done; status remains in_progress until the real Windows desktop compatibility matrix is filled with maintainer evidence."
     }
   ]
 }

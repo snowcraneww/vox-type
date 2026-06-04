@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
 use crate::error::VoxError;
+use crate::insertion::InsertionStrategyId;
 
 const PREFERENCES_FILE_NAME: &str = "user-preferences.json";
 
@@ -18,6 +19,10 @@ fn default_transcription_model() -> TranscriptionModelId {
     TranscriptionModelId::BaiduShort
 }
 
+fn default_insertion_strategy() -> InsertionStrategyId {
+    InsertionStrategyId::Clipboard
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPreferences {
@@ -28,6 +33,8 @@ pub struct UserPreferences {
     pub push_to_talk_model: TranscriptionModelId,
     #[serde(default = "default_transcription_model")]
     pub toggle_dictation_model: TranscriptionModelId,
+    #[serde(default = "default_insertion_strategy")]
+    pub insertion_strategy: InsertionStrategyId,
 }
 
 impl Default for TranscriptionModelId {
@@ -78,6 +85,7 @@ fn normalize_preferences(preferences: UserPreferences) -> UserPreferences {
             .filter(|value| !value.is_empty()),
         push_to_talk_model: preferences.push_to_talk_model,
         toggle_dictation_model: preferences.toggle_dictation_model,
+        insertion_strategy: preferences.insertion_strategy,
     }
 }
 
@@ -97,6 +105,7 @@ mod tests {
                 toggle_dictation_hotkey: None,
                 push_to_talk_model: TranscriptionModelId::BaiduShort,
                 toggle_dictation_model: TranscriptionModelId::BaiduShort,
+                insertion_strategy: crate::insertion::InsertionStrategyId::Clipboard,
             },
         )
         .unwrap();
@@ -121,6 +130,7 @@ mod tests {
                 toggle_dictation_hotkey: Some("Ctrl+Alt+V".to_string()),
                 push_to_talk_model: TranscriptionModelId::BaiduShort,
                 toggle_dictation_model: TranscriptionModelId::BaiduShort,
+                insertion_strategy: crate::insertion::InsertionStrategyId::Clipboard,
             },
         )
         .unwrap();
@@ -149,6 +159,7 @@ mod tests {
                 toggle_dictation_hotkey: Some("   ".to_string()),
                 push_to_talk_model: TranscriptionModelId::BaiduShort,
                 toggle_dictation_model: TranscriptionModelId::BaiduShort,
+                insertion_strategy: crate::insertion::InsertionStrategyId::Clipboard,
             },
         )
         .unwrap();
@@ -168,6 +179,7 @@ mod tests {
             toggle_dictation_hotkey: Some("Ctrl+Shift+V".to_string()),
             push_to_talk_model: TranscriptionModelId::LocalWhisper,
             toggle_dictation_model: TranscriptionModelId::BaiduShort,
+            insertion_strategy: crate::insertion::InsertionStrategyId::Clipboard,
         };
         preferences.selected_input_device_name = Some("Remote Audio".to_string());
 
@@ -215,6 +227,7 @@ mod tests {
                 toggle_dictation_hotkey: None,
                 push_to_talk_model: TranscriptionModelId::LocalWhisper,
                 toggle_dictation_model: TranscriptionModelId::BaiduRealtime,
+                insertion_strategy: crate::insertion::InsertionStrategyId::Clipboard,
             },
         )
         .unwrap();

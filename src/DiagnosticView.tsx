@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { OverlayBackendStatus } from './tauriClient';
-import type { AppConfig, AppStatus, AsrConfigStatus, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
+import type { AppConfig, AppStatus, AsrConfigStatus, BuildInfo, HotkeyRegistrationStatus, RecorderInfo, RecorderRuntimeStatus } from './types';
 
 interface DiagnosticViewProps {
   config: AppConfig;
@@ -12,6 +12,7 @@ interface DiagnosticViewProps {
   hotkeyStatus: HotkeyRegistrationStatus;
   overlayBackendStatus: OverlayBackendStatus;
   asrConfigStatus: AsrConfigStatus;
+  buildInfo: BuildInfo;
   whisperBinaryPath: string;
   whisperModelPath: string;
   asrLanguage: string;
@@ -40,7 +41,7 @@ interface DiagnosticViewProps {
 }
 
 export function DiagnosticView(props: DiagnosticViewProps) {
-  const { config, status, runtimeMessage, recorderInfo, recordingStatus, isRecording, hotkeyStatus, overlayBackendStatus, asrConfigStatus, whisperBinaryPath, whisperModelPath, asrLanguage, isInstallingAsr, deviceSelect, diagnosticsPanel } = props;
+  const { config, status, runtimeMessage, recorderInfo, recordingStatus, isRecording, hotkeyStatus, overlayBackendStatus, asrConfigStatus, buildInfo, whisperBinaryPath, whisperModelPath, asrLanguage, isInstallingAsr, deviceSelect, diagnosticsPanel } = props;
   const content = (
     <>
       {props.embedded ? null : <section className="hero diagnostic-hero" aria-labelledby="diagnostic-title">
@@ -56,6 +57,8 @@ export function DiagnosticView(props: DiagnosticViewProps) {
           <div><dt>上屏策略</dt><dd>剪贴板粘贴</dd></div>
           <div><dt>全局快捷键</dt><dd>{hotkeyStatus.message}</dd></div>
           <div><dt>桌面浮窗后端</dt><dd>{overlayBackendStatus.lastError ? `${overlayBackendStatus.backend} / ${overlayBackendStatus.lastError}` : overlayBackendStatus.backend}</dd></div>
+          <div><dt>应用版本</dt><dd>{buildInfo.version}</dd></div>
+          <div><dt>构建通道</dt><dd>{buildInfo.channel}</dd></div>
           <div><dt>麦克风</dt><dd>{recorderInfo ? `${recorderInfo.deviceName} / ${recorderInfo.sampleRate} Hz / ${recorderInfo.channels} 声道` : '等待 Tauri 读取'}</dd></div>
           <div><dt>录音流</dt><dd>{isRecording ? `录音中 / ${recordingStatus.sampleCount} 样本 / ${recordingStatus.durationMs} ms` : '空闲'}</dd></div>
         </dl>
