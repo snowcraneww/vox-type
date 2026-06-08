@@ -40,10 +40,10 @@ for path in json_files:
     json.loads(path.read_text(encoding='utf-8'))
 PY
 
-tracked_internal=$(git ls-files | grep -E '^(AGENTS.md|CLAUDE.md|docs/(harness|superpowers|research|plans)/|openspec/|TMP/|\.codex/|\.agents/)' || true)
-if [[ -n "$tracked_internal" ]]; then
-  echo "init failed: internal planning or agent files are tracked"
-  echo "$tracked_internal"
+tracked_private=$(git ls-files | grep -E '^(\.codex/|\.agents/|\.claude/|\.gstack/|TMP/research/repos/)' || true)
+if [[ -n "$tracked_private" ]]; then
+  echo "init failed: private agent/cache files are tracked"
+  echo "$tracked_private"
   exit 1
 fi
 

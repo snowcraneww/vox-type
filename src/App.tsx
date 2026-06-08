@@ -35,9 +35,40 @@ const defaultToggleDictationHotkey = 'Ctrl+Alt+V';
 
 const insertionStrategyLabels: Record<InsertionStrategy, string> = {
   clipboard: 'Clipboard',
-  sendinput: 'SendInput',
-  auto: 'Auto',
+  sendinput: 'SendInput 实验',
+  auto: 'Auto 安全',
 };
+
+const insertionErrorLabels: Record<string, string> = {
+  sendinput_failed: 'SendInput failed',
+  unsupported_platform: 'Unsupported platform',
+  insertion_failed: 'Insertion failed',
+  non_ascii_text: 'Chinese text uses clipboard',
+  auto_clipboard_policy: 'Auto uses clipboard',
+};
+
+function formatInsertionErrorCategory(category?: string | null) {
+  if (!category) return null;
+  return insertionErrorLabels[category] ?? category;
+}
+
+function formatAudioQualityWarningText(summary: AudioQualitySummary | null | undefined) {
+  const warnings = summary?.warnings ?? [];
+  if (warnings.length === 0) return null;
+  const labels: Record<string, string> = {
+    low_volume: '\u97f3\u91cf\u4f4e',
+    clipping_risk: '\u7206\u97f3\u98ce\u9669',
+    mostly_silence: '\u9759\u97f3\u591a',
+    possible_far_microphone: '\u79bb\u9ea6\u8fdc',
+  };
+  return warnings.map((warning) => labels[warning] ?? warning).join(' / ');
+}
+
+function formatRecognitionFailureMessage(detail: string, summary: AudioQualitySummary | null | undefined) {
+  const qualityText = formatAudioQualityWarningText(summary);
+  if (!qualityText) return detail;
+  return `\u5f55\u97f3\u8d28\u91cf\u63d0\u793a\uff1a${qualityText}\u3002\u672c\u6b21\u6ca1\u6709\u8bc6\u522b\u5230\u8db3\u591f\u6e05\u6670\u7684\u8bed\u97f3\uff0c\u8bf7\u9760\u8fd1\u9ea6\u514b\u98ce\u6216\u8bf4\u5f97\u7a0d\u5fae\u957f\u4e00\u70b9\u3002`;
+}
 
 const defaultBuildInfo: BuildInfo = {
   version: 'unknown',
@@ -538,7 +569,7 @@ export function App() {
       title: result.fallbackUsed ? '上屏策略已回退' : '上屏策略已执行',
       result: result.fallbackUsed ? 'warning' : 'success',
       detail: result.fallbackUsed
-        ? `${result.requestedStrategy} -> ${result.actualStrategy}${result.errorCategory ? ` / ${result.errorCategory}` : ''}`
+        ? `${result.requestedStrategy} -> ${result.actualStrategy}${formatInsertionErrorCategory(result.errorCategory) ? ` / ${formatInsertionErrorCategory(result.errorCategory)}` : ''}`
         : `${result.actualStrategy}`,
     });
     return result;
@@ -1143,6 +1174,9 @@ export function App() {
     try {
       const nextStatus = await startRecording();
       isRecordingRef.current = true;
+      if (!recorderInfo && nextStatus.sampleRate && nextStatus.channels) {
+        setRecorderInfo({ deviceName: selectedInputDeviceName || '\u5f53\u524d\u5f55\u97f3\u8f93\u5165\u8bbe\u5907', sampleRate: nextStatus.sampleRate, channels: nextStatus.channels });
+      }
       setRecordingStatus(nextStatus);
       setStatus({ phase: 'recording', message: '正在录音，说完后点击停止录音', lastTranscript: null });
       addDiagnostic({ title: '录音已启动', result: 'success', detail: `采样率 ${nextStatus.sampleRate ?? '未知'} Hz，输入声道 ${nextStatus.channels ?? '未知'}。` });
@@ -1347,7 +1381,9 @@ export function App() {
     } catch (error) {
       const detail = formatError(error);
       setRecordingStatus((current) => ({ ...current, state: 'idle' }));
-      setStatus({ phase: 'failed', message: `实验实时输入失败：${detail}`, lastTranscript: null });
+      const userMessage = formatRecognitionFailureMessage(detail, lastAudioQualityRef.current);
+      setStatus({ phase: 'failed', message: `实验实时输入失败：${userMessage}`, lastTranscript: null });
+      setHistoryMessage(`\u8bed\u97f3\u8bc6\u522b\u5931\u8d25\uff1a${userMessage}`);
       addDiagnostic({ title: '实验实时输入失败', result: 'error', detail });
       await hideDictationOverlay().catch((hideError: unknown) => {
         addDiagnostic({ title: '桌面浮窗隐藏失败', result: 'error', detail: formatError(hideError) });
@@ -1396,9 +1432,10 @@ export function App() {
       addDiagnostic({ title: '快捷键闭环完成', result: 'success', detail: `${transcript.engine} 返回文本并已发送上屏：${finalText}` });
     } catch (error) {
       const detail = formatError(error);
+      const userMessage = formatRecognitionFailureMessage(detail, lastAudioQualityRef.current);
       setRecordingStatus((current) => ({ ...current, state: 'idle' }));
-      setStatus({ phase: 'failed', message: `快捷键语音输入失败：${detail}`, lastTranscript: null });
-      setHistoryMessage(`语音识别失败：${detail}`);
+      setStatus({ phase: 'failed', message: `快捷键语音输入失败：${userMessage}`, lastTranscript: null });
+      setHistoryMessage(`语音识别失败：${userMessage}`);
       addDiagnostic({ title: '快捷键闭环失败', result: 'error', detail });
     } finally {
       await hideDictationOverlay().catch((error: unknown) => {

@@ -37,6 +37,7 @@ const text = {
   charUnit: '\u5b57',
   localModel: 'whisper.cpp',
   baiduShort: '\u767e\u5ea6\u77ed\u8bed\u97f3 API',
+  senseVoice: 'SenseVoice Small',
   baiduRealtime: '\u767e\u5ea6\u5b9e\u65f6 WebSocket API',
   manual: '\u624b\u52a8',
 };
@@ -92,6 +93,7 @@ function formatDuration(ms: number) {
 
 function formatModelLabel(modelId: TranscriptionModelId) {
   if (modelId === 'local-whisper') return text.localModel;
+  if (modelId === 'sensevoice-small') return text.senseVoice;
   if (modelId === 'baidu-short') return text.baiduShort;
   return text.baiduRealtime;
 }

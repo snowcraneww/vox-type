@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import { getAudioPreprocessConfig, saveAudioPreprocessConfig, getOverlayBackendStatus, getSenseVoiceConfigStatus, hideDictationOverlay, showDictationOverlay, insertText, insertTextWithClipboard, installManagedSenseVoice, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveInsertionStrategyPreference, saveModeModelPreferences, saveSenseVoiceConfig, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk, getBuildInfo } from './tauriClient';
+import { getAudioPreprocessConfig, saveAudioPreprocessConfig, getAsrConfigStatus, getDefaultInputInfo, getUserPreferences, getOverlayBackendStatus, getSenseVoiceConfigStatus, hideDictationOverlay, showDictationOverlay, insertText, insertTextWithClipboard, installManagedSenseVoice, saveBaiduAsrApiKey, saveBaiduAsrSecretKey, saveCloudAsrConfig, saveInsertionStrategyPreference, saveModeModelPreferences, saveSenseVoiceConfig, showTranscribingOverlay, startBaiduRealtimeSession, finishBaiduRealtimeSession, loadTranscriptHistory, saveTranscriptHistoryEntry, deleteTranscriptHistoryEntry, clearTranscriptHistory, previewTranscriptPostprocess, saveTranscriptPostprocessConfig, startRecording, stopRecording, transcribeActiveRecordingChunk, transcribeLastRecording, transcribeLastRecordingChunk, getBuildInfo } from './tauriClient';
 import type { PushToTalkPayload } from './tauriClient';
 
 let pushToTalkHandler: ((payload: PushToTalkPayload) => void) | null = null;
@@ -224,6 +224,28 @@ describe('App', () => {
 
     expect(await screen.findByText('raw fallback text')).toBeInTheDocument();
     expect(await screen.findByText('\u589e\u5f3a / \u5df2\u56de\u9000')).toBeInTheDocument();
+  });
+
+  it('renders SenseVoice model metadata on transcript records', async () => {
+    vi.mocked(loadTranscriptHistory).mockResolvedValueOnce([{
+      id: 'entry-sensevoice',
+      text: 'sensevoice text',
+      inputMode: 'toggle-dictation',
+      model: 'sensevoice-small',
+      createdAtMs: Date.now(),
+      durationMs: 1200,
+      characterCount: 15,
+      postprocessRulesApplied: 0,
+      audioQuality: null,
+      audioPreprocess: null,
+    }]);
+
+    render(<App />);
+
+    const record = await screen.findByRole('article', { name: /识别记录/ });
+    expect(record).toHaveTextContent('sensevoice text');
+    expect(record).toHaveTextContent('SenseVoice Small');
+    expect(record).not.toHaveTextContent('百度实时 WebSocket API');
   });
 
   it('loads persisted audio enhancement config on startup', async () => {
@@ -473,13 +495,13 @@ describe('App', () => {
 
     const strategySettings = screen.getByRole('group', { name: '\u4e0a\u5c4f\u7b56\u7565' });
     expect(within(strategySettings).getByRole('button', { name: 'Clipboard' })).toHaveAttribute('aria-pressed', 'true');
-    expect(within(strategySettings).getByRole('button', { name: 'SendInput' })).toHaveAttribute('aria-pressed', 'false');
-    expect(within(strategySettings).getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(strategySettings).getByRole('button', { name: 'SendInput 实验' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(strategySettings).getByRole('button', { name: 'Auto 安全' })).toHaveAttribute('aria-pressed', 'false');
 
-    fireEvent.click(within(strategySettings).getByRole('button', { name: 'Auto' }));
+    fireEvent.click(within(strategySettings).getByRole('button', { name: 'Auto 安全' }));
 
     await waitFor(() => expect(saveInsertionStrategyPreference).toHaveBeenCalledWith('auto'));
-    expect(within(strategySettings).getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(strategySettings).getByRole('button', { name: 'Auto 安全' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('uses readable embedded diagnostic status styles', async () => {
@@ -510,6 +532,21 @@ describe('App', () => {
     expect(within(diagnostics).getByText('\u6784\u5efa\u901a\u9053')).toBeInTheDocument();
     expect(within(diagnostics).getByText('debug')).toBeInTheDocument();
     expect(document.querySelector('.embedded-diagnostic .status-pill')).not.toBeInTheDocument();
+  });
+
+  it('self-heals microphone readiness after recording starts when initial device probe fails', async () => {
+    vi.mocked(getDefaultInputInfo).mockRejectedValueOnce(new Error('device probe failed'));
+
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    expect(await screen.findByText('等待设备')).toBeInTheDocument();
+    await waitForBaiduReadiness();
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('当前录音输入设备')).toBeInTheDocument();
+    expect(screen.queryByText('等待设备')).not.toBeInTheDocument();
   });
 
   it('runs the shortcut closed loop and hides the desktop overlay after release', async () => {
@@ -568,13 +605,13 @@ describe('App', () => {
   });
 
   it('stores insertion metadata on transcript records', async () => {
-    vi.mocked(insertText).mockResolvedValueOnce({ requestedStrategy: 'auto', actualStrategy: 'clipboard', fallbackUsed: true, errorCategory: 'sendinput_failed' });
+    vi.mocked(insertText).mockResolvedValueOnce({ requestedStrategy: 'auto', actualStrategy: 'clipboard', fallbackUsed: true, errorCategory: 'auto_clipboard_policy' });
     vi.mocked(saveInsertionStrategyPreference).mockResolvedValueOnce({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'baidu-short', toggleDictationModel: 'baidu-short', insertionStrategy: 'auto' });
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '\u8bbe\u7f6e' }));
     fireEvent.click(screen.getByRole('button', { name: '\u8f93\u5165' }));
-    fireEvent.click(within(screen.getByRole('group', { name: '\u4e0a\u5c4f\u7b56\u7565' })).getByRole('button', { name: 'Auto' }));
+    fireEvent.click(within(screen.getByRole('group', { name: '\u4e0a\u5c4f\u7b56\u7565' })).getByRole('button', { name: 'Auto 安全' }));
     fireEvent.click(screen.getByRole('button', { name: '\u8fd4\u56de\u4e3b\u754c\u9762' }));
     await waitForBaiduReadiness();
     pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
@@ -583,7 +620,7 @@ describe('App', () => {
 
     await waitFor(() => expect(saveTranscriptHistoryEntry).toHaveBeenCalled());
     const entry = vi.mocked(saveTranscriptHistoryEntry).mock.calls[0][0];
-    expect(entry.insertion).toEqual({ requestedStrategy: 'auto', actualStrategy: 'clipboard', fallbackUsed: true, errorCategory: 'sendinput_failed' });
+    expect(entry.insertion).toEqual({ requestedStrategy: 'auto', actualStrategy: 'clipboard', fallbackUsed: true, errorCategory: 'auto_clipboard_policy' });
     expect(await screen.findByText('\u4e0a\u5c4f auto -> clipboard')).toBeInTheDocument();
   });
 
@@ -615,6 +652,62 @@ describe('App', () => {
     fireEvent.click(within(screen.getByRole('group', { name: '连续输入模型默认模型' })).getByRole('button', { name: /WebSocket/ }));
 
     await waitFor(() => expect(saveModeModelPreferences).toHaveBeenCalledWith('baidu-short', 'baidu-realtime'));
+  });
+
+
+  it('shows local model install wait guidance in model settings', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
+    fireEvent.click(screen.getByRole('tab', { name: /本地 whisper\.cpp/ }));
+
+    expect(screen.getByText('模型文件较大')).toBeInTheDocument();
+    expect(screen.getByText(/1-5 分钟/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: /SenseVoice Small/ }));
+
+    expect(screen.getByText('SenseVoice 依赖较大')).toBeInTheDocument();
+    expect(screen.getByText(/2-8 分钟/)).toBeInTheDocument();
+  });
+
+  it('hides local model install guidance after local models are ready', async () => {
+    vi.mocked(getAsrConfigStatus).mockResolvedValueOnce({
+      whisperBinaryPath: 'C:/voxtype/whisper-cli.exe',
+      whisperModelPath: 'C:/voxtype/ggml-base.bin',
+      language: 'zh',
+      binaryConfigured: true,
+      modelConfigured: true,
+      binaryExists: true,
+      modelExists: true,
+      ready: true,
+      source: 'app',
+      message: 'ASR 配置已就绪，可以调用 whisper.cpp。',
+    });
+    vi.mocked(getSenseVoiceConfigStatus).mockResolvedValueOnce({
+      config: { runtimePath: 'C:/voxtype/sherpa.exe', modelPath: 'C:/voxtype/model.onnx', tokensPath: 'C:/voxtype/tokens.txt', language: 'auto' },
+      runtimeConfigured: true,
+      modelConfigured: true,
+      tokensConfigured: true,
+      runtimeExists: true,
+      modelExists: true,
+      tokensExists: true,
+      ready: true,
+      source: 'app',
+      message: 'SenseVoice Small 本地运行时已就绪。',
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+    fireEvent.click(screen.getByRole('button', { name: '模型' }));
+    fireEvent.click(screen.getByRole('tab', { name: /本地 whisper\.cpp/ }));
+
+    await waitFor(() => expect(screen.queryByText('模型文件较大')).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('tab', { name: /SenseVoice Small/ }));
+
+    expect(screen.queryByText('SenseVoice 依赖较大')).not.toBeInTheDocument();
   });
 
   it('opens text optimization inside settings tabs', async () => {
@@ -653,6 +746,35 @@ describe('App', () => {
     expect(qualityPill.closest('footer')?.firstElementChild).toBe(qualityPill);
     expect(document.querySelector('.history-list')).toBeInstanceOf(HTMLOListElement);
     expect(screen.getByTitle('本次运行识别次数')).toHaveTextContent('1 条');
+  });
+
+  it('shows audio quality feedback when SenseVoice returns no text', async () => {
+    vi.mocked(getUserPreferences).mockResolvedValueOnce({ selectedInputDeviceName: null, pushToTalkHotkey: 'Ctrl+Alt+Space', toggleDictationHotkey: 'Ctrl+Alt+V', pushToTalkModel: 'sensevoice-small', toggleDictationModel: 'baidu-short', insertionStrategy: 'clipboard' });
+    vi.mocked(getSenseVoiceConfigStatus).mockResolvedValueOnce({ config: { runtimePath: 'C:/voxtype/bin/sherpa.exe', modelPath: 'C:/voxtype/model.onnx', tokensPath: 'C:/voxtype/tokens.txt', language: 'auto' }, runtimeConfigured: true, modelConfigured: true, tokensConfigured: true, runtimeExists: true, modelExists: true, tokensExists: true, ready: true, source: 'app', message: 'SenseVoice Small ready.' });
+    vi.mocked(stopRecording).mockResolvedValueOnce({
+      sampleRate: 44100,
+      channels: 1,
+      sampleCount: 32000,
+      durationMs: 2000,
+      asrSampleRate: 16000,
+      asrSampleCount: 2560,
+      asrDurationMs: 160,
+      peakAmplitude: 80,
+      rmsAmplitude: 40,
+      audioQuality: { rms: 0.003, peak: 0.01, silenceRatio: 0.96, activeSpeechMs: 160, warnings: ['possible_far_microphone'] },
+    } as never);
+    vi.mocked(transcribeLastRecording).mockRejectedValueOnce({ code: 'asr_failed', message: '???????SenseVoice Small returned no text; stdout={"text":""}' });
+
+    render(<App />);
+
+    await screen.findByText(/Ctrl\+Alt\+Space/);
+    await waitFor(() => expect(screen.getAllByTitle('SenseVoice Small ready.').length).toBeGreaterThanOrEqual(1));
+    pushToTalkHandler?.({ state: 'pressed', action: 'startRecording' });
+    await waitFor(() => expect(startRecording).toHaveBeenCalledTimes(1));
+    pushToTalkHandler?.({ state: 'released', action: 'stopAndTranscribe' });
+
+    expect(await screen.findByText(/录音质量提示.*离麦远/)).toBeInTheDocument();
+    expect(screen.queryByText(/stdout=/)).not.toBeInTheDocument();
   });
 
   it('inserts the postprocessed push-to-talk text and persists quality metadata', async () => {

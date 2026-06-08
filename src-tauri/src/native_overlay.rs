@@ -1,5 +1,24 @@
 use crate::error::VoxError;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NativeOverlayLayout {
+    pub window_size: (i32, i32),
+    pub capsule_x: f32,
+    pub capsule_y: f32,
+    pub capsule_width: f32,
+    pub capsule_height: f32,
+}
+
+pub fn native_overlay_layout() -> NativeOverlayLayout {
+    NativeOverlayLayout {
+        window_size: (132, 44),
+        capsule_x: 6.5,
+        capsule_y: 6.5,
+        capsule_width: 119.0,
+        capsule_height: 31.0,
+    }
+}
+
 #[cfg(all(windows, not(test)))]
 #[allow(dead_code)]
 mod platform {
@@ -260,9 +279,10 @@ mod platform {
 
     const WIDTH: i32 = 132;
     const HEIGHT: i32 = 44;
-    const CAPSULE_X: f32 = 6.0;
-    const CAPSULE_Y: f32 = 6.0;
-    const CAPSULE_HEIGHT: f32 = 32.0;
+    const CAPSULE_X: f32 = 6.5;
+    const CAPSULE_Y: f32 = 6.5;
+    const CAPSULE_WIDTH: f32 = 119.0;
+    const CAPSULE_HEIGHT: f32 = 31.0;
     const MARGIN_BOTTOM: i32 = 92;
     const TIMER_ID: usize = 1;
     const TIMER_MS: u32 = 72;
@@ -607,9 +627,9 @@ mod platform {
     fn render_overlay_pixels(mode: NativeOverlayMode, frame: u32) -> Vec<u8> {
         let mut canvas = Canvas::new(WIDTH as usize, HEIGHT as usize, 3);
         canvas.draw_capsule(
-            0.0,
+            CAPSULE_X,
             CAPSULE_Y,
-            WIDTH as f32,
+            CAPSULE_WIDTH,
             CAPSULE_HEIGHT,
             CAPSULE_HEIGHT / 2.0,
         );

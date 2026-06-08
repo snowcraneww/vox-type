@@ -12,6 +12,17 @@ fn overlay_size_matches_tauri_window_config() {
 }
 
 #[test]
+fn native_overlay_capsule_layout_keeps_safe_viewport_padding() {
+    let layout = crate::native_overlay::native_overlay_layout();
+
+    assert_eq!(layout.window_size, (132, 44));
+    assert_eq!(layout.capsule_x, 6.5);
+    assert_eq!(layout.capsule_y, 6.5);
+    assert_eq!(layout.capsule_width, 119.0);
+    assert_eq!(layout.capsule_height, 31.0);
+}
+
+#[test]
 fn overlay_window_disables_shadow_in_tauri_config() {
     let config_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tauri.conf.json");
     let config = std::fs::read_to_string(config_path).expect("tauri config should exist");

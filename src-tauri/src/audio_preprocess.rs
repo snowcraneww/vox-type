@@ -9,7 +9,7 @@ const HIGH_PASS_CUTOFF_HZ: f32 = 80.0;
 const NORMALIZE_TARGET_RMS: f32 = 0.10;
 const NORMALIZE_MAX_GAIN: f32 = 8.0;
 const VAD_FRAME_MS: u32 = 20;
-const VAD_PADDING_MS: u32 = 120;
+const VAD_PADDING_MS: u32 = 300;
 const VAD_SPEECH_RMS: f32 = 0.01;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -365,9 +365,27 @@ mod tests {
 
         assert!(result.trimmed);
         assert!(result.samples.len() < samples.len());
-        assert!(result.samples.len() >= 8_000 + 3_600);
-        assert!(result.trimmed_front_samples >= 5_000);
-        assert!(result.trimmed_back_samples >= 5_000);
+        assert!(result.samples.len() >= 8_000 + 9_000);
+        assert!(result.trimmed_front_samples >= 3_000);
+        assert!(result.trimmed_back_samples >= 3_000);
+    }
+
+    #[test]
+    fn vad_trim_keeps_extra_leading_context_for_soft_speech_onsets() {
+        let sample_rate = 16_000;
+        let mut samples = vec![0.0; 8_000];
+        samples.extend((0..1_600).map(|index| if index % 2 == 0 { 0.004 } else { -0.004 }));
+        samples.extend((0..6_400).map(|index| if index % 2 == 0 { 0.08 } else { -0.08 }));
+        samples.extend(vec![0.0; 8_000]);
+
+        let result = trim_leading_trailing_silence(&samples, sample_rate);
+
+        assert!(result.trimmed);
+        assert!(
+            result.trimmed_front_samples <= 3_200,
+            "trimmed {} samples before speech",
+            result.trimmed_front_samples
+        );
     }
 
     #[test]

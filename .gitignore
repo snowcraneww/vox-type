@@ -1,4 +1,4 @@
-﻿# OS / editor
+# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/*
@@ -72,29 +72,17 @@ diagnostics/
 recordings/
 transcripts/
 
-# Internal project management, design, research, and AI coding records
-AGENTS.md
-CLAUDE.md
+# Private local agent/cache files
 .codex/
 .agents/
 .claude/
 .gstack/
 .aider*
+TMP/research/repos/
 .cursor/
 .windsurf/
 .roo/
-openspec/
-TMP/
-docs/harness/
-docs/superpowers/
-docs/research/
-docs/plans/
-docs/guide/interview-project-brief.md
 
-# Public docs kept in the open-source repository
-!docs/
-!docs/guide/
-!docs/guide/run-and-understand.md
-!docs/guide/code-walkthrough.md
-!docs/integrations/
-!docs/integrations/baidu-asr.md
+
+# Documentation is temporarily kept out of release commits.
+docs/

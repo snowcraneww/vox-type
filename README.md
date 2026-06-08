@@ -1,14 +1,44 @@
-﻿# VoxType
+# VoxType
 
 VoxType is a Windows desktop voice input tool for local-first dictation experiments. It lets you speak with global hotkeys, transcribe speech with local `whisper.cpp` or Baidu speech APIs, and insert the final text into the app that currently has focus.
 
 The project is still early. The current focus is a usable desktop MVP: reliable recording, visible dictation state, model selection, cloud/local ASR routing, and privacy-conscious configuration.
+
+
+## Download and Install
+
+For normal Windows users, use the latest beta installer from the GitHub Releases page when a release is published.
+
+Recommended installer:
+
+```text
+VoxType_0.1.0_x64-setup.exe
+```
+
+MSI packages are provided as a fallback for environments that prefer Windows Installer:
+
+```text
+VoxType_0.1.0_x64_en-US.msi
+```
+
+Current beta builds are not code-signed yet, so Windows may show an unknown-publisher or SmartScreen warning. Only install packages downloaded from this repository's official Releases page or from a maintainer-provided beta build.
+
+After installation:
+
+1. Launch VoxType.
+2. Open `Settings`.
+3. In `Input`, keep insertion strategy on `Auto Safe` or `Clipboard`.
+4. In `Models`, select and configure one transcription model.
+5. Open Notepad or VS Code, focus the text area, then use `Ctrl+Alt+Space` for push-to-talk or `Ctrl+Alt+V` for continuous input.
+
+Local model setup can take several minutes because runtime and model files are downloaded separately. The app shows a yellow guidance message while local models are not ready or are installing.
 
 ## Features
 
 - Global push-to-talk: hold `Ctrl+Alt+Space`, speak, release to transcribe and insert text.
 - Global continuous input: press `Ctrl+Alt+V` to start, press it again to stop.
 - Local ASR through `whisper.cpp` with in-app configuration and one-click setup support.
+- Local SenseVoice Small support through managed `sherpa-onnx` runtime and one-click setup support.
 - Baidu Short Speech API support for stop-then-transcribe input.
 - Baidu Realtime WebSocket API support for continuous input.
 - Per-mode model selection: push-to-talk and continuous input can use different default models.
@@ -25,7 +55,6 @@ The project is still early. The current focus is a usable desktop MVP: reliable 
 - Baidu Realtime WebSocket API inserts final `FIN_TEXT` results; partial `MID_TEXT` results are status-only.
 - Recognition quality depends heavily on microphone distance, noise, model choice, and provider behavior.
 - Audio enhancement is conservative and currently applies to stop-then-transcribe recordings; Baidu Realtime WebSocket audio remains raw.
-- Text insertion currently uses a clipboard-based strategy; the next planned milestone is Windows `SendInput(KEYEVENTF_UNICODE)` with clipboard fallback.
 
 ## Tech Stack
 

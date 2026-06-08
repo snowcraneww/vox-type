@@ -116,20 +116,14 @@ pub fn insert_text_with_strategy(
                 InsertionStrategyId::SendInput,
             ))
         }
-        InsertionStrategyId::Auto => match SendInputInsertion.insert_text(trimmed) {
-            Ok(()) => Ok(insertion_result(
+        InsertionStrategyId::Auto => {
+            ClipboardInsertion.insert_text(trimmed)?;
+            Ok(insertion_result_for_fallback(
                 InsertionStrategyId::Auto,
-                InsertionStrategyId::SendInput,
-            )),
-            Err(sendinput_error) => {
-                ClipboardInsertion.insert_text(trimmed)?;
-                Ok(insertion_result_for_fallback(
-                    InsertionStrategyId::Auto,
-                    InsertionStrategyId::Clipboard,
-                    Some(categorize_insertion_error(&sendinput_error)),
-                ))
-            }
-        },
+                InsertionStrategyId::Clipboard,
+                Some("auto_clipboard_policy".to_string()),
+            ))
+        }
     }
 }
 
@@ -156,17 +150,6 @@ pub fn insertion_result_for_fallback(
         fallback_used: true,
         error_category,
     }
-}
-
-fn categorize_insertion_error(error: &VoxError) -> String {
-    let message = error.to_string().to_ascii_lowercase();
-    if message.contains("sendinput") {
-        return "sendinput_failed".to_string();
-    }
-    if message.contains("unsupported") || message.contains("windows") {
-        return "unsupported_platform".to_string();
-    }
-    "insertion_failed".to_string()
 }
 
 #[cfg(windows)]
@@ -233,8 +216,22 @@ struct KeyboardInput {
 #[cfg(windows)]
 #[derive(Clone, Copy)]
 #[repr(C)]
+#[allow(dead_code)]
+struct MouseInput {
+    dx: i32,
+    dy: i32,
+    mouse_data: u32,
+    dw_flags: u32,
+    time: u32,
+    dw_extra_info: usize,
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy)]
+#[repr(C)]
 union InputUnion {
     ki: KeyboardInput,
+    mi: MouseInput,
 }
 
 #[cfg(windows)]
@@ -248,42 +245,120 @@ struct Input {
 #[cfg(windows)]
 extern "system" {
     fn SendInput(c_inputs: u32, p_inputs: *const Input, cb_size: i32) -> u32;
+    fn VkKeyScanW(ch: u16) -> i16;
+    fn GetAsyncKeyState(v_key: i32) -> i16;
 }
 
 #[cfg(windows)]
-fn insert_with_sendinput(text: &str) -> Result<(), VoxError> {
-    const INPUT_KEYBOARD: u32 = 1;
-    const KEYEVENTF_KEYUP: u32 = 0x0002;
-    const KEYEVENTF_UNICODE: u32 = 0x0004;
+const INPUT_KEYBOARD: u32 = 1;
+#[cfg(windows)]
+const KEYEVENTF_KEYUP: u32 = 0x0002;
+#[cfg(windows)]
+const VK_SHIFT: u16 = 0x10;
+#[cfg(windows)]
+const VK_CONTROL: u16 = 0x11;
+#[cfg(windows)]
+const VK_MENU: u16 = 0x12;
+#[cfg(windows)]
+const VK_LWIN: u16 = 0x5b;
+#[cfg(windows)]
+const VK_RWIN: u16 = 0x5c;
+#[cfg(windows)]
+const MODIFIER_KEYS: [u16; 5] = [VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN];
 
-    let mut inputs = Vec::with_capacity(text.encode_utf16().count() * 2);
-    for code_unit in text.encode_utf16() {
-        inputs.push(Input {
-            input_type: INPUT_KEYBOARD,
-            union: InputUnion {
-                ki: KeyboardInput {
-                    w_vk: 0,
-                    w_scan: code_unit,
-                    dw_flags: KEYEVENTF_UNICODE,
-                    time: 0,
-                    dw_extra_info: 0,
-                },
+#[cfg(windows)]
+fn keyboard_input(vk: u16, flags: u32) -> Input {
+    Input {
+        input_type: INPUT_KEYBOARD,
+        union: InputUnion {
+            ki: KeyboardInput {
+                w_vk: vk,
+                w_scan: 0,
+                dw_flags: flags,
+                time: 0,
+                dw_extra_info: 0,
             },
-        });
-        inputs.push(Input {
-            input_type: INPUT_KEYBOARD,
-            union: InputUnion {
-                ki: KeyboardInput {
-                    w_vk: 0,
-                    w_scan: code_unit,
-                    dw_flags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
-                    time: 0,
-                    dw_extra_info: 0,
-                },
-            },
-        });
+        },
+    }
+}
+
+#[cfg(windows)]
+fn modifier_keyup_inputs() -> Vec<Input> {
+    MODIFIER_KEYS
+        .iter()
+        .map(|key| keyboard_input(*key, KEYEVENTF_KEYUP))
+        .collect()
+}
+
+#[cfg(windows)]
+fn is_modifier_down() -> bool {
+    MODIFIER_KEYS.iter().any(|key| {
+        let state = unsafe { GetAsyncKeyState(i32::from(*key)) };
+        state < 0
+    })
+}
+
+#[cfg(windows)]
+fn wait_for_physical_modifiers_to_release() {
+    let deadline = std::time::Instant::now() + Duration::from_millis(400);
+    while is_modifier_down() && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[cfg(windows)]
+fn clear_modifier_state() -> Result<(), VoxError> {
+    wait_for_physical_modifiers_to_release();
+    send_keyboard_inputs(&modifier_keyup_inputs())
+}
+
+#[cfg(windows)]
+fn ascii_key_input_sequence(character: char) -> Result<Vec<Input>, VoxError> {
+    if !character.is_ascii() {
+        return Err(VoxError::Insertion(
+            "SendInput virtual-key insertion only supports ASCII text".to_string(),
+        ));
     }
 
+    let scan = unsafe { VkKeyScanW(character as u16) };
+    if scan == -1 {
+        return Err(VoxError::Insertion(format!(
+            "SendInput virtual-key mapping failed for {character:?}"
+        )));
+    }
+
+    let vk = (scan as u16) & 0x00ff;
+    let shift_state = ((scan as u16) >> 8) & 0x00ff;
+    let mut inputs = Vec::with_capacity(8);
+
+    if shift_state & 0x01 != 0 {
+        inputs.push(keyboard_input(VK_SHIFT, 0));
+    }
+    if shift_state & 0x02 != 0 {
+        inputs.push(keyboard_input(VK_CONTROL, 0));
+    }
+    if shift_state & 0x04 != 0 {
+        inputs.push(keyboard_input(VK_MENU, 0));
+    }
+
+    inputs.push(keyboard_input(vk, 0));
+    inputs.push(keyboard_input(vk, KEYEVENTF_KEYUP));
+
+    if shift_state & 0x04 != 0 {
+        inputs.push(keyboard_input(VK_MENU, KEYEVENTF_KEYUP));
+    }
+    if shift_state & 0x02 != 0 {
+        inputs.push(keyboard_input(VK_CONTROL, KEYEVENTF_KEYUP));
+    }
+    if shift_state & 0x01 != 0 {
+        inputs.push(keyboard_input(VK_SHIFT, KEYEVENTF_KEYUP));
+    }
+
+    Ok(inputs)
+}
+
+#[cfg(windows)]
+fn send_keyboard_inputs(inputs: &[Input]) -> Result<(), VoxError> {
     let sent = unsafe {
         SendInput(
             inputs.len() as u32,
@@ -296,6 +371,17 @@ fn insert_with_sendinput(text: &str) -> Result<(), VoxError> {
             "SendInput failed: {sent}/{}",
             inputs.len()
         )));
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn insert_with_sendinput(text: &str) -> Result<(), VoxError> {
+    clear_modifier_state()?;
+    for character in text.chars() {
+        let inputs = ascii_key_input_sequence(character)?;
+        send_keyboard_inputs(&inputs)?;
+        std::thread::sleep(Duration::from_millis(2));
     }
     Ok(())
 }
@@ -332,5 +418,86 @@ mod tests {
         assert!(plan.verify_clipboard);
         assert!(plan.before_paste_delay_ms > 0);
         assert!(plan.before_restore_delay_ms >= 500);
+    }
+
+    #[test]
+    fn auto_strategy_reports_clipboard_policy_metadata() {
+        let result = insertion_result_for_fallback(
+            InsertionStrategyId::Auto,
+            InsertionStrategyId::Clipboard,
+            Some("auto_clipboard_policy".to_string()),
+        );
+
+        assert_eq!(result.requested_strategy, InsertionStrategyId::Auto);
+        assert_eq!(result.actual_strategy, InsertionStrategyId::Clipboard);
+        assert!(result.fallback_used);
+        assert_eq!(
+            result.error_category.as_deref(),
+            Some("auto_clipboard_policy")
+        );
+    }
+
+    #[cfg(all(test, windows))]
+    #[test]
+    fn modifier_keyup_inputs_release_common_shortcut_modifiers() {
+        let inputs = modifier_keyup_inputs();
+
+        assert_eq!(inputs.len(), MODIFIER_KEYS.len());
+        for (input, expected_key) in inputs.iter().zip(MODIFIER_KEYS.iter()) {
+            assert_eq!(input.input_type, INPUT_KEYBOARD);
+            let keyup = unsafe { input.union.ki };
+            assert_eq!(keyup.w_vk, *expected_key);
+            assert_eq!(keyup.dw_flags, KEYEVENTF_KEYUP);
+        }
+    }
+
+    #[cfg(all(test, windows))]
+    #[test]
+    fn ascii_key_input_sequence_uses_virtual_keys() {
+        let sequence = ascii_key_input_sequence('e').unwrap();
+
+        assert_eq!(sequence.len(), 2);
+        assert_eq!(sequence[0].input_type, INPUT_KEYBOARD);
+        assert_eq!(sequence[1].input_type, INPUT_KEYBOARD);
+        let down = unsafe { sequence[0].union.ki };
+        let up = unsafe { sequence[1].union.ki };
+        assert_eq!(down.w_vk, b'E' as u16);
+        assert_eq!(down.w_scan, 0);
+        assert_eq!(down.dw_flags, 0);
+        assert_eq!(up.w_vk, b'E' as u16);
+        assert_eq!(up.w_scan, 0);
+        assert_eq!(up.dw_flags, KEYEVENTF_KEYUP);
+    }
+
+    #[cfg(all(test, windows))]
+    #[test]
+    fn ascii_key_input_sequence_presses_shift_for_uppercase() {
+        let sequence = ascii_key_input_sequence('E').unwrap();
+
+        assert_eq!(sequence.len(), 4);
+        let shift_down = unsafe { sequence[0].union.ki };
+        let key_down = unsafe { sequence[1].union.ki };
+        let key_up = unsafe { sequence[2].union.ki };
+        let shift_up = unsafe { sequence[3].union.ki };
+        assert_eq!(shift_down.w_vk, VK_SHIFT);
+        assert_eq!(shift_down.dw_flags, 0);
+        assert_eq!(key_down.w_vk, b'E' as u16);
+        assert_eq!(key_down.dw_flags, 0);
+        assert_eq!(key_up.w_vk, b'E' as u16);
+        assert_eq!(key_up.dw_flags, KEYEVENTF_KEYUP);
+        assert_eq!(shift_up.w_vk, VK_SHIFT);
+        assert_eq!(shift_up.dw_flags, KEYEVENTF_KEYUP);
+    }
+
+    #[cfg(all(test, windows, target_pointer_width = "64"))]
+    #[test]
+    fn windows_input_struct_matches_sendinput_size_on_x64() {
+        assert_eq!(std::mem::size_of::<Input>(), 40);
+    }
+
+    #[cfg(all(test, windows, target_pointer_width = "32"))]
+    #[test]
+    fn windows_input_struct_matches_sendinput_size_on_x86() {
+        assert_eq!(std::mem::size_of::<Input>(), 28);
     }
 }

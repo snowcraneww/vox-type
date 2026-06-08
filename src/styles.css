@@ -3792,6 +3792,38 @@ kbd {
   margin: 0;
 }
 
+.model-panel .install-guidance {
+  align-items: flex-start;
+  background: linear-gradient(180deg, rgba(255, 250, 229, 0.92), rgba(250, 236, 190, 0.74));
+  border: 1px solid rgba(191, 137, 31, 0.18);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+  color: rgba(91, 62, 18, 0.82);
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.model-panel .install-guidance[data-active="true"] {
+  background: linear-gradient(180deg, rgba(255, 246, 214, 0.98), rgba(246, 222, 160, 0.82));
+  border-color: rgba(190, 121, 23, 0.26);
+}
+
+.model-panel .install-guidance span {
+  color: rgba(126, 77, 15, 0.88);
+  font-size: 11px;
+  font-weight: 820;
+  line-height: 1.2;
+}
+
+.model-panel .install-guidance small {
+  color: rgba(92, 66, 30, 0.68);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.4;
+}
+
 .model-panel .button-row {
   gap: 8px;
 }

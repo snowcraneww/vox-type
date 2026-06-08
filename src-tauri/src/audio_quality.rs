@@ -28,7 +28,7 @@ const MOSTLY_SILENCE_RATIO: f64 = 0.995;
 const MOSTLY_SILENCE_MAX_ACTIVE_MS: u64 = 80;
 const FAR_MIC_SILENCE_RATIO: f64 = 0.90;
 const FAR_MIC_PEAK: f64 = 0.025;
-const FAR_MIC_MIN_ACTIVE_MS: u64 = 250;
+const FAR_MIC_MIN_ACTIVE_MS: u64 = 80;
 
 pub fn analyze_audio_quality(samples: &[i16], sample_rate: u32) -> AudioQualitySummary {
     if samples.is_empty() || sample_rate == 0 {
@@ -134,6 +134,21 @@ mod tests {
         let summary = analyze_audio_quality(&samples, 16000);
         assert!(summary.silence_ratio > 0.90);
         assert!(summary.active_speech_ms >= 250);
+        assert!(summary
+            .warnings
+            .contains(&AudioQualityWarning::PossibleFarMicrophone));
+    }
+
+    #[test]
+    fn very_short_weak_sparse_speech_reports_far_microphone() {
+        let mut samples = vec![0; 64000];
+        for (index, sample) in samples.iter_mut().take(2560).enumerate() {
+            *sample = if index % 2 == 0 { 80 } else { -80 };
+        }
+        let summary = analyze_audio_quality(&samples, 16000);
+        assert!(summary.silence_ratio > 0.90);
+        assert!(summary.active_speech_ms >= 80);
+        assert!(summary.active_speech_ms < 250);
         assert!(summary
             .warnings
             .contains(&AudioQualityWarning::PossibleFarMicrophone));

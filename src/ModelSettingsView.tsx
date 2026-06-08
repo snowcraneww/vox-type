@@ -25,6 +25,9 @@ const text = {
   senseVoiceTokens: 'tokens.txt',
   installingSenseVoice: '\u6b63\u5728\u5b89\u88c5 SenseVoice Small',
   installSenseVoice: '\u4e00\u952e\u5b89\u88c5 SenseVoice Small',
+  senseVoiceInstallWaitTitle: 'SenseVoice \u4f9d\u8d56\u8f83\u5927',
+  senseVoiceInstallWaitDetail: '\u9700\u8981\u4e0b\u8f7d sherpa-onnx \u8fd0\u884c\u65f6\u3001ONNX \u6a21\u578b\u548c tokens\uff0c\u901a\u5e38\u9700\u8981 2-8 \u5206\u949f\uff0c\u53d6\u51b3\u4e8e GitHub / Hugging Face \u8bbf\u95ee\u901f\u5ea6\u3002',
+  senseVoiceInstallingWaitDetail: '\u6b63\u5728\u4e0b\u8f7d\u8fd0\u884c\u65f6\u548c\u6a21\u578b\u6587\u4ef6\uff0c\u8bf7\u4fdd\u6301\u7f51\u7edc\u8fde\u63a5\u5e76\u7b49\u5f85\u5b8c\u6210\u3002',
   checkSenseVoice: '\u68c0\u6d4b SenseVoice \u914d\u7f6e',
   saveSenseVoice: '\u4fdd\u5b58 SenseVoice \u914d\u7f6e',
   executable: 'whisper.cpp \u53ef\u6267\u884c\u6587\u4ef6',
@@ -32,6 +35,9 @@ const text = {
   language: '\u8bc6\u522b\u8bed\u8a00',
   installing: '\u6b63\u5728\u5b89\u88c5 whisper.cpp',
   install: '\u4e00\u952e\u5b89\u88c5 whisper.cpp',
+  localInstallWaitTitle: '\u6a21\u578b\u6587\u4ef6\u8f83\u5927',
+  localInstallWaitDetail: '\u9700\u8981\u4e0b\u8f7d whisper.cpp \u8fd0\u884c\u65f6\u548c Whisper base \u6a21\u578b\uff0c\u901a\u5e38\u9700\u8981 1-5 \u5206\u949f\uff0c\u6162\u7f51\u7edc\u53ef\u80fd\u66f4\u4e45\u3002',
+  localInstallingWaitDetail: '\u6b63\u5728\u4e0b\u8f7d\u548c\u89e3\u538b\uff0c\u8bf7\u4e0d\u8981\u5173\u95ed VoxType\u3002\u5982\u679c\u7f51\u7edc\u8d85\u65f6\uff0c\u5e94\u7528\u4f1a\u663e\u793a\u5931\u8d25\u539f\u56e0\u3002',
   checkAsr: '\u68c0\u6d4b ASR \u914d\u7f6e',
   saveAsr: '\u4fdd\u5b58 ASR \u914d\u7f6e',
   baiduShort: '\u767e\u5ea6\u77ed\u8bed\u97f3 API',
@@ -201,6 +207,8 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
   const apiKeyDetail = props.cloudAsrConfigStatus.apiKeyPreview ?? text.waitingEnv;
   const secretKeyState = props.cloudAsrConfigStatus.secretKeyConfigured ? '\u5df2\u914d\u7f6e' : '\u672a\u914d\u7f6e';
   const secretKeyDetail = props.cloudAsrConfigStatus.secretKeyPreview ?? text.waitingEnv;
+  const showLocalInstallGuidance = props.isInstallingAsr || !props.asrConfigStatus.ready;
+  const showSenseVoiceInstallGuidance = props.isInstallingSenseVoice || !props.senseVoiceConfigStatus.ready;
   const baiduCredentialFields = (
     <div className="secret-grid">
       <div className="secret-block"><div className="cloud-key-status"><span>{text.apiKey}</span><strong>{apiKeyState}</strong><code>BAIDU_ASR_API_KEY</code><small>{apiKeyDetail}</small></div><label className="field"><span>{text.apiKey}</span><input aria-label={text.apiKeyInput} type="password" autoComplete="off" spellCheck={false} value={props.cloudApiKeyInput} onChange={(event) => props.onCloudApiKeyInputChange(event.target.value)} placeholder={text.pasteSecret} /></label><button type="button" onClick={props.onSaveBaiduAsrApiKey} disabled={!props.cloudApiKeyInput.trim()}>{text.saveApiKey}</button></div>
@@ -241,6 +249,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
             <label className="field"><span>{text.modelFile}</span><input aria-label={text.modelFile} value={props.whisperModelPath} onChange={(event) => props.onWhisperModelPathChange(event.target.value)} placeholder="C:\\models\\ggml-small.bin" /></label>
             <label className="field"><span>{text.language}</span><input aria-label={text.language} value={props.asrLanguage} onChange={(event) => props.onAsrLanguageChange(event.target.value)} placeholder="zh" /></label>
             <p className="runtime-message">{props.asrConfigStatus.message}</p>
+            {showLocalInstallGuidance ? <div className="install-guidance" data-active={props.isInstallingAsr} role="note"><span>{text.localInstallWaitTitle}</span><small>{props.isInstallingAsr ? text.localInstallingWaitDetail : text.localInstallWaitDetail}</small></div> : null}
             <div className="button-row"><button type="button" onClick={props.onInstallManagedAsr} disabled={props.isInstallingAsr}>{props.isInstallingAsr ? text.installing : text.install}</button><button type="button" onClick={props.onRefreshAsrConfig}>{text.checkAsr}</button><button type="button" onClick={props.onSaveAsrConfig}>{text.saveAsr}</button></div>
           </section> : null}
           {activeConfig === 'sensevoice-small' ? <section className="model-config active-config-panel" aria-label={text.senseVoiceConfig}>
@@ -252,6 +261,7 @@ export function ModelSettingsView(props: ModelSettingsViewProps) {
               <label className="field"><span>{text.language}</span><input aria-label="SenseVoice language" value={props.senseVoiceLanguage} onChange={(event) => props.onSenseVoiceLanguageChange(event.target.value)} placeholder="auto" /></label>
             </div>
             <p className="runtime-message">{props.senseVoiceConfigStatus.message}</p>
+            {showSenseVoiceInstallGuidance ? <div className="install-guidance" data-active={props.isInstallingSenseVoice} role="note"><span>{text.senseVoiceInstallWaitTitle}</span><small>{props.isInstallingSenseVoice ? text.senseVoiceInstallingWaitDetail : text.senseVoiceInstallWaitDetail}</small></div> : null}
             <div className="button-row"><button type="button" onClick={props.onInstallManagedSenseVoice} disabled={props.isInstallingSenseVoice}>{props.isInstallingSenseVoice ? text.installingSenseVoice : text.installSenseVoice}</button><button type="button" onClick={props.onRefreshSenseVoiceConfig}>{text.checkSenseVoice}</button><button type="button" onClick={props.onSaveSenseVoiceConfig}>{text.saveSenseVoice}</button></div>
           </section> : null}
           {activeConfig === 'baidu-short' ? <section className="model-config active-config-panel cloud-config" aria-label={text.baiduShortConfig}>
