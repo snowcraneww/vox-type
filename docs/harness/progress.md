@@ -3,14 +3,14 @@
 ## 当前已验证状态
 
 - 仓库根目录：当前 Git 工作树根目录
-- Current phase: V10 audio preprocessing is passing; V11 insertion reliability is planned next.
+- Current phase: V11 insertion reliability is in_progress after real SendInput target-text corruption; V12 compatibility/release readiness is also in_progress.
 - 产品 scaffold：`scaffold-001` 已标记为 `passing`。
 - 许可证：Apache-2.0，见 `LICENSE`。
 - 标准启动路径：`bash init.sh`
 - 标准验证路径：`bash init.sh` 和 `python -m json.tool docs/harness/feature_list.json`
 - 当前最高优先级未完成项：`v11-001`，Windows SendInput Unicode insertion reliability with clipboard fallback。
 - 文档语言规则：面向维护者的研究、方案、进度和规则文档默认中文；函数名、API 名、命令、仓库名、错误消息和专有名词保持原文。
-- 当前 blocker：无。
+- 当前 blocker：V11 SendInput/Auto 需要维护者在真实桌面目标中复测；V12 兼容性矩阵和低风险桌面回归哨兵仍未完成。
 
 
 
@@ -997,4 +997,175 @@ pm run typecheck.
 - Implemented the V12 automated foundation: `docs/guide/desktop-compatibility-matrix.md` and `docs/guide/release-checklist.md`.
 - Verification passed: `npm test -- --run src/App.test.tsx` (45 tests); `npm test -- --run` (61 tests); `npm run typecheck`; `npm run build`; `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`; `cargo test --manifest-path src-tauri/Cargo.toml transcript_history --no-run`; `python -m json.tool docs/harness/feature_list.json`; `git diff --check` with only CRLF/LF warnings.
 - `bash init.sh` still fails because it treats currently tracked harness/planning files as an internal-file policy violation. This is not a V11/V12 runtime failure, but it remains a harness baseline issue before release closeout.
-- V11 is now `passing`. V12 remains `in_progress` until maintainer fills the real desktop compatibility matrix across target apps.
+- V11 automated implementation had passed, but later maintainer desktop testing found SendInput corruption, so V11 must be treated as in_progress until the desktop insertion path is retested. V12 remains `in_progress` until maintainer fills the real desktop compatibility matrix across target apps.
+
+
+## 2026-06-05 V12 testing strategy supplement
+
+- Maintainer clarified that the goal is not 100% desktop automation, but low-risk regression coverage that catches the most important main-path failures before manual testing.
+- Added `docs/guide/testing-strategy.md` to define layered testing: unit tests, integration tests, Safe Desktop Regression Harness, and manual desktop validation.
+- Documented safety boundaries: do not automatically send global shortcuts, steal focus from real user windows, operate on IM/browser/elevated windows, change system audio effects, or save real microphone recordings unless explicitly approved.
+- Updated `AGENTS.md` so future handoffs must report verification as automated checks passed, safe desktop smoke passed, manual desktop validation pending, or not verified. Avoid vague "tests passed" wording when real desktop dictation was not exercised.
+- Updated V12 feature evidence to include Safe Desktop Regression Harness as a supplemental testing strategy. Implementation of the low-risk sentinels remains future V12 work.
+
+
+## 2026-06-05 testing strategy verification
+
+- Verified the V12 testing strategy documentation update with low-risk automated checks only. No desktop app was launched, no global shortcut was sent, no microphone recording was started, and no system audio settings were changed.
+- Automated checks passed: `python -m json.tool docs/harness/feature_list.json`; `git diff --check` exited 0 with CRLF/LF warnings only; `npm test -- --run` passed with 6 files and 61 tests; `npm run typecheck` passed; `npm run build` passed; `cargo check --manifest-path src-tauri/Cargo.toml --lib` passed; `cargo test --manifest-path src-tauri/Cargo.toml sensevoice --no-run` passed; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run` passed.
+- `bash init.sh` still fails because it treats tracked harness/planning files as an internal-file policy violation. This remains a harness baseline issue, not evidence that the desktop dictation runtime failed.
+- Manual desktop validation pending: Dolby Voice popup behavior, real SenseVoice recording that returned empty text, real microphone capture, global shortcuts, and target-window insertion strategy behavior.
+
+
+## 2026-06-05 SendInput FFI layout fix
+
+- Maintainer reported `SendInput failed: 0/16` during text insertion. This was an insertion-layer failure after recognition, not an ASR failure.
+- Root cause: Rust's Win32 `INPUT` FFI layout was too small because the union only contained `KEYBDINPUT`. On Windows x64, `SendInput` expects the full `INPUT` size, including the larger mouse-input union branch. The wrong `cbSize` can make `SendInput` return 0 for the whole batch.
+- Fixed `src-tauri/src/insertion/mod.rs` by adding `MouseInput` to `InputUnion` and adding platform-gated size regression tests for x64/x86 Windows.
+- Automated checks passed: `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`; `cargo test --manifest-path src-tauri/Cargo.toml insertion_result --no-run`; `python -m json.tool docs/harness/feature_list.json`.
+- Direct Rust test execution still fails with the existing `STATUS_ENTRYPOINT_NOT_FOUND` test-binary startup issue, so the new regression was compiled but not executed here. Manual desktop retest of SendInput remains required.
+
+
+## 2026-06-05 Auto insertion non-ASCII clipboard fallback
+
+- Maintainer reported that `Auto` continuous input produced correct history text but corrupted Notepad text by repeating the final Chinese character while metadata showed `上屏 auto -> sendinput`.
+- Root cause: `Auto` treated Win32 `SendInput` API success as insertion success, but Chinese/non-ASCII text can still be corrupted by target control or IME behavior. API success is not enough without target readback verification.
+- Fixed `Auto` to prefer clipboard for non-ASCII text and return fallback metadata `non_ascii_text`; ASCII text still tries SendInput first. Frontend diagnostics render this reason as `Chinese text uses clipboard`.
+- Automated checks passed: `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`; `npm test -- --run src/App.test.tsx -t insertion`; `npm run typecheck`.
+- Manual desktop retest pending: Auto Chinese input in Notepad should now show `上屏 auto -> clipboard` and target text should match history. The reported `百度实时 WebSocket API` metadata means the actual continuous-input model was Baidu Realtime; maintainer should verify Settings -> Model -> 连续输入 is set to the intended model before SenseVoice testing.
+
+
+## 2026-06-05 SenseVoice history metadata label fix
+
+- Maintainer reported that both input modes were set to SenseVoice, but transcript history metadata still showed `百度实时 WebSocket API`.
+- Checked the local user preferences file and confirmed routing was correctly saved as `toggleDictationModel: sensevoice-small`; this was not a preference persistence bug.
+- Root cause: `MainWindow.tsx` model label formatting only handled `local-whisper` and `baidu-short`; every other model fell through to the Baidu Realtime label. SenseVoice records were therefore mislabeled.
+- Fixed `formatModelLabel` to explicitly render `sensevoice-small` as `SenseVoice Small` and added a regression test for persisted SenseVoice history records.
+- Verification passed: `npm test -- --run src/App.test.tsx -t SenseVoice`; `npm run typecheck`.
+
+
+## 2026-06-05 SendInput repeated-character follow-up
+
+- Maintainer confirmed the SenseVoice model label issue is fixed: history now shows `SenseVoice Small` for SenseVoice records.
+- Maintainer then tested English with `Auto`/`SendInput`: history correctly recorded `test i have a headache`, but the target text became `test eeeeeeeeeeeeeeeee`. This proves the SendInput corruption is not limited to Chinese text or IME composition.
+- Root-cause update: the previous FFI layout fix addressed the `SendInput failed: 0/16` hard failure, but the runtime still submitted the entire transcript as one large batch of Unicode down/up events. Some target controls can accept the API call but process the batch incorrectly, repeating the final code unit. API success is therefore not sufficient insertion success evidence.
+- Fix: `src-tauri/src/insertion/mod.rs` now builds a tested Unicode down/up pair per UTF-16 code unit and calls `SendInput(2, ...)` per pair with a 1 ms spacing. The existing full `INPUT` union layout remains in place. Added a Windows-gated regression test for the generated scan code and flags.
+- Verification passed without dangerous desktop automation: `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`; `npm test -- --run src/App.test.tsx -t SenseVoice`; `npm test -- --run src/App.test.tsx -t insertion`; `npm test -- --run`; `npm run typecheck`; `rustfmt src-tauri/src/insertion/mod.rs --edition 2021`.
+- Manual desktop validation still required: test Settings -> 输入 -> 上屏策略 with `SendInput` and `Auto` in Notepad/VS Code/browser. If repeated characters still occur, temporarily demote `Auto` to clipboard for all text and keep `SendInput` as an explicit experimental strategy only.
+
+
+## 2026-06-05 SendInput Unicode path disproved
+
+- Maintainer retested after the per-code-unit Unicode SendInput change. `SendInput` and `Auto` still produced `test eeeeeeeeeeeeeeeee` in Notepad while history remained `test i have a headache`.
+- This disproved the previous hypothesis that whole-transcript batching was the root cause.
+- Web research and local dependency inspection showed that `KEYEVENTF_UNICODE` uses the `VK_PACKET` / `WM_CHAR` path, and Win11 Notepad has known automation compatibility issues around SendInput-like text entry.
+- Updated SendInput ASCII insertion to use `VkKeyScanW` virtual-key mapping and ordinary key down/up events instead of `KEYEVENTF_UNICODE`. Non-ASCII text remains clipboard-first in Auto.
+- Verification passed: `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`.
+- Manual desktop validation required again: test English `test i have a headache` in Notepad with both `SendInput` and `Auto`. If this still fails, demote `Auto` to clipboard for all text and leave direct insertion as experimental only.
+
+
+## 2026-06-05 SendInput modifier-state final attempt
+
+- Maintainer retested the ASCII virtual-key path. It no longer repeated one character, but the target English text still differed from the accurate transcript record.
+- Final direct-insertion hypothesis: global hotkey-triggered insertion can begin while Ctrl/Alt/Shift/Win modifier state is still physically or logically active, so ordinary virtual-key events can be interpreted with unintended modifiers.
+- Updated `src-tauri/src/insertion/mod.rs` to wait up to 400 ms for Shift/Ctrl/Alt/Win to be physically released via `GetAsyncKeyState`, then send synthetic key-up events for those modifiers before typing ASCII virtual-key events.
+- Verification passed: `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`; `npm test -- --run`; `npm run typecheck`.
+- This is the last SendInput stabilization attempt before policy fallback. If maintainer retest still shows target text diverging from history, demote `Auto` to clipboard for all text and mark `SendInput` as experimental/incompatible in V11/V12 docs.
+
+
+## 2026-06-05 V11 SendInput rollback to safe Auto policy and V13 planning
+
+- Maintainer retested the final SendInput modifier-state guard. `i have a headache` was recognized correctly, but Notepad received `I have a eaache`, so direct insertion still cannot guarantee target text equals history text.
+- Product decision: stop attempting SendInput fixes in V11. `Auto` now always uses clipboard and records `auto_clipboard_policy`; `SendInput` remains available only as `SendInput 实验` for explicit compatibility testing.
+- V11 is now passing as a reliability-policy release: safe default, safe Auto, experimental direct insertion clearly labeled.
+- Superseded later on 2026-06-05: V12 was reframed and closed as release-readiness scaffolding; the real release gate moved to V13 clipboard-first validation.
+- Added V13 plan: clipboard-first release readiness, real compatibility matrix for Clipboard/Auto, safe desktop regression sentinels where feasible, and TSF go/no-go decision.
+
+
+## 2026-06-05 VibeVoice research and closeout status
+
+- Maintainer manually verified `Auto 安全` mode is stable and consistently uses clipboard. V11 can close as a safe insertion-policy milestone.
+- Superseded later on 2026-06-05: V12 is closed as scaffolding and policy; full release validation is carried into V13.
+- Researched Microsoft VibeVoice. The TTS variants are not relevant to VoxType ASR. `VibeVoice-ASR` is relevant but appears heavy and long-form oriented: structured transcription, speaker/timestamp output, hotwords, 50+ languages, up to 60-minute audio, Transformers/PyTorch route.
+- Hardware conclusion: do not target no-GPU daily dictation with VibeVoice-ASR. Public/community signals point to roughly 12-18GB+ VRAM for practical local use depending on quantization; CPU-only remains experimental and likely too slow for realtime input.
+- Added `docs/research/vibevoice-asr-feasibility.md`. Superseded later on 2026-06-05: maintainer decided to abandon VibeVoice, so no V14 VibeVoice spike remains in the active roadmap.
+
+## 2026-06-05 V12 closeout and V13 focus update
+
+- Latest decision supersedes the earlier VibeVoice/V14 planning note: maintainer decided to abandon VibeVoice for the current roadmap. `docs/research/vibevoice-asr-feasibility.md` remains only as a rejected-for-now research record.
+- `v12-001` is reframed and closed as release-readiness scaffolding and testing policy. It does not claim full desktop release readiness.
+- Completed V12 outputs: `docs/guide/desktop-compatibility-matrix.md`, `docs/guide/release-checklist.md`, Settings diagnostics build metadata, and `docs/guide/testing-strategy.md`.
+- The real release gate moves to `v13-001`: clipboard-first release readiness, compatibility evidence for `Clipboard` and `Auto 安全`, optional `SendInput 实验` observations, safe regression sentinel decisions, and TSF go/no-go.
+
+- v13-001 is now the active in-progress focus in docs/harness/feature_list.json.
+
+## 2026-06-05 init.sh policy fix and V13 safe readiness command
+
+- Root cause of repeated `bash init.sh` failure: the script still used an early private-file policy that treated `AGENTS.md`, `docs/harness/`, `docs/research/`, `openspec/`, and other repository fact-source files as forbidden tracked files. This conflicted with current project rules requiring these docs to be committed.
+- Fixed `init.sh` to block only private/local agent or cache paths: `.codex/`, `.agents/`, `.claude/`, `.gstack/`, and `TMP/research/repos/`.
+- Updated `.gitignore` to stop hiding public project docs and planning sources, while keeping private local agent/cache folders ignored.
+- Added V13 safe automated readiness command: `npm run verify:v13`, implemented by `tools/verify-v13-readiness.sh`. It runs only safe automated checks and explicitly does not record audio, send global shortcuts, steal focus, or operate on real target windows.
+- Verification passed: `npm run verify:v13`. It ran `bash init.sh`, `npm test -- --run` (62 tests), `npm run typecheck`, `npm run build`, `cargo check --manifest-path src-tauri/Cargo.toml --lib`, `cargo test --manifest-path src-tauri/Cargo.toml insertion --no-run`, `python -m json.tool docs/harness/feature_list.json`, and `git diff --check`.
+- Manual desktop validation still pending for V13: real microphone capture, `Ctrl+Alt+Space`, `Ctrl+Alt+V`, `Clipboard` and `Auto 安全` insertion in Notepad/VS Code/browser/daily target, and optional `SendInput 实验` observation.
+
+## 2026-06-06 V13 desktop feedback: microphone readiness, overlay clipping, and VAD leading trim
+
+- Maintainer verified V13 insertion behavior: tested combinations all used clipboard, `Auto 安全` also used clipboard, and target text almost matched transcript history. Clipboard-first insertion is effectively passing for this test round.
+- New issue 1: main readiness showed microphone as waiting even though recording worked. Root cause: the main readiness card only trusted initial `getDefaultInputInfo`; if that probe failed or raced, later successful `startRecording` did not update `recorderInfo`. Fix: when recording starts successfully and `recorderInfo` is empty, self-heal the readiness display from `RecorderRuntimeStatus` sample rate/channels.
+- New issue 2: bottom capsule overlay again showed right/bottom clipping. Related historical bug: 2026-06-02 overlay clipping follow-up expanded the viewport to `132 x 44`; however the native Win32 renderer still drew the capsule against the window edge. Fix: expose and test native overlay layout, and draw the native capsule with the same safe viewport padding as the WebView fallback: `x=6.5`, `y=6.5`, `width=119`, `height=31` inside `132 x 44`.
+- New issue 3: transcripts often missed the first one or two spoken characters before insertion, meaning ASR returned already-truncated text. Likely cause: V10 VAD trim was too aggressive for soft speech onsets. Fix: increase VAD leading/trailing padding from 120 ms to 300 ms and add a regression test for weak onset speech so the first soft segment keeps more context.
+- Verification passed: `cargo test --manifest-path src-tauri/Cargo.toml audio_preprocess --no-run`; `cargo test --manifest-path src-tauri/Cargo.toml overlay --no-run`; `npm test -- --run src/App.test.tsx -t self-heals`; `npm run typecheck`; `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `npm run verify:v13` with 63 frontend tests.
+- Manual desktop validation still needed: retest bottom overlay visual clipping and whether first spoken characters are preserved better with audio enhancement enabled.
+
+## 2026-06-06 V13 beta packaging preparation
+
+- Maintainer retested the three V13 desktop issues from the previous round and confirmed they are fixed: microphone readiness no longer blocks visible readiness, the bottom capsule overlay clipping is resolved, and leading-word truncation is improved enough to pass this round.
+- V13 clipboard-first insertion remains accepted for beta: tested combinations use clipboard, `Auto 安全` uses clipboard, and transcript history text matches target-window text closely enough for beta.
+- Updated `docs/guide/release-checklist.md` for beta packaging and fixed broken Markdown code fences.
+- Added `docs/guide/beta-install-test.md` with installer selection, first-run setup, minimum smoke test, expected results, and tester feedback format.
+- Next step: run `npm run verify:v13`, then `npm run tauri -- build`, then record actual installer paths.
+
+## 2026-06-06 V13 beta installer build
+
+- `npm run verify:v13` passed before packaging: harness baseline, frontend tests (63), typecheck, production build, Rust lib check, insertion compile check, feature JSON, and diff whitespace check.
+- `npm run tauri -- build` passed and produced Windows x64 beta installers:
+  - `src-tauri/target/release/bundle/nsis/VoxType_0.1.0_x64-setup.exe` (~3.4 MB)
+  - `src-tauri/target/release/bundle/msi/VoxType_0.1.0_x64_en-US.msi` (~5.0 MB)
+- Recommended beta distribution artifact: NSIS setup exe. MSI is available as fallback.
+- Remaining beta caveats: installer is not code-signed; Windows may show unknown publisher / SmartScreen prompts. ASR models, runtimes, diagnostic WAV files, logs, and API keys are not bundled and must not be committed.
+- Next manual validation: install the generated beta package on this machine or another clean Windows environment, then run the minimum smoke test in `docs/guide/beta-install-test.md`.
+
+## 2026-06-06 V13 beta installer console-window fix
+
+- Maintainer reported that the installed app started with an extra black window.
+- Root cause: the Windows release binary was still built with the console subsystem because src-tauri/src/main.rs did not set the GUI subsystem for non-debug builds.
+- Fix: add the non-debug windows_subsystem=windows attribute to the Tauri binary entry point so release installers launch as a GUI app without an extra console window.
+- Verification passed after the fix: cargo check --manifest-path src-tauri/Cargo.toml --bin vox-type; npm run verify:v13; npm run tauri -- build. New installer artifacts were rebuilt at the existing NSIS/MSI paths.
+- Manual validation: install or run the rebuilt beta package and confirm VoxType launches without a separate black console window.
+
+
+## 2026-06-08 Local model install wait guidance
+
+- Maintainer reported that one-click local model installs can wait for a long time, making it unclear whether VoxType is stuck or downloading.
+- Added compact amber guidance in Settings -> Model for both local whisper.cpp and SenseVoice Small install panels. The copy explains that model/runtime downloads are large, gives rough expected time ranges, and notes network speed can make the wait longer.
+- During install, the guidance switches to a stronger wait message telling the user not to close VoxType and to keep the network connected.
+- UI follows docs/guide/ui-style-guide.md: small typography, low-saturation amber tone, no nested cards, and the existing model panel spacing.
+- Verification passed: npm test -- --run src/App.test.tsx -t local model install wait guidance; npm run typecheck; npm test -- --run src/App.test.tsx; npm run build; git diff --check with only existing CRLF/LF notices.
+
+
+## 2026-06-08 Install guidance ready-state noise fix
+
+- Maintainer found that the amber local-model install guidance still appeared after whisper.cpp or SenseVoice Small was already installed and detected ready.
+- Root cause: the guidance was rendered unconditionally in the local model config panels instead of being tied to readiness/installing state.
+- Fix: show the guidance only when the corresponding model is not ready or is currently installing. Hide it once the model is ready and no install is in progress.
+- Regression coverage now verifies both directions: not-ready local models show wait guidance, and ready local models hide it.
+- Verification passed: npm test -- --run src/App.test.tsx -t hides local model install guidance; npm test -- --run src/App.test.tsx -t local model install wait guidance; npm run typecheck; npm test -- --run src/App.test.tsx; npm run build.
+
+
+## 2026-06-08 SenseVoice empty-text quality feedback recovery
+
+- Maintainer found that far-mic SenseVoice tests could fail with `SenseVoice Small returned no text` instead of showing the expected audio-quality feedback such as possible far microphone.
+- Root cause: audio quality analysis runs when recording stops, but warnings were only visible on successful transcript records. If SenseVoice returned empty text, the failure path bypassed the transcript metadata surface and exposed the raw sherpa-onnx stdout/stderr. The far-mic detector also required at least 250 ms active speech, missing very short weak far-field snippets like the reported ~160 ms sample.
+- Fix 1: loosen `possible_far_microphone` active-speech lower bound from 250 ms to 80 ms while keeping the strict low RMS, low peak, and high silence-ratio gates.
+- Fix 2: when ASR fails after a recording that already has audio-quality warnings, the main/history failure message now prioritizes a user-facing recording-quality hint such as far microphone, silence, or low volume. The original ASR error remains in diagnostics for debugging.
+- Verification passed: `npm test -- --run src/App.test.tsx -t SenseVoice returns no text`; `npm test -- --run src/App.test.tsx`; `npm run typecheck`; `cargo check --manifest-path src-tauri/Cargo.toml --lib`; `cargo test --manifest-path src-tauri/Cargo.toml audio_quality --no-run`; `npm run build`; `git diff --check` with only existing CRLF/LF notices.

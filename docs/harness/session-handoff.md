@@ -217,3 +217,18 @@
 ### Known residual issue
 
 `bash init.sh` currently fails on tracked harness/planning files. The V11/V12 code checks pass, but this harness policy should be resolved before marking V12 `passing` or cutting a release.
+
+## 2026-06-05 V12 closeout and V13 handoff
+
+- `v11-001` is passing as safe insertion policy: `Auto 安全` always uses clipboard and was manually verified stable; `SendInput 实验` remains explicit and non-default.
+- `v12-001` is passing as scaffolding and policy only. It produced the compatibility matrix template, release checklist, build diagnostics, and layered testing strategy. It does not claim full desktop release readiness.
+- VibeVoice is abandoned for the current roadmap. Keep `docs/research/vibevoice-asr-feasibility.md` only as a rejected-for-now research record.
+- Next focus is `v13-001`: clipboard-first release readiness, real compatibility evidence for `Clipboard` and `Auto 安全`, optional `SendInput 实验` observations, safe regression sentinel decisions, and TSF go/no-go.
+- Known harness issue remains: `bash init.sh` can fail because it treats tracked harness/planning files as internal-file policy violations. Report this separately from runtime verification.
+
+## 2026-06-05 V13 safe readiness command
+
+- `bash init.sh` now passes. The old failure was caused by stale harness policy, not runtime breakage.
+- New V13 command: `npm run verify:v13`.
+- This command is safe automation only: no microphone recording, no global shortcut sending, no focus stealing, no real target-window automation.
+- Latest verification passed through `npm run verify:v13`. Manual desktop validation remains the next V13 work item.

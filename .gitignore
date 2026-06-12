@@ -82,7 +82,3 @@ TMP/research/repos/
 .cursor/
 .windsurf/
 .roo/
-
-
-# Documentation is temporarily kept out of release commits.
-docs/

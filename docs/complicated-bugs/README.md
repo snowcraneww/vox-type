@@ -1,4 +1,4 @@
-﻿# 复杂 Bug 归档
+# 复杂 Bug 归档
 
 本目录归档 VoxType 开发中出现过的复杂问题。这里记录的不是普通 changelog，而是后续维护者容易误判、容易复发、跨前后端或跨系统边界的故障。
 
@@ -6,6 +6,9 @@
 
 ## 已归档问题
 
+- [V13 浮窗截断复发与 VAD 开头裁剪](2026-06-06-overlay-clipping-and-vad-leading-trim.md)
+
+- [SendInput Unicode / VK_PACKET 重复最后字符](2026-06-05-sendinput-vk-packet-repeat.md)
 - [V10 音频增强与 SenseVoice 空文本、metadata 丢失、配置不持久](2026-06-04-v10-audio-enhancement-sensevoice-metadata.md)
 - [Ctrl+Alt+V 连续输入间歇失败](2026-06-03-continuous-input-toggle-race.md)
 - [双声道录音被错误当作 mono 导致变音](2026-05-27-stereo-recording-channel-collapse.md)
